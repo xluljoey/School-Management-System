@@ -29,7 +29,7 @@ class StaffProfile(models.Model):
         return f"{self.title} {self.first_name} {self.last_name}"
     
 class Student(models.Model):
-    admisssion_number = models.CharField(max_length=50, unique=True)
+    admission_number = models.CharField(max_length=50, unique=True)
     first_name = models.CharField(max_length=50)
     last_name = models.CharField(max_length=50)
     gender = models.CharField(max_length=10)
