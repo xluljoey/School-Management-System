@@ -9,9 +9,26 @@
             <h5 class="mb-0 fw-bold text-dark">Master Continuous Assessment Summary</h5>
             <small class="text-muted">Class: <strong>{{ classroom.class_name }}</strong></small>
         </div>
-        <button class="btn btn-sm btn-outline-secondary d-print-none" onclick="window.print()">🖨️ Print Report</button>
+        <div class="d-flex align-items-center gap-2">
+            <div class="dropdown d-print-none">
+                <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" id="classSelectorDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    Select Class
+                </button>
+                <ul class="dropdown-menu" aria-labelledby="classSelectorDropdown">
+                    {% for room in classrooms %}
+                    <li><a class="dropdown-item" href="{% url 'class_report' class_id=room.id %}">{{ room.class_name }}</a></li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <button class="btn btn-sm btn-outline-secondary d-print-none" onclick="window.print()">🖨️ Print Report</button>
+        </div>
     </div>
     <div class="card-body p-0">
+        {% if not has_graded_records %}
+        <div class="alert alert-warning m-3" role="alert">
+            No student grade records compiled for this class yet.
+        </div>
+        {% else %}
         <div class="table-responsive">
             <table class="table table-hover mb-0 align-middle">
                 <thead class="table-light">
@@ -47,6 +64,7 @@
                 </tbody>
             </table>
         </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

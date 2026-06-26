@@ -10,6 +10,16 @@ class StudentRegistrationTests(TestCase):
         response = self.client.get(reverse("student_registration"))
         self.assertEqual(response.status_code, 200)
 
+    def test_student_list_renders_with_classrooms(self):
+        classroom1 = ClassRoom.objects.create(class_name="JHS 1")
+        classroom2 = ClassRoom.objects.create(class_name="JHS 2")
+        response = self.client.get(reverse("student_list"))
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("classrooms", response.context)
+        self.assertEqual(len(response.context["classrooms"]), 2)
+        self.assertContains(response, "JHS 1")
+        self.assertContains(response, "JHS 2")
+
     def test_registration_form_has_gender_choices(self):
         form = StudentRegistrationForm()
         self.assertIn(("Male", "Male"), form.fields["gender"].choices)
@@ -71,3 +81,204 @@ class StudentRegistrationTests(TestCase):
 
         self.assertEqual(student.father.name, "John Doe")
         self.assertEqual(student.mother.name, "Jane Doe")
+
+    def test_parent_form_fields_optional(self):
+        from .forms import ParentForm
+        form = ParentForm()
+        for field_name, field in form.fields.items():
+            self.assertFalse(field.required, f"Field {field_name} should be optional")
+
+    def test_register_student_no_parents(self):
+        classroom = ClassRoom.objects.create(class_name="Class A")
+        post_data = {
+            "admission_number": "1001",
+            "first_name": "Child",
+            "last_name": "One",
+            "dob": "2015-05-05",
+            "gender": "Male",
+            "status": "Day",
+            "living_with": "Both",
+            "previous_school_attended": "None",
+            "current_class": classroom.id,
+            # Father details (empty)
+            "father-name": "",
+            "father-occupation": "",
+            "father-residential_address": "",
+            "father-email": "",
+            "father-telephone_number": "",
+            # Mother details (empty)
+            "mother-name": "",
+            "mother-occupation": "",
+            "mother-residential_address": "",
+            "mother-email": "",
+            "mother-telephone_number": "",
+        }
+        response = self.client.post(reverse("student_registration"), post_data)
+        self.assertEqual(response.status_code, 302) # Redirects to student_list
+        student = Student.objects.get(admission_number="1001")
+        self.assertIsNone(student.father)
+        self.assertIsNone(student.mother)
+
+    def test_register_student_only_mother(self):
+        classroom = ClassRoom.objects.create(class_name="Class B")
+        post_data = {
+            "admission_number": "1002",
+            "first_name": "Child",
+            "last_name": "Two",
+            "dob": "2015-05-05",
+            "gender": "Female",
+            "status": "Day",
+            "living_with": "Mother",
+            "previous_school_attended": "None",
+            "current_class": classroom.id,
+            # Father details (empty)
+            "father-name": "",
+            "father-occupation": "",
+            "father-residential_address": "",
+            "father-email": "",
+            "father-telephone_number": "",
+            # Mother details (filled)
+            "mother-name": "Jane Mother",
+            "mother-occupation": "Engineer",
+            "mother-residential_address": "Home Address",
+            "mother-email": "jane@example.com",
+            "mother-telephone_number": "0241234567",
+        }
+        response = self.client.post(reverse("student_registration"), post_data)
+        self.assertEqual(response.status_code, 302)
+        student = Student.objects.get(admission_number="1002")
+        self.assertIsNone(student.father)
+        self.assertIsNotNone(student.mother)
+        self.assertEqual(student.mother.name, "Jane Mother")
+        self.assertEqual(student.mother.telephone_number, "0241234567")
+
+    def test_register_student_parent_missing_name_and_phone(self):
+        classroom = ClassRoom.objects.create(class_name="Class C")
+        post_data = {
+            "admission_number": "1003",
+            "first_name": "Child",
+            "last_name": "Three",
+            "dob": "2015-05-05",
+            "gender": "Male",
+            "status": "Day",
+            "living_with": "Both",
+            "previous_school_attended": "None",
+            "current_class": classroom.id,
+            # Father details (occupation only - no name/phone)
+            "father-name": "",
+            "father-occupation": "Doctor",
+            "father-residential_address": "",
+            "father-email": "",
+            "father-telephone_number": "",
+            # Mother details (empty)
+            "mother-name": "",
+            "mother-occupation": "",
+            "mother-residential_address": "",
+            "mother-email": "",
+            "mother-telephone_number": "",
+        }
+        response = self.client.post(reverse("student_registration"), post_data)
+        self.assertEqual(response.status_code, 302)
+        student = Student.objects.get(admission_number="1003")
+        self.assertIsNone(student.father)
+        self.assertIsNone(student.mother)
+
+    def test_register_student_parent_only_phone(self):
+        classroom = ClassRoom.objects.create(class_name="Class D")
+        post_data = {
+            "admission_number": "1004",
+            "first_name": "Child",
+            "last_name": "Four",
+            "dob": "2015-05-05",
+            "gender": "Female",
+            "status": "Day",
+            "living_with": "Both",
+            "previous_school_attended": "None",
+            "current_class": classroom.id,
+            # Father details (telephone only)
+            "father-name": "",
+            "father-occupation": "",
+            "father-residential_address": "",
+            "father-email": "",
+            "father-telephone_number": "0509999999",
+            # Mother details (empty)
+            "mother-name": "",
+            "mother-occupation": "",
+            "mother-residential_address": "",
+            "mother-email": "",
+            "mother-telephone_number": "",
+        }
+        response = self.client.post(reverse("student_registration"), post_data)
+        self.assertEqual(response.status_code, 302)
+        student = Student.objects.get(admission_number="1004")
+        self.assertIsNotNone(student.father)
+        self.assertIsNone(student.mother)
+        self.assertEqual(student.father.telephone_number, "0509999999")
+
+    def test_bulk_grade_entry_saves_and_redirects_to_same_view(self):
+        classroom = ClassRoom.objects.create(class_name="Class E")
+        subject = Subject.objects.create(subject_name="Science")
+        student = Student.objects.create(
+            admission_number="1005",
+            first_name="Alice",
+            last_name="Test",
+            dob="2010-01-01",
+            gender="Female",
+            status="Day",
+            current_class=classroom,
+        )
+        post_data = {
+            f"class_score_{student.id}": "25.5",
+            f"exam_score_{student.id}": "45.0",
+        }
+        url = reverse("bulk_grade_entry", kwargs={"class_id": classroom.id, "subject_id": subject.id})
+        response = self.client.post(url, post_data)
+        
+        # Verify it redirects to the same bulk grade entry view
+        self.assertRedirects(response, url)
+        
+        # Verify assessment was saved correctly
+        assessment = SubjectAssessment.objects.get(student=student, subject=subject)
+        self.assertEqual(float(assessment.class_score), 25.5)
+        self.assertEqual(float(assessment.exam_score), 45.0)
+
+        # Verify messages contains the success message
+        messages_list = list(response.wsgi_request._messages)
+        self.assertEqual(len(messages_list), 1)
+        self.assertEqual(str(messages_list[0]), f"Grades for Science saved successfully!")
+
+    def test_class_report_empty_state_displays_banner(self):
+        classroom = ClassRoom.objects.create(class_name="Class Empty")
+        url = reverse("class_report", kwargs={"class_id": classroom.id})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("classrooms", response.context)
+        self.assertFalse(response.context["has_graded_records"])
+        self.assertContains(response, "No student grade records compiled for this class yet.")
+
+    def test_class_report_with_grades_displays_table(self):
+        classroom = ClassRoom.objects.create(class_name="Class Graded")
+        student = Student.objects.create(
+            admission_number="1006",
+            first_name="Evelyn",
+            last_name="Standings",
+            dob="2010-01-01",
+            gender="Female",
+            status="Day",
+            current_class=classroom,
+        )
+        subject = Subject.objects.create(subject_name="English")
+        SubjectAssessment.objects.create(
+            student=student,
+            subject=subject,
+            term=1,
+            academic_year="2025-2026",
+            class_score=30,
+            exam_score=50,
+        )
+        url = reverse("class_report", kwargs={"class_id": classroom.id})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["has_graded_records"])
+        self.assertContains(response, "Evelyn Standings")
+        self.assertNotContains(response, "No student grade records compiled for this class yet.")

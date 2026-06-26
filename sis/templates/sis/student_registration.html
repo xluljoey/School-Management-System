@@ -4,53 +4,124 @@
 
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col-md-8">
+    <div class="col-lg-10">
         <div class="card shadow-sm border-0">
             <div class="card-header bg-dark text-white py-3">
-                <h5 class="mb-0 fw-bold">Admission & Registration Form</h5>
+                <h5 class="mb-0 fw-bold">Student Registration Form</h5>
             </div>
             <div class="card-body p-4">
                 <form method="POST">
-                    {% csrf_token %} <div class="row g-3 mb-4">
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold text-secondary">First Name</label>
-                            {{ form.first_name }}
+                    {% csrf_token %}
+
+                    <div class="card shadow-sm border-0 mb-4">
+                        <div class="card-header bg-light py-3">
+                            <h6 class="mb-0 fw-bold text-secondary">1. Academic & Personal Profile</h6>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold text-secondary">Last Name</label>
-                            {{ form.last_name }}
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold text-secondary">Admission Number</label>
+                                    {{ student_form.admission_number }}
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold text-secondary">First Name</label>
+                                    {{ student_form.first_name }}
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold text-secondary">Last Name</label>
+                                    {{ student_form.last_name }}
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold text-secondary">Date of Birth</label>
+                                    {{ student_form.dob }}
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold text-secondary">Gender</label>
+                                    {{ student_form.gender }}
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold text-secondary">Status</label>
+                                    {{ student_form.status }}
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold text-secondary">Living With</label>
+                                    {{ student_form.living_with }}
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold text-secondary">Previous School</label>
+                                    {{ student_form.previous_school_attended }}
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold text-secondary">Current Class</label>
+                                    {{ student_form.current_class }}
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="row g-3 mb-4">
+                    <div class="row g-4">
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold text-secondary">Admission / Index Number</label>
-                            {{ form.admission_number }}
+                            <div class="card shadow-sm border-0 h-100">
+                                <div class="card-header bg-light py-3">
+                                    <h6 class="mb-0 fw-bold text-secondary">2A. Father's Particulars</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold text-secondary">Name</label>
+                                        {{ father_form.name }}
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold text-secondary">Occupation</label>
+                                        {{ father_form.occupation }}
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold text-secondary">Residential Address</label>
+                                        {{ father_form.residential_address }}
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold text-secondary">Email</label>
+                                        {{ father_form.email }}
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold text-secondary">Telephone Number</label>
+                                        {{ father_form.telephone_number }}
+                                    </div>
+                                </div>
+                            </div>
                         </div>
+
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold text-secondary">Date of Birth</label>
-                            {{ form.dob }}
+                            <div class="card shadow-sm border-0 h-100">
+                                <div class="card-header bg-light py-3">
+                                    <h6 class="mb-0 fw-bold text-secondary">2B. Mother's Particulars</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold text-secondary">Name</label>
+                                        {{ mother_form.name }}
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold text-secondary">Occupation</label>
+                                        {{ mother_form.occupation }}
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold text-secondary">Residential Address</label>
+                                        {{ mother_form.residential_address }}
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold text-secondary">Email</label>
+                                        {{ mother_form.email }}
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold text-secondary">Telephone Number</label>
+                                        {{ mother_form.telephone_number }}
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="row g-3 mb-4">
-                        <div class="col-md-4">
-                            <label class="form-label fw-semibold text-secondary">Gender</label>
-                            {{ form.gender }}
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label fw-semibold text-secondary">Enrollment Status</label>
-                            {{ form.status }}
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label fw-semibold text-secondary">Assigned Class</label>
-                            {{ form.current_class }}
-                        </div>
-                    </div>
-
-                    <hr class="text-muted my-4">
-
-                    <div class="d-flex justify-content-end gap-2">
+                    <div class="d-flex justify-content-end gap-2 mt-4">
                         <a href="{% url 'student_list' %}" class="btn btn-light px-4">Cancel</a>
                         <button type="submit" class="btn btn-primary px-4">Save Student Record</button>
                     </div>

@@ -31,14 +31,14 @@ class StaffProfile(models.Model):
         return f"{self.title} {self.first_name} {self.last_name}"
     
 class Parent(models.Model):
-    name = models.CharField(max_length=255)
-    occupation = models.CharField(max_length=150, blank=True)
-    residential_address = models.CharField(max_length=255)
-    email = models.EmailField(blank=True)
-    telephone_number = models.CharField(max_length=20)
+    name = models.CharField(max_length=255, blank=True, null=True)
+    occupation = models.CharField(max_length=150, blank=True, null=True)
+    residential_address = models.CharField(max_length=255, blank=True, null=True)
+    email = models.EmailField(blank=True, null=True)
+    telephone_number = models.CharField(max_length=20, blank=True, null=True)
 
     def __str__(self):
-        return self.name
+        return self.name or "Unnamed Parent"
 
 
 class Student(models.Model):
