@@ -1,0 +1,52 @@
+{% extends 'sis/base.html' %}
+
+{% block title %} Class Terminal Master Sheet {% endblock %}
+
+{% block content %}
+<div class="card shadow-sm border-0">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <div>
+            <h5 class="mb-0 fw-bold text-dark">Master Continuous Assessment Summary</h5>
+            <small class="text-muted">Class: <strong>{{ classroom.class_name }}</strong></small>
+        </div>
+        <button class="btn btn-sm btn-outline-secondary d-print-none" onclick="window.print()">🖨️ Print Report</button>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">Rank</th>
+                        <th>Admission No.</th>
+                        <th>Student Name</th>
+                        <th>Subject Assessments</th>
+                        <th>Grand Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in report_data %}
+                    <tr>
+                        <td class="ps-4"><span class="badge bg-success rounded-pill">#{{ row.rank }}</span></td>
+                        <td class="font-monospace text-secondary">{{ row.student.admission_number }}</td>
+                        <td class="fw-bold text-dark">{{ row.student.first_name }} {{ row.student.last_name }}</td>
+                        <td>
+                            <div class="d-flex flex-wrap gap-2">
+                                {% for ast in row.assessments %}
+                                <span class="badge bg-light text-dark border p-2">
+                                    <strong>{{ ast.subject.subject_name }}:</strong> 
+                                    {{ ast.total_score }} (Grade {{ ast.grade_and_remark.0 }})
+                                </span>
+                                {% empty %}
+                                <span class="text-muted small">No grades recorded this term</span>
+                                {% endfor %}
+                            </div>
+                        </td>
+                        <td class="fw-bold text-primary">{{ row.grand_total|floatformat:1 }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

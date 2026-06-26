@@ -1,0 +1,63 @@
+{% extends 'sis/base.html' %}
+
+{% block title %} Terminal Grade Sheet {% endblock %}
+
+{% block content %}
+<div class="card shadow-sm border-0">
+    <div class="card-header bg-dark text-white py-3 d-flex justify-content-between align-items-center">
+        <div>
+            <h5 class="mb-0 fw-bold">Continuous Assessment Input Sheet</h5>
+            <small class="text-light-50">Class: <strong>{{ classroom.class_name }}</strong> | Subject: <strong>{% if subject %}{{ subject.subject_name }}{% else %}None selected{% endif %}</strong></small>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            {% if subjects %}
+            <select class="form-select form-select-sm" onchange="window.location.href=this.value">
+                {% for item in subjects %}
+                <option value="{% url 'bulk_grade_entry' class_id=classroom.id subject_id=item.id %}" {% if subject and subject.id == item.id %}selected{% endif %}>{{ item.subject_name }}</option>
+                {% endfor %}
+            </select>
+            {% endif %}
+            <span class="badge bg-warning text-dark fw-bold">Term 1 (2025/2026)</span>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <form method="POST">
+            {% csrf_token %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4" style="width: 25%;">Admission No.</th>
+                            <th style="width: 35%;">Student Full Name</th>
+                            <th style="width: 20%;">Class Score (SBA /40)</th>
+                            <th class="pe-4" style="width: 20%;">Examination Score /60</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in matrix %}
+                        <tr>
+                            <td class="ps-4 font-monospace text-secondary">{{ row.student.admission_number }}</td>
+                            <td class="fw-medium text-dark">{{ row.student.first_name }} {{ row.student.last_name }}</td>
+                            <td>
+                                <input type="number" name="class_score_{{ row.student.id }}" 
+                                       class="form-control form-control-sm border-secondary-subtle" 
+                                       step="0.01" min="0" max="40" value="{{ row.existing_class_score }}">
+                            </td>
+                            <td class="pe-4">
+                                <input type="number" name="exam_score_{{ row.student.id }}" 
+                                       class="form-control form-control-sm border-secondary-subtle" 
+                                       step="0.01" min="0" max="60" value="{{ row.existing_exam_score }}">
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="card-footer bg-white py-3 d-flex justify-content-end gap-2 border-top-0">
+                <a href="{% url 'student_list' %}" class="btn btn-light px-4">Cancel</a>
+                <button type="submit" class="btn btn-success px-4">Compile & Save Grades</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

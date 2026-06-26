@@ -1,3 +1,5 @@
+from datetime import date
+
 from django.db import models
 from django.contrib.auth.models import User
 
@@ -28,18 +30,76 @@ class StaffProfile(models.Model):
     def __str__(self):
         return f"{self.title} {self.first_name} {self.last_name}"
     
+class Parent(models.Model):
+    name = models.CharField(max_length=255)
+    occupation = models.CharField(max_length=150, blank=True)
+    residential_address = models.CharField(max_length=255)
+    email = models.EmailField(blank=True)
+    telephone_number = models.CharField(max_length=20)
+
+    def __str__(self):
+        return self.name
+
+
 class Student(models.Model):
+    GENDER_CHOICES = [('Male', 'Male'), ('Female', 'Female')]
+    STATUS_CHOICES = [('Day', 'Day'), ('Boarder', 'Boarder')]
+    LIVING_WITH_CHOICES = [('Mother', 'Mother'), ('Father', 'Father'), ('Both', 'Both')]
+
     admission_number = models.CharField(max_length=50, unique=True)
-    first_name = models.CharField(max_length=50)
-    last_name = models.CharField(max_length=50)
-    gender = models.CharField(max_length=10)
-    dob = models.DateField()
-    status = models.CharField(max_length=20) #Day / Boarder
+    first_name = models.CharField(max_length=100)
+    last_name = models.CharField(max_length=100)
+    dob = models.DateField(verbose_name='Date of Birth')
+    date_of_admission = models.DateField(default=date.today)
+    gender = models.CharField(max_length=10, choices=GENDER_CHOICES)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES)
+    living_with = models.CharField(max_length=10, choices=LIVING_WITH_CHOICES, default='Both')
+    previous_school_attended = models.CharField(max_length=255, default='N/A')
+    father = models.ForeignKey(Parent, on_delete=models.SET_NULL, null=True, blank=True, related_name='father_of')
+    mother = models.ForeignKey(Parent, on_delete=models.SET_NULL, null=True, blank=True, related_name='mother_of')
     current_class = models.ForeignKey(ClassRoom, on_delete=models.PROTECT)
 
     def __str__(self):
-        return f"{self.first_name} {self.last_name} ({self.admisssion_number})"
-        
+        return f"{self.first_name} {self.last_name} ({self.admission_number})"
+
+
+class SubjectAssessment(models.Model):
+    student = models.ForeignKey(Student, on_delete=models.CASCADE)
+    subject = models.ForeignKey('Subject', on_delete=models.CASCADE)
+    term = models.IntegerField()
+    academic_year = models.CharField(max_length=9)
+    class_score = models.DecimalField(max_digits=5, decimal_places=2)
+    exam_score = models.DecimalField(max_digits=5, decimal_places=2)
+
+    @property
+    def total_score(self):
+        return float(self.class_score or 0) + float(self.exam_score or 0)
+
+    @property
+    def grade_and_remark(self):
+        total = self.total_score
+        if total >= 80:
+            return ("1", "Highest Distinction")
+        elif total >= 75:
+            return ("2", "Distinction")
+        elif total >= 70:
+            return ("3", "Excellent")
+        elif total >= 65:
+            return ("4", "Very Good")
+        elif total >= 60:
+            return ("5", "Good")
+        elif total >= 55:
+            return ("6", "Credit")
+        elif total >= 50:
+            return ("7", "Satisfactory")
+        elif total >= 40:
+            return ("8", "Pass")
+        return ("9", "Fail")
+
+    def __str__(self):
+        return f"Assessment for {self.student}"
+
+
 class SubjectAssignment(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE)
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
@@ -48,6 +108,24 @@ class SubjectAssignment(models.Model):
     class_score = models.DecimalField(max_digits=5, decimal_places=2) # Out of 30/40
     exam_score = models.DecimalField(max_digits=5, decimal_places=2) # Out of 60/70
 
+    @property
+    def total_score(self):
+        """Adds class score and exam score together dynamically."""
+        return float(self.class_score or 0) + float(self.exam_score or 0)
+
+    @property
+    def grade_and_remark(self):
+        """Returns standard Ghanaian basic school grading tier (1 to 9)."""
+        total = self.total_score
+        if total >= 80: return ("1", "Highest Distinction")
+        elif total >= 75: return ("2", "Distinction")
+        elif total >= 70: return ("3", "Excellent")
+        elif total >= 65: return ("4", "Very Good")
+        elif total >= 60: return ("5", "Good")
+        elif total >= 55: return ("6", "Credit")
+        elif total >= 50: return ("7", "Satisfactory")
+        elif total >= 40: return ("8", "Pass")
+        else: return ("9", "Fail")
 
 
 
