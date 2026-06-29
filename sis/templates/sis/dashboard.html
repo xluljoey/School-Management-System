@@ -5,6 +5,48 @@
 
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var boyPct = {{ boy_pct }};
+  var girlPct = {{ girl_pct }};
+
+  new Chart(document.getElementById('boysChart'), {
+    type: 'doughnut',
+    data: {
+      datasets: [{
+        data: [boyPct, 100 - boyPct],
+        backgroundColor: ['#C3C4FF', '#ededed'],
+        borderWidth: 0,
+      }]
+    },
+    options: {
+      cutout: '82%',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { tooltip: { enabled: false }, legend: { display: false } },
+      animation: { duration: 1000, easing: 'easeOutQuart' }
+    }
+  });
+
+  new Chart(document.getElementById('girlsChart'), {
+    type: 'doughnut',
+    data: {
+      datasets: [{
+        data: [girlPct, 100 - girlPct],
+        backgroundColor: ['#FFE89C', '#ededed'],
+        borderWidth: 0,
+      }]
+    },
+    options: {
+      cutout: '82%',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { tooltip: { enabled: false }, legend: { display: false } },
+      animation: { duration: 1000, easing: 'easeOutQuart' }
+    }
+  });
+});
+</script>
 {% endblock %}
 
 {% block content %}
@@ -42,13 +84,33 @@
 
 <div class="row g-3">
     <div class="col-md-7">
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-white py-3">
-                <h6 class="mb-0 fw-bold text-secondary">Enrollment Trends</h6>
+        <div class="card shadow-sm border-0" style="max-width: 356px;">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold text-secondary">Students</h6>
+                <span class="text-secondary fw-bold" style="letter-spacing: 2px;">&hellip;</span>
             </div>
-            <div class="card-body">
-                <canvas id="enrollmentChart" height="180"></canvas>
-                <p class="text-muted small text-center mt-2 mb-0">Chart placeholder — data integration pending</p>
+            <div class="card-body" style="height: 159px;">
+                <div class="d-flex justify-content-around align-items-center h-100" style="gap: 38px;">
+                    <div class="position-relative" style="width: 90px; height: 90px;">
+                        <canvas id="boysChart" width="90" height="90"></canvas>
+                        <div class="position-absolute top-50 start-50 translate-middle text-center">
+                            <div class="fw-bold" style="font-size: 1.1rem;">{{ boy_pct }}%</div>
+                            <small style="font-size: 0.6rem;">Boys</small>
+                        </div>
+                    </div>
+                    <div class="position-relative" style="width: 90px; height: 90px;">
+                        <canvas id="girlsChart" width="90" height="90"></canvas>
+                        <div class="position-absolute top-50 start-50 translate-middle text-center">
+                            <div class="fw-bold" style="font-size: 1.1rem;">{{ girl_pct }}%</div>
+                            <small style="font-size: 0.6rem;">Girls</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer bg-white border-top-0 pt-0 pb-3 text-center small text-muted">
+                <span style="color: #C3C4FF;">&#8226;</span> {{ total_boys }} (boys)
+                &nbsp;&nbsp;&nbsp;
+                <span style="color: #FFE89C;">&#8226;</span> {{ total_girls }} (girls)
             </div>
         </div>
     </div>
@@ -66,10 +128,10 @@
                 </a>
                 {% if user.is_superuser %}
                 <a href="{% url 'class_enrollment_portal' %}" class="btn btn-outline-dark btn-lg text-start">
-                    🚀 Promotion Portal
+                    &#128640; Promotion Portal
                 </a>
                 <a href="{% url 'configure_session' %}" class="btn btn-outline-secondary btn-lg text-start">
-                    ⚙️ Academic Settings
+                    &#9881;&#65039; Academic Settings
                 </a>
                 {% endif %}
             </div>

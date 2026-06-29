@@ -24,12 +24,21 @@ def dashboard_view(request):
     current_session = AcademicSession.objects.filter(is_current=True).first()
     current_term = Term.objects.filter(is_active=True).first() if current_session else None
 
+    total_boys = Student.objects.filter(gender__iexact='Male').count()
+    total_girls = Student.objects.filter(gender__iexact='Female').count()
+    boy_pct = int((total_boys / total_students) * 100) if total_students > 0 else 0
+    girl_pct = int((total_girls / total_students) * 100) if total_students > 0 else 0
+
     context = {
         'total_students': total_students,
         'total_staff': total_staff,
         'active_classes': active_classes,
         'current_session': current_session,
         'current_term': current_term,
+        'total_boys': total_boys,
+        'total_girls': total_girls,
+        'boy_pct': boy_pct,
+        'girl_pct': girl_pct,
     }
     return render(request, 'sis/dashboard.html', context)
 
