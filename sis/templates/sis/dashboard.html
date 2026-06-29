@@ -50,90 +50,123 @@ document.addEventListener('DOMContentLoaded', function () {
 {% endblock %}
 
 {% block content %}
-<div class="row g-3 mb-4">
-    <div class="col-md-4">
-        <div class="card shadow-sm border-0 text-center py-4">
-            <div class="card-body">
-                <h1 class="display-4 fw-bold text-primary mb-1">{{ total_students }}</h1>
-                <span class="text-muted small text-uppercase fw-semibold">Total Students</span>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card shadow-sm border-0 text-center py-4">
-            <div class="card-body">
-                <h1 class="display-4 fw-bold text-success mb-1">{{ total_staff }}</h1>
-                <span class="text-muted small text-uppercase fw-semibold">Staff Registry</span>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card shadow-sm border-0 text-center py-4">
-            <div class="card-body">
-                <h6 class="fw-bold text-secondary mb-0">Active Environment</h6>
-                <p class="h5 mb-0 mt-2">
-                    <span class="badge bg-dark">{{ current_session|default:"None" }}</span>
-                </p>
-                <p class="mb-0">
-                    <span class="badge bg-info text-dark">{{ current_term|default:"None" }}</span>
-                </p>
-            </div>
-        </div>
-    </div>
-</div>
+<div class="row g-4">
+    <!-- LEFT COLUMN -->
+    <div class="col-lg-8 d-flex flex-column gap-4">
 
-<div class="row g-3">
-    <div class="col-md-7">
-        <div class="card shadow-sm border-0" style="max-width: 356px;">
-            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-                <h6 class="mb-0 fw-bold text-secondary">Students</h6>
-                <span class="text-secondary fw-bold" style="letter-spacing: 2px;">&hellip;</span>
+        <!-- Welcome Card -->
+        <div style="background: #ffffff; border-radius: 20px; border: 1px solid rgba(0,0,0,0.05); padding: 32px; display: flex; justify-content: space-between; align-items: center;">
+            <div style="max-width: 460px;">
+                <h1 style="font-size: 1.75rem; font-weight: 700; color: #000000; margin: 0 0 12px 0;">
+                    Welcome, {{ request.user.username|capfirst }}!
+                </h1>
+                <p style="font-size: 0.95rem; color: #8F8F8F; margin: 0; line-height: 1.6;">
+                    Manage your school operations with ease. Stay updated on academics, attendance, finances, and more—all in one place. Let's keep shaping a brighter future together!
+                </p>
             </div>
-            <div class="card-body" style="height: 159px;">
-                <div class="d-flex justify-content-around align-items-center h-100" style="gap: 38px;">
-                    <div class="position-relative" style="width: 90px; height: 90px;">
-                        <canvas id="boysChart" width="90" height="90"></canvas>
-                        <div class="position-absolute top-50 start-50 translate-middle text-center">
-                            <div class="fw-bold" style="font-size: 1.1rem;">{{ boy_pct }}%</div>
-                            <small style="font-size: 0.6rem;">Boys</small>
+            <div style="flex-shrink: 0;">
+                <svg width="140" height="140" viewBox="0 0 140 140" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="10" y="30" width="80" height="90" rx="8" fill="#EDEDED"/>
+                    <rect x="16" y="36" width="68" height="10" rx="4" fill="#C3C4FF"/>
+                    <rect x="16" y="52" width="40" height="6" rx="3" fill="#D9D9D9"/>
+                    <rect x="16" y="64" width="55" height="6" rx="3" fill="#D9D9D9"/>
+                    <rect x="16" y="76" width="50" height="6" rx="3" fill="#D9D9D9"/>
+                    <circle cx="100" cy="90" r="34" fill="#FFE89C"/>
+                    <circle cx="100" cy="90" r="18" fill="#ffffff"/>
+                    <path d="M95 88h10v10h-10z" fill="#000000" opacity="0.3"/>
+                    <circle cx="100" cy="100" r="3" fill="#000000" opacity="0.3"/>
+                </svg>
+            </div>
+        </div>
+
+        <!-- Students Ring + Notice Board row -->
+        <div class="row g-4">
+            <div class="col-md-6">
+                <div class="card shadow-sm border-0">
+                    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0 fw-bold" style="color: #000000;">Students</h6>
+                        <span style="color: #000000; font-weight: 700; letter-spacing: 2px;">&hellip;</span>
+                    </div>
+                    <div class="card-body" style="height: 159px;">
+                        <div class="d-flex justify-content-around align-items-center h-100" style="gap: 38px;">
+                            <div class="position-relative" style="width: 90px; height: 90px;">
+                                <canvas id="boysChart" width="90" height="90"></canvas>
+                                <div class="position-absolute top-50 start-50 translate-middle text-center">
+                                    <div class="fw-bold" style="font-size: 1.1rem;">{{ boy_pct }}%</div>
+                                    <small style="font-size: 0.6rem; color: #8F8F8F;">Boys</small>
+                                </div>
+                            </div>
+                            <div class="position-relative" style="width: 90px; height: 90px;">
+                                <canvas id="girlsChart" width="90" height="90"></canvas>
+                                <div class="position-absolute top-50 start-50 translate-middle text-center">
+                                    <div class="fw-bold" style="font-size: 1.1rem;">{{ girl_pct }}%</div>
+                                    <small style="font-size: 0.6rem; color: #8F8F8F;">Girls</small>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div class="position-relative" style="width: 90px; height: 90px;">
-                        <canvas id="girlsChart" width="90" height="90"></canvas>
-                        <div class="position-absolute top-50 start-50 translate-middle text-center">
-                            <div class="fw-bold" style="font-size: 1.1rem;">{{ girl_pct }}%</div>
-                            <small style="font-size: 0.6rem;">Girls</small>
-                        </div>
+                    <div class="card-footer bg-white border-top-0 pt-0 pb-3 text-center small text-muted">
+                        <span style="color: #C3C4FF;">&#8226;</span> {{ total_boys }} (boys)
+                        &nbsp;&nbsp;&nbsp;
+                        <span style="color: #FFE89C;">&#8226;</span> {{ total_girls }} (girls)
                     </div>
                 </div>
             </div>
-            <div class="card-footer bg-white border-top-0 pt-0 pb-3 text-center small text-muted">
-                <span style="color: #C3C4FF;">&#8226;</span> {{ total_boys }} (boys)
-                &nbsp;&nbsp;&nbsp;
-                <span style="color: #FFE89C;">&#8226;</span> {{ total_girls }} (girls)
+            <div class="col-md-6">
+                <div class="card shadow-sm border-0 h-100">
+                    <div class="card-header bg-white py-3">
+                        <h6 class="mb-0 fw-bold" style="color: #000000;">Notice Board</h6>
+                    </div>
+                    <div class="card-body d-flex align-items-center justify-content-center" style="height: 159px;">
+                        <p class="text-muted small text-center mb-0">Announcements &amp; updates will appear here.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white py-3">
+                <h6 class="mb-0 fw-bold" style="color: #000000;">Quick Actions</h6>
+            </div>
+            <div class="card-body d-flex gap-2 flex-wrap">
+                <a href="{% url 'student_registration' %}" class="btn btn-outline-primary">➕ Register Student</a>
+                <a href="{% url 'register_staff' %}" class="btn btn-outline-success">👤 Register Staff</a>
+                {% if user.is_superuser %}
+                <a href="{% url 'class_enrollment_portal' %}" class="btn btn-outline-dark">🚀 Promotion Portal</a>
+                <a href="{% url 'configure_session' %}" class="btn btn-outline-secondary">⚙️ Academic Settings</a>
+                {% endif %}
             </div>
         </div>
     </div>
-    <div class="col-md-5">
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-white py-3">
-                <h6 class="mb-0 fw-bold text-secondary">Quick Actions</h6>
+
+    <!-- RIGHT COLUMN - Summary Cards -->
+    <div class="col-lg-4 d-flex flex-column gap-3">
+        <div class="card border-0 text-center overflow-hidden" style="border-radius: 16px;">
+            <div style="background: #FFE89C; padding: 6px 0;">
+                <span class="small fw-semibold text-uppercase" style="color: #000000; letter-spacing: 0.5px; font-size: 0.7rem;">Total Students</span>
             </div>
-            <div class="card-body d-grid gap-2">
-                <a href="{% url 'student_registration' %}" class="btn btn-outline-primary btn-lg text-start">
-                    ➕ Register New Student
-                </a>
-                <a href="{% url 'register_staff' %}" class="btn btn-outline-success btn-lg text-start">
-                    👤 Register New Staff
-                </a>
-                {% if user.is_superuser %}
-                <a href="{% url 'class_enrollment_portal' %}" class="btn btn-outline-dark btn-lg text-start">
-                    &#128640; Promotion Portal
-                </a>
-                <a href="{% url 'configure_session' %}" class="btn btn-outline-secondary btn-lg text-start">
-                    &#9881;&#65039; Academic Settings
-                </a>
-                {% endif %}
+            <div class="py-3">
+                <span style="font-size: 2.8rem; font-weight: 700; color: #000000;">{{ total_students }}</span>
+            </div>
+        </div>
+
+        <div class="card border-0 text-center overflow-hidden" style="border-radius: 16px;">
+            <div style="background: #C3C4FF; padding: 6px 0;">
+                <span class="small fw-semibold text-uppercase" style="color: #000000; letter-spacing: 0.5px; font-size: 0.7rem;">Teachers</span>
+            </div>
+            <div class="py-3">
+                <span style="font-size: 2.8rem; font-weight: 700; color: #000000;">{{ total_staff }}</span>
+            </div>
+        </div>
+
+        <div class="card border-0 text-center overflow-hidden" style="border-radius: 16px;">
+            <div style="background: #000000; padding: 6px 0;">
+                <span class="small fw-semibold text-uppercase" style="color: #ffffff; letter-spacing: 0.5px; font-size: 0.7rem;">Active Environment</span>
+            </div>
+            <div class="py-3">
+                <div style="font-size: 1rem; font-weight: 600; color: #000000;">{{ current_session|default:"None" }}</div>
+                <div style="font-size: 0.85rem; color: #8F8F8F;">{{ current_term|default:"None" }}</div>
             </div>
         </div>
     </div>
