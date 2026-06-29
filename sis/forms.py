@@ -37,14 +37,35 @@ class StudentRegistrationForm(forms.ModelForm):
 
 
 class EnrollmentForm(forms.ModelForm):
+    term = forms.ModelChoiceField(
+        queryset=Term.objects.all(),
+        empty_label="-- Select Active Term --",
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+
     class Meta:
         model = Enrollment
-        fields = ['classroom', 'term', 'academic_year']
+        fields = ['classroom', 'term']
         widgets = {
             'classroom': forms.Select(attrs={'class': 'form-select'}),
-            'term': forms.TextInput(attrs={'class': 'form-control'}),
-            'academic_year': forms.TextInput(attrs={'class': 'form-control'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        session = kwargs.pop('session', None)
+        super().__init__(*args, **kwargs)
+        self.fields['term'].label_from_instance = lambda obj: f"{obj.term_name} ({obj.session.academic_year})"
+        if session:
+            self.fields['term'].queryset = Term.objects.filter(session=session)
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        term_obj = self.cleaned_data.get('term')
+        if term_obj:
+            instance.term = term_obj.term_name
+            instance.academic_year = term_obj.session.academic_year
+        if commit:
+            instance.save()
+        return instance
 
 class MarkSubmissionForm(forms.ModelForm):
     class Meta:
@@ -57,13 +78,33 @@ class MarkSubmissionForm(forms.ModelForm):
         }
 
 class StaffRegistrationForm(forms.ModelForm):
+    QUALIFICATION_CHOICES = [
+        ('Diploma', 'Diploma'),
+        ('Degree', 'Bachelors Degree'),
+        ('Masters', 'Masters Degree'),
+        ('PhD', 'Doctorate (PhD)'),
+        ('Other', 'Other'),
+    ]
+    CERTIFICATE_CHOICES = [
+        ('B.Ed', 'B.Ed (Education)'),
+        ('B.A', 'B.A (Bachelor of Arts)'),
+        ('B.Sc', 'B.Sc (Bachelor of Science)'),
+        ('PGDE', 'PGDE (Postgrad Diploma in Ed)'),
+        ('M.Ed', 'M.Ed (Master of Education)'),
+        ('Other', 'Other'),
+    ]
+
+    qualification = forms.ChoiceField(choices=QUALIFICATION_CHOICES, widget=forms.Select(attrs={'class': 'form-select'}))
+    certificate = forms.ChoiceField(choices=CERTIFICATE_CHOICES, widget=forms.Select(attrs={'class': 'form-select'}))
+
     class Meta:
         model = StaffProfile
         fields = [
             'title', 'full_name', 'staff_id', 'gender', 'dob', 'designation',
             'ssnit_id', 'email', 'employment_type', 'date_of_appointment',
             'year_of_last_promotion', 'department', 'qualification', 'certificate',
-            'name_of_institution_completed', 'year_completed', 'form_class', 'subject_areas'
+            'name_of_institution_completed', 'year_completed', 'profile_picture',
+            'form_class', 'subject_areas',
         ]
         widgets = {
             'title': forms.Select(attrs={'class': 'form-select'}),
@@ -78,10 +119,9 @@ class StaffRegistrationForm(forms.ModelForm):
             'date_of_appointment': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'year_of_last_promotion': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Year of Last Promotion'}),
             'department': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Department'}),
-            'qualification': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Qualification'}),
-            'certificate': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., B.Ed Education'}),
             'name_of_institution_completed': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Institution Completed'}),
             'year_completed': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Year Completed'}),
+            'profile_picture': forms.ClearableFileInput(attrs={'class': 'form-control'}),
             'form_class': forms.Select(attrs={'class': 'form-select'}),
             'subject_areas': forms.CheckboxSelectMultiple(),
         }

@@ -4,7 +4,14 @@ from django.db import models
 from django.contrib.auth.models import User
 
 class ClassRoom(models.Model):
-    class_name = models.CharField(max_length=50, unique =True)
+    class_name = models.CharField(max_length=50, unique=True)
+    order = models.PositiveIntegerField(
+        default=0,
+        help_text="Used to sort classes hierarchically (e.g., Class 1 = 1, JHS 3 = 9)"
+    )
+
+    class Meta:
+        ordering = ['order']
 
     def __str__(self):
         return self.class_name
@@ -49,6 +56,7 @@ class StaffProfile(models.Model):
     certificate = models.CharField(max_length=150, default='')
     name_of_institution_completed = models.CharField(max_length=255, default='')
     year_completed = models.IntegerField(default=2000)
+    profile_picture = models.ImageField(upload_to='staff/profiles/', blank=True, null=True)
 
     form_class = models.OneToOneField('ClassRoom', on_delete=models.SET_NULL, null=True, blank=True, related_name='form_teacher')
     subject_areas = models.ManyToManyField('Subject', related_name='teachers', help_text="Select all subjects this staff member is assigned to teach.")
@@ -81,6 +89,7 @@ class Student(models.Model):
     status = models.CharField(max_length=10, choices=STATUS_CHOICES)
     living_with = models.CharField(max_length=10, choices=LIVING_WITH_CHOICES, default='Both')
     previous_school_attended = models.CharField(max_length=255, default='N/A')
+    profile_picture = models.ImageField(upload_to='students/profiles/', blank=True, null=True)
     father = models.ForeignKey(Parent, on_delete=models.SET_NULL, null=True, blank=True, related_name='father_of')
     mother = models.ForeignKey(Parent, on_delete=models.SET_NULL, null=True, blank=True, related_name='mother_of')
     

@@ -1,0 +1,113 @@
+{% extends 'sis/base.html' %}
+
+{% block title %}{{ staff_member.full_name }} - Staff Details{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm border-0">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <div>
+            <h5 class="mb-0 fw-bold text-secondary">Staff Details</h5>
+            <p class="mb-0 text-muted small">{{ staff_member.designation }} | {{ staff_member.department }}</p>
+        </div>
+        <a href="{% url 'staff_list' %}" class="btn btn-sm btn-outline-secondary">← Back to Staff List</a>
+    </div>
+    
+    <div class="card-body">
+        <div class="row mb-4">
+            <div class="col-md-3 text-center mb-3 mb-md-0">
+                {% if staff_member.profile_picture %}
+                <img src="{{ staff_member.profile_picture.url }}" alt="{{ staff_member.full_name }}" class="img-fluid rounded-circle" style="width: 150px; height: 150px; object-fit: cover;">
+                {% else %}
+                <div class="bg-light rounded-circle d-flex align-items-center justify-content-center" style="width: 150px; height: 150px;">
+                    <span class="display-4 text-muted">{{ staff_member.full_name|slice:":1" }}</span>
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="col-md-9">
+                <div class="row mb-3">
+                    <div class="col-sm-4">
+                        <h6 class="text-muted small">Staff ID</h6>
+                        <p class="font-monospace fw-medium">{{ staff_member.staff_id }}</p>
+                    </div>
+                    <div class="col-sm-8">
+                        <h6 class="text-muted small">Full Name</h6>
+                        <p class="fw-medium">{{ staff_member.title }} {{ staff_member.full_name }}</p>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-sm-6">
+                        <h6 class="text-muted small">Designation</h6>
+                        <p>{{ staff_member.designation }}</p>
+                    </div>
+                    <div class="col-sm-6">
+                        <h6 class="text-muted small">Department</h6>
+                        <p>{{ staff_member.department }}</p>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-sm-6">
+                        <h6 class="text-muted small">Email</h6>
+                        <p>{{ staff_member.email|default:"--" }}</p>
+                    </div>
+                    <div class="col-sm-6">
+                        <h6 class="text-muted small">Phone Number</h6>
+                        <p>{{ staff_member.phone_number|default:"--" }}</p>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-sm-6">
+                        <h6 class="text-muted small">Date of Birth</h6>
+                        <p>{{ staff_member.date_of_birth|date:"M d, Y"|default:"--" }}</p>
+                    </div>
+                    <div class="col-sm-6">
+                        <h6 class="text-muted small">Gender</h6>
+                        <p>{{ staff_member.get_gender_display|default:"--" }}</p>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-sm-6">
+                        <h6 class="text-muted small">Address</h6>
+                        <p>{{ staff_member.address|default:"--" }}</p>
+                    </div>
+                    <div class="col-sm-6">
+                        <h6 class="text-muted small">Qualifications</h6>
+                        <p>{{ staff_member.qualifications|default:"--" }}</p>
+                    </div>
+                </div>
+                
+                {% if staff_member.form_class %}
+                <div class="row mb-3">
+                    <div class="col-sm-6">
+                        <h6 class="text-muted small">Form Class</h6>
+                        <p><span class="badge bg-secondary">{{ staff_member.form_class.class_name }}</span></p>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header bg-light">
+                <h6 class="mb-0 fw-bold">Additional Information</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-sm-6">
+                        <h6 class="text-muted small">Date Joined</h6>
+                        <p>{{ staff_member.date_joined|date:"M d, Y"|default:"--" }}</p>
+                    </div>
+                    <div class="col-sm-6">
+                        <h6 class="text-muted small">Years of Experience</h6>
+                        <p>{{ staff_member.years_of_experience|default:"--" }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

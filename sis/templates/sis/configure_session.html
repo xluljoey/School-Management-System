@@ -56,6 +56,34 @@
         </span>
       </div>
     </div>
+
+    <div class="card shadow-sm border-0 mt-3">
+      <div class="card-header bg-white py-3" data-bs-toggle="collapse" data-bs-target="#createSessionCollapse" role="button" style="cursor: pointer;">
+        <h6 class="mb-0 fw-bold text-secondary">➕ Create New Academic Session</h6>
+      </div>
+      <div class="collapse" id="createSessionCollapse">
+        <div class="card-body">
+          <form method="POST">
+            {% csrf_token %}
+            <div class="mb-3">
+              <label for="new_academic_year" class="form-label fw-semibold">Academic Year</label>
+              <input type="text" name="new_academic_year" id="new_academic_year"
+                     class="form-control" placeholder="e.g., 2026/2027" required>
+            </div>
+            <div class="mb-3">
+              <label for="new_term_name" class="form-label fw-semibold">Starting Term</label>
+              <select name="new_term_name" id="new_term_name" class="form-select" required>
+                <option value="">-- Select Term --</option>
+                <option value="Term 1">Term 1</option>
+                <option value="Term 2">Term 2</option>
+                <option value="Term 3">Term 3</option>
+              </select>
+            </div>
+            <button type="submit" name="create_new_session" class="btn btn-outline-primary">Create & Activate</button>
+          </form>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 {% endblock %}

@@ -7,6 +7,8 @@ from .views import (
     bulk_grade_entry_view,
     class_report_card_view,
     register_staff_view,
+    staff_list_view,
+    staff_detail_view,
     login_view,
     logout_view,
     class_enrollment_portal_view,
@@ -23,6 +25,8 @@ urlpatterns = [
     path('class/<int:class_id>/report/', class_report_card_view, name='class_report_card_short'),
     path('class/<int:class_id>/report/view/', class_report_card_view, name='class_report'),
     path('staff/register/', register_staff_view, name='register_staff'),
+    path('staff/list/', staff_list_view, name='staff_list'),
+    path('staff/<int:staff_id>/', staff_detail_view, name='staff_detail'),
     # Primary bulk grade-entry route: requires both class_id and subject_id.
     path('grades/entry/<int:class_id>/<int:subject_id>/', bulk_grade_entry_view, name='bulk_grade_entry'),
     path('login/', login_view, name='login'),

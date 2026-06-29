@@ -1,0 +1,51 @@
+{% extends 'sis/base.html' %}
+
+{% block title %}Staff Directory{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm border-0">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 fw-bold text-secondary">Staff Directory</h5>
+        <div>
+            <span class="badge bg-primary rounded-pill me-2">{{ staff_members|length }} Records</span>
+            <a href="{% url 'register_staff' %}" class="btn btn-sm btn-dark">➕ Add New Staff</a>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover table-striped mb-0 align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">Staff ID</th>
+                        <th>Full Name</th>
+                        <th>Designation</th>
+                        <th>Department</th>
+                        <th class="pe-4">Form Class</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for member in staff_members %}
+                    <tr class="table-hover" onclick="window.location='{% url 'staff_detail' member.id %}';" style="cursor: pointer;">
+                        <td class="ps-4 font-monospace text-secondary">{{ member.staff_id }}</td>
+                        <td class="fw-medium">{{ member.title }} {{ member.full_name }}</td>
+                        <td>{{ member.designation }}</td>
+                        <td>{{ member.department }}</td>
+                        <td class="pe-4">
+                            {% if member.form_class %}
+                            <span class="badge bg-secondary">{{ member.form_class.class_name }}</span>
+                            {% else %}
+                            <span class="text-muted">&mdash;</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center py-4 text-muted">No staff records registered in the system yet.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

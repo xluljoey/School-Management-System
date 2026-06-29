@@ -6,7 +6,7 @@ from django.core.exceptions import PermissionDenied
 from django.db.models import Q
 from .models import (
     Parent, Student, Subject, SubjectAssessment, ClassRoom, Enrollment,
-    AcademicSession, Term, ClassSubject, PromotionCriteria,
+    StaffProfile, AcademicSession, Term, ClassSubject, PromotionCriteria,
 )
 from .forms import (
     ParentForm, StudentRegistrationForm, StaffRegistrationForm, EnrollmentForm,
@@ -179,11 +179,21 @@ def register_staff_view(request):
         if form.is_valid():
             form.save()
             messages.success(request, 'Staff member registered successfully')
-            return redirect('student_list')
+            return redirect('staff_list')
     else:
         form = StaffRegistrationForm()
 
     return render(request, 'sis/register_staff.html', {'form': form})
+
+
+def staff_list_view(request):
+    staff_members = StaffProfile.objects.all()
+    return render(request, 'sis/staff_list.html', {'staff_members': staff_members})
+
+
+def staff_detail_view(request, staff_id):
+    staff_member = get_object_or_404(StaffProfile, pk=staff_id)
+    return render(request, 'sis/staff_detail.html', {'staff_member': staff_member})
 
 
 def enroll_student_view(request, student_id):
@@ -192,16 +202,19 @@ def enroll_student_view(request, student_id):
         messages.error(request, 'Student not found.')
         return redirect('student_list')
 
+    current_session = AcademicSession.objects.filter(is_current=True).first()
+
     if request.method == 'POST':
-        form = EnrollmentForm(request.POST)
+        form = EnrollmentForm(request.POST, session=current_session)
         if form.is_valid():
             enrollment = form.save(commit=False)
             enrollment.student = student
+            enrollment.academic_year = form.cleaned_data['term'].session.academic_year
             enrollment.save()
             messages.success(request, f"Student {student.first_name} {student.last_name} successfully enrolled in {enrollment.classroom}!")
             return redirect('student_list')
     else:
-        form = EnrollmentForm()
+        form = EnrollmentForm(session=current_session)
 
     subjects = Subject.objects.all().order_by('subject_name')
 
@@ -257,6 +270,7 @@ def class_enrollment_portal_view(request):
         min_score = float(promotion_criteria.min_grand_total) if promotion_criteria else 50.00
 
         term_label = current_term.term_name if current_term else "Term 1"
+        term_number = int(term_label.split()[-1])  # "Term 1" -> 1 (SubjectAssessment uses IntegerField)
         year_label = current_session.academic_year if current_session else "2025/2026"
 
         enrolled_ids = Enrollment.objects.filter(
@@ -279,7 +293,7 @@ def class_enrollment_portal_view(request):
 
         for student in students:
             assessments = SubjectAssessment.objects.filter(
-                student=student, term=term_label, academic_year=year_label
+                student=student, term=term_number, academic_year=year_label
             )
             grand_total = sum(a.total_score for a in assessments)
             eligible = grand_total >= min_score
@@ -356,6 +370,31 @@ def configure_session_view(request):
     terms = Term.objects.all()
 
     if request.method == 'POST':
+        if 'create_new_session' in request.POST:
+            year_string = request.POST.get('new_academic_year', '').strip()
+            term_name = request.POST.get('new_term_name', '').strip()
+
+            if year_string and term_name:
+                session, created = AcademicSession.objects.get_or_create(
+                    academic_year=year_string
+                )
+                AcademicSession.objects.update(is_current=False)
+                session.is_current = True
+                session.save()
+
+                term_obj, term_created = Term.objects.get_or_create(
+                    session=session, term_name=term_name
+                )
+                Term.objects.update(is_active=False)
+                term_obj.is_active = True
+                term_obj.save()
+
+                messages.success(request, f"Academic session '{year_string}' created and activated with {term_name}.")
+            else:
+                messages.error(request, "Both academic year and term are required.")
+
+            return redirect('configure_session')
+
         session_id = request.POST.get('academic_session')
         term_id = request.POST.get('term')
 
