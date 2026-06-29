@@ -6,28 +6,39 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}MIS School Portal{% endblock %}</title>
     <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
+    <style>
+        .avatar-circle {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.85rem;
+        }
+        .role-badge {
+            font-size: 0.65rem;
+            opacity: 0.85;
+        }
+    </style>
 </head>
 <body class="bg-light">
 
+{% if user.is_authenticated %}
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm mb-4">
         <div class="container-fluid">
-            <a class="navbar-brand fw-bold" href="{% url 'student_list' %}">🏫 Local School System</a>
+            <a class="navbar-brand fw-bold" href="{% url 'dashboard' %}">🏫 Local School System</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
+                <ul class="navbar-nav me-auto">
                     <li class="nav-item">
-                        <a class="nav-link active" href="{% url 'student_list' %}">Dashboard</a>
+                        <a class="nav-link" href="{% url 'dashboard' %}">Dashboard</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'student_list' %}">Students</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'student_registration' %}">Register Student</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'register_staff' %}">Register Staff</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'staff_list' %}">Staff</a>
@@ -39,9 +50,28 @@
                         <a class="nav-link" href="{% url 'class_enrollment_portal' %}">Promotion</a>
                     </li>
                 </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle d-flex align-items-center gap-2" href="#" role="button" data-bs-toggle="dropdown">
+                            <span class="avatar-circle bg-info text-white">
+                                {{ user.username|first|upper }}
+                            </span>
+                            <div class="d-none d-md-block lh-1">
+                                <span class="d-block small fw-semibold">{{ user.username }}</span>
+                                <small class="role-badge d-block">
+                                    {% if user.is_superuser %}Administrator{% elif user.is_staff %}Staff Member{% else %}User{% endif %}
+                                </small>
+                            </div>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="{% url 'logout' %}">Logout</a></li>
+                        </ul>
+                    </li>
+                </ul>
             </div>
         </div>
     </nav>
+{% endif %}
 
     <div class="container my-4">
         {% if messages %}

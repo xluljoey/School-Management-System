@@ -1,0 +1,79 @@
+{% extends 'sis/base.html' %}
+{% load static %}
+
+{% block title %}Dashboard — School Management System{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card shadow-sm border-0 text-center py-4">
+            <div class="card-body">
+                <h1 class="display-4 fw-bold text-primary mb-1">{{ total_students }}</h1>
+                <span class="text-muted small text-uppercase fw-semibold">Total Students</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm border-0 text-center py-4">
+            <div class="card-body">
+                <h1 class="display-4 fw-bold text-success mb-1">{{ total_staff }}</h1>
+                <span class="text-muted small text-uppercase fw-semibold">Staff Registry</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm border-0 text-center py-4">
+            <div class="card-body">
+                <h6 class="fw-bold text-secondary mb-0">Active Environment</h6>
+                <p class="h5 mb-0 mt-2">
+                    <span class="badge bg-dark">{{ current_session|default:"None" }}</span>
+                </p>
+                <p class="mb-0">
+                    <span class="badge bg-info text-dark">{{ current_term|default:"None" }}</span>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-7">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white py-3">
+                <h6 class="mb-0 fw-bold text-secondary">Enrollment Trends</h6>
+            </div>
+            <div class="card-body">
+                <canvas id="enrollmentChart" height="180"></canvas>
+                <p class="text-muted small text-center mt-2 mb-0">Chart placeholder — data integration pending</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-5">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white py-3">
+                <h6 class="mb-0 fw-bold text-secondary">Quick Actions</h6>
+            </div>
+            <div class="card-body d-grid gap-2">
+                <a href="{% url 'student_registration' %}" class="btn btn-outline-primary btn-lg text-start">
+                    ➕ Register New Student
+                </a>
+                <a href="{% url 'register_staff' %}" class="btn btn-outline-success btn-lg text-start">
+                    👤 Register New Staff
+                </a>
+                {% if user.is_superuser %}
+                <a href="{% url 'class_enrollment_portal' %}" class="btn btn-outline-dark btn-lg text-start">
+                    🚀 Promotion Portal
+                </a>
+                <a href="{% url 'configure_session' %}" class="btn btn-outline-secondary btn-lg text-start">
+                    ⚙️ Academic Settings
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

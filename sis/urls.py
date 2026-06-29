@@ -1,6 +1,7 @@
 from django.urls import path
 from django.views.generic.base import RedirectView
 from .views import (
+    dashboard_view,
     student_list_view,
     student_registration_view,
     enroll_student_view,
@@ -16,8 +17,9 @@ from .views import (
 )
 
 urlpatterns = [
-    path('', RedirectView.as_view(url='/students/', permanent=False), name='home'),
-    path('e', RedirectView.as_view(url='/students/', permanent=False), name='e_redirect'),
+    path('', dashboard_view, name='dashboard'),
+    path('dashboard/', dashboard_view, name='dashboard_alt'),
+    path('e', RedirectView.as_view(url='/', permanent=False), name='e_redirect'),
     path('students/', student_list_view, name='student_list'),
     path('students/register/', student_registration_view, name='student_registration'),
     path('students/enroll/<int:student_id>/', enroll_student_view, name='enroll_student'),

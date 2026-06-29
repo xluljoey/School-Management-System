@@ -2,6 +2,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth.models import User
 from django.core.exceptions import PermissionDenied
 from django.db.models import Q
 from .models import (
@@ -14,6 +16,25 @@ from .forms import (
 )
 
 # Create your views here.
+@login_required
+def dashboard_view(request):
+    total_students = Student.objects.count()
+    total_staff = StaffProfile.objects.count()
+    active_classes = ClassRoom.objects.count()
+    current_session = AcademicSession.objects.filter(is_current=True).first()
+    current_term = Term.objects.filter(is_active=True).first() if current_session else None
+
+    context = {
+        'total_students': total_students,
+        'total_staff': total_staff,
+        'active_classes': active_classes,
+        'current_session': current_session,
+        'current_term': current_term,
+    }
+    return render(request, 'sis/dashboard.html', context)
+
+
+@login_required
 def student_list_view(request):
     students = Student.objects.all()
     classrooms = ClassRoom.objects.all()
@@ -22,6 +43,7 @@ def student_list_view(request):
         'classrooms': classrooms,
     })
 
+@login_required
 def student_registration_view(request):
     if request.method == 'POST':
         student_form = StudentRegistrationForm(request.POST)
@@ -63,6 +85,10 @@ def student_registration_view(request):
 
 def _is_staff_or_admin(user):
     return user.is_active and (user.is_superuser or user.is_staff or hasattr(user, 'staff_profile'))
+
+
+def _is_admin(user):
+    return user.is_active and user.is_superuser
 
 
 # bulk score processing view
@@ -173,12 +199,39 @@ def class_report_card_view(request, class_id):
     })
 
 
+@login_required
 def register_staff_view(request):
     if request.method == 'POST':
         form = StaffRegistrationForm(request.POST)
         if form.is_valid():
-            form.save()
-            messages.success(request, 'Staff member registered successfully')
+            # Create the staff profile first
+            staff_profile = form.save(commit=False)
+            
+            # Create a corresponding user account using staff_id as username
+            username = staff_profile.staff_id
+            password = 'staff123'  # Default password
+            
+            # Create user if it doesn't exist
+            user, created = User.objects.get_or_create(
+                username=username,
+                defaults={
+                    'first_name': staff_profile.full_name.split()[0] if staff_profile.full_name else '',
+                    'last_name': ' '.join(staff_profile.full_name.split()[1:]) if staff_profile.full_name else '',
+                    'email': staff_profile.email,
+                    'is_staff': True,
+                }
+            )
+            
+            # Set the password if user was just created
+            if created:
+                user.set_password(password)
+                user.save()
+            
+            # Link the user to the staff profile
+            staff_profile.user = user
+            staff_profile.save()
+            
+            messages.success(request, f'Staff member registered successfully. Username: {username}, Password: {password}')
             return redirect('staff_list')
     else:
         form = StaffRegistrationForm()
@@ -186,16 +239,19 @@ def register_staff_view(request):
     return render(request, 'sis/register_staff.html', {'form': form})
 
 
+@login_required
 def staff_list_view(request):
     staff_members = StaffProfile.objects.all()
     return render(request, 'sis/staff_list.html', {'staff_members': staff_members})
 
 
+@login_required
 def staff_detail_view(request, staff_id):
     staff_member = get_object_or_404(StaffProfile, pk=staff_id)
     return render(request, 'sis/staff_detail.html', {'staff_member': staff_member})
 
 
+@login_required
 def enroll_student_view(request, student_id):
     student = Student.objects.filter(pk=student_id).first()
     if not student:
@@ -227,20 +283,29 @@ def enroll_student_view(request, student_id):
 
 
 def login_view(request):
+    if request.user.is_authenticated:
+        return redirect('dashboard')
+
     if request.method == 'POST':
-        username = request.POST.get('username')
-        password = request.POST.get('password')
-        user = authenticate(request, username=username, password=password)
-        if user is not None:
+        form = AuthenticationForm(request, data=request.POST)
+        if form.is_valid():
+            user = form.get_user()
             login(request, user)
+            messages.success(request, f"Welcome back, {user.username}!")
+
             if user.is_superuser:
-                return redirect('admin:index')
+                return redirect('dashboard')
+
             if user.is_staff or hasattr(user, 'staff_profile'):
-                return redirect('student_list')
-            return redirect('student_list')
+                return redirect('dashboard')
+
+            return redirect('dashboard')
         else:
             messages.error(request, 'Invalid credentials. Please try again.')
-    return render(request, 'sis/login.html')
+    else:
+        form = AuthenticationForm()
+
+    return render(request, 'sis/login.html', {'form': form})
 
 
 def logout_view(request):
@@ -250,7 +315,7 @@ def logout_view(request):
 
 @login_required
 def class_enrollment_portal_view(request):
-    if not _is_staff_or_admin(request.user):
+    if not _is_admin(request.user):
         raise PermissionDenied
 
     classrooms = ClassRoom.objects.all()
@@ -363,7 +428,7 @@ def class_enrollment_portal_view(request):
 
 @login_required
 def configure_session_view(request):
-    if not _is_staff_or_admin(request.user):
+    if not _is_admin(request.user):
         raise PermissionDenied
 
     sessions = AcademicSession.objects.all()
