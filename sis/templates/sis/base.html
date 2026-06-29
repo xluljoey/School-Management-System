@@ -152,7 +152,7 @@
     </aside>
 
     <div class="main-workspace-column">
-        <header class="global-top-bar" style="height: 70px; display: flex; align-items: center; justify-content: space-between; padding: 5px 10px; background-color: transparent;">
+        <header class="global-top-bar" style="height: 70px; display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 0 24px; box-sizing: border-box; background-color: transparent;">
             <div style="display: flex; align-items: center; gap: 12px; width: 406px;">
                 <div style="width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; background-color: #ffffff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); cursor: pointer;">
                     <span style="font-size: 1.25rem; line-height: 1; color: #1A1A1A;">←</span>
@@ -165,7 +165,7 @@
                     <input type="text" placeholder="Search anything..." style="flex: 1; border: none; outline: none; background: transparent; font-size: 0.95rem; color: #8E8D93; line-height: 1;">
                 </div>
             </div>
-            <div style="display: flex; align-items: center; gap: 20px;">
+            <div class="header-right-utilities" style="display: flex; align-items: center; gap: 16px; margin-left: auto;">
                 <div style="display: flex; align-items: center; gap: 14px;">
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8E8D93" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="cursor: pointer;">
                         <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
@@ -190,6 +190,8 @@
         </header>
 
         <main class="content-body" style="margin-top: 24px;">
+{% endif %}
+
             {% if messages %}
                 {% for message in messages %}
                     <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -201,10 +203,9 @@
 
             {% block content %}
             {% endblock %}
+{% if user.is_authenticated %}
         </main>
     </div>
-
-{% if user.is_authenticated %}
 </div>
 {% endif %}
 
