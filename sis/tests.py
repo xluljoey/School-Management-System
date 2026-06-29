@@ -1,14 +1,45 @@
 from django.test import TestCase
 from django.urls import reverse
 
-from .forms import StudentRegistrationForm
-from .models import ClassRoom, Parent, Student, Subject, SubjectAssessment
+from .forms import StaffRegistrationForm, StudentRegistrationForm
+from .models import ClassRoom, Parent, Student, Subject, SubjectAssessment, StaffProfile
 
 
 class StudentRegistrationTests(TestCase):
     def test_registration_page_renders(self):
         response = self.client.get(reverse("student_registration"))
         self.assertEqual(response.status_code, 200)
+
+    def test_staff_registration_page_renders(self):
+        response = self.client.get(reverse("register_staff"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Staff Registration")
+
+    def test_staff_registration_saves_and_redirects(self):
+        classroom = ClassRoom.objects.create(class_name="JHS 3")
+        subject = Subject.objects.create(subject_name="ICT")
+        response = self.client.post(reverse("register_staff"), {
+            "title": "Mr.",
+            "full_name": "Kwame Boateng",
+            "staff_id": "STAFF-001",
+            "gender": "Male",
+            "dob": "1985-01-01",
+            "designation": "Teacher",
+            "email": "kwame@example.com",
+            "employment_type": "Permanent",
+            "date_of_appointment": "2020-01-01",
+            "department": "Mathematics",
+            "qualification": "B.Ed",
+            "certificate": "B.Ed Education",
+            "name_of_institution_completed": "UCC",
+            "year_completed": "2020",
+            "form_class": classroom.id,
+            "subject_areas": [subject.id],
+        })
+        self.assertEqual(response.status_code, 302)
+        staff = StaffProfile.objects.get(staff_id="STAFF-001")
+        self.assertEqual(staff.full_name, "Kwame Boateng")
+        self.assertIn(subject, staff.subject_areas.all())
 
     def test_student_list_renders_with_classrooms(self):
         classroom1 = ClassRoom.objects.create(class_name="JHS 1")

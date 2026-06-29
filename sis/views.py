@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from .models import Parent, Student, Subject, SubjectAssessment, ClassRoom
-from .forms import ParentForm, StudentRegistrationForm
+from .forms import ParentForm, StudentRegistrationForm, StaffRegistrationForm
 from .forms import MarkSubmissionForm
 
 # Create your views here.
@@ -53,7 +53,7 @@ def student_registration_view(request):
     })
 
 # bulk score processing view
-def bulk_grade_entry_view(request, class_id,subject_id):
+def bulk_grade_entry_view(request, class_id, subject_id):
     classroom = ClassRoom.objects.get(pk=class_id)
     students = Student.objects.filter(current_class=classroom)
     subjects = Subject.objects.all().order_by('subject_name')
@@ -152,3 +152,16 @@ def class_report_card_view(request, class_id):
         'classrooms': classrooms,
         'has_graded_records': has_graded_records,
     })
+
+
+def register_staff_view(request):
+    if request.method == 'POST':
+        form = StaffRegistrationForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Staff member registered successfully')
+            return redirect('student_list')
+    else:
+        form = StaffRegistrationForm()
+
+    return render(request, 'sis/register_staff.html', {'form': form})

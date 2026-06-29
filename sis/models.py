@@ -16,19 +16,45 @@ class Subject(models.Model):
         return self.subject_name
     
 class StaffProfile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
-    staff_id = models.CharField(max_length=50, primary_key=True)
-    title = models.CharField(max_length=20)
-    first_name = models.CharField(max_length=50)
-    last_name = models.CharField(max_length=50)
-    gender = models.CharField(max_length=10)
-    dob = models.DateField()
-    designation = models.CharField(max_length=100)
-    subjects_taught = models.ManyToManyField(Subject, blank=True)
-    form_class = models.ForeignKey(ClassRoom, on_delete=models.SET_NULL, null=True, blank=True)
+    TITLE_CHOICES = [
+        ('Mr.', 'Mr.'),
+        ('Mrs.', 'Mrs.'),
+        ('Ms.', 'Ms.'),
+        ('Dr.', 'Dr.'),
+        ('Rev.', 'Rev.'),
+    ]
+    GENDER_CHOICES = [
+        ('Male', 'Male'),
+        ('Female', 'Female'),
+    ]
+    EMPLOYMENT_CHOICES = [
+        ('Permanent', 'Permanent'),
+        ('Contract', 'Contract'),
+    ]
+
+    title = models.CharField(max_length=20, choices=TITLE_CHOICES, default='Mr.')
+    full_name = models.CharField(max_length=255, default='')
+    staff_id = models.CharField(max_length=50, unique=True, default='')
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='staff_profile', null=True, blank=True)
+    gender = models.CharField(max_length=10, choices=GENDER_CHOICES, default='Male')
+    dob = models.DateField(verbose_name="Date of Birth", default=date.today)
+    designation = models.CharField(max_length=100, default='')
+    ssnit_id = models.CharField(max_length=50, blank=True, null=True, verbose_name="SSNIT ID")
+    email = models.EmailField(unique=True)
+    employment_type = models.CharField(max_length=50, choices=EMPLOYMENT_CHOICES, default='Permanent')
+    date_of_appointment = models.DateField(default=date.today)
+    year_of_last_promotion = models.IntegerField(blank=True, null=True)
+    department = models.CharField(max_length=100, default='')
+    qualification = models.CharField(max_length=150, default='')
+    certificate = models.CharField(max_length=150, default='')
+    name_of_institution_completed = models.CharField(max_length=255, default='')
+    year_completed = models.IntegerField(default=2000)
+
+    form_class = models.OneToOneField('ClassRoom', on_delete=models.SET_NULL, null=True, blank=True, related_name='form_teacher')
+    subject_areas = models.ManyToManyField('Subject', related_name='teachers', help_text="Select all subjects this staff member is assigned to teach.")
 
     def __str__(self):
-        return f"{self.title} {self.first_name} {self.last_name}"
+        return f"{self.title} {self.full_name}"
     
 class Parent(models.Model):
     name = models.CharField(max_length=255, blank=True, null=True)
