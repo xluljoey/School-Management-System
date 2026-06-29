@@ -345,3 +345,39 @@ def class_enrollment_portal_view(request):
         'search_query': search_query,
     }
     return render(request, 'sis/class_enrollment_portal.html', context)
+
+
+@login_required
+def configure_session_view(request):
+    if not _is_staff_or_admin(request.user):
+        raise PermissionDenied
+
+    sessions = AcademicSession.objects.all()
+    terms = Term.objects.all()
+
+    if request.method == 'POST':
+        session_id = request.POST.get('academic_session')
+        term_id = request.POST.get('term')
+
+        if session_id:
+            AcademicSession.objects.update(is_current=False)
+            selected_session = get_object_or_404(AcademicSession, pk=session_id)
+            selected_session.is_current = True
+            selected_session.save()
+
+        if term_id:
+            Term.objects.update(is_active=False)
+            selected_term = get_object_or_404(Term, pk=term_id)
+            selected_term.is_active = True
+            selected_term.save()
+
+        messages.success(request, "Academic environment successfully updated!")
+        return redirect('configure_session')
+
+    context = {
+        'sessions': sessions,
+        'terms': terms,
+        'current_session': AcademicSession.objects.filter(is_current=True).first(),
+        'current_term': Term.objects.filter(is_active=True).first(),
+    }
+    return render(request, 'sis/configure_session.html', context)

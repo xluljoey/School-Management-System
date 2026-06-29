@@ -10,6 +10,7 @@ from .views import (
     login_view,
     logout_view,
     class_enrollment_portal_view,
+    configure_session_view,
 )
 
 urlpatterns = [
@@ -27,4 +28,5 @@ urlpatterns = [
     path('login/', login_view, name='login'),
     path('logout/', logout_view, name='logout'),
     path('enrollment/portal/', class_enrollment_portal_view, name='class_enrollment_portal'),
+    path('settings/academic-session/', configure_session_view, name='configure_session'),
 ]

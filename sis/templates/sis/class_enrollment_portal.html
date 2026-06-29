@@ -15,9 +15,9 @@
   <div class="card-body">
 
     {% if not current_session or not current_term %}
-    <div class="alert alert-warning">
-      <strong>Configuration Required:</strong>
-      An active Academic Session and Term must be configured before using this portal.
+    <div class="alert alert-warning d-flex align-items-center">
+      <span><strong>Configuration Required:</strong> An active Academic Session and Term must be configured before using this portal.</span>
+      <a href="{% url 'configure_session' %}" class="btn btn-sm btn-warning ms-auto">Configure Now</a>
     </div>
     {% endif %}
 

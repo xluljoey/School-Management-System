@@ -1,0 +1,61 @@
+{% extends 'sis/base.html' %}
+{% load static %}
+
+{% block title %}Academic Session Configuration{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-6">
+    <div class="card shadow-sm border-0">
+      <div class="card-header bg-dark text-white py-3">
+        <h5 class="mb-0 fw-bold">Academic Environment Settings</h5>
+      </div>
+      <div class="card-body">
+        <form method="POST">
+          {% csrf_token %}
+
+          <div class="mb-3">
+            <label for="academic_session" class="form-label fw-semibold">Academic Session</label>
+            <select name="academic_session" id="academic_session" class="form-select">
+              <option value="">-- Select Session --</option>
+              {% for s in sessions %}
+              <option value="{{ s.id }}" {% if current_session and current_session.id == s.id %}selected{% endif %}>
+                {{ s.academic_year }}
+              </option>
+              {% empty %}
+              <option value="" disabled>No sessions created yet</option>
+              {% endfor %}
+            </select>
+            <div class="form-text">Setting a session marks it as the current active year and deactivates all others.</div>
+          </div>
+
+          <div class="mb-4">
+            <label for="term" class="form-label fw-semibold">Active Term</label>
+            <select name="term" id="term" class="form-select">
+              <option value="">-- Select Term --</option>
+              {% for t in terms %}
+              <option value="{{ t.id }}" {% if current_term and current_term.id == t.id %}selected{% endif %}>
+                {{ t.term_name }} ({{ t.session.academic_year }})
+              </option>
+              {% empty %}
+              <option value="" disabled>No terms created yet</option>
+              {% endfor %}
+            </select>
+            <div class="form-text">Setting a term marks it as the active grading period and deactivates all others.</div>
+          </div>
+
+          <div class="d-grid">
+            <button type="submit" class="btn btn-success px-4">Set Active Environment</button>
+          </div>
+        </form>
+      </div>
+      <div class="card-footer bg-white py-3 d-flex justify-content-between">
+        <a href="{% url 'class_enrollment_portal' %}" class="btn btn-outline-secondary btn-sm">Back to Promotion Portal</a>
+        <span class="text-muted small align-self-center">
+          Current: <strong>{{ current_session|default:"None" }}</strong> / <strong>{{ current_term|default:"None" }}</strong>
+        </span>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
