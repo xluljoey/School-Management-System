@@ -43,11 +43,17 @@
                         <td>{{ student.first_name }}</td>
                         <td>{{ student.last_name }}</td>
                         <td>{{ student.gender }}</td>
-                        <td><span class="badge bg-secondary">{{ student.current_class }}</span></td>
+                        <td>
+                            <span class="badge bg-secondary">{% if student.current_class %}{{ student.current_class }}{% else %}&mdash;{% endif %}</span>
+                        </td>
                         <td class="pe-4">
+                            {% if student.current_class %}
                             <a href="{% url 'bulk_grade_entry' class_id=student.current_class.id subject_id=1 %}" class="btn btn-sm btn-outline-primary py-0 px-2 text-decoration-none">
                                 📝 Enter Class Grades
                             </a>
+                            {% else %}
+                            <span class="text-muted small">No class</span>
+                            {% endif %}
                         </td>
                     </tr>
                     {% empty %}

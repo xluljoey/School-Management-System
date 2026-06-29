@@ -6,6 +6,10 @@ from .models import ClassRoom, Parent, Student, Subject, SubjectAssessment, Staf
 
 
 class StudentRegistrationTests(TestCase):
+    def test_e_path_redirects_to_students(self):
+        response = self.client.get("/e")
+        self.assertRedirects(response, reverse("student_list"))
+
     def test_registration_page_renders(self):
         response = self.client.get(reverse("student_registration"))
         self.assertEqual(response.status_code, 200)

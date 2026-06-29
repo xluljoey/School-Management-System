@@ -1,5 +1,5 @@
 from django import forms
-from .models import Parent, Student, SubjectAssessment, StaffProfile
+from .models import Parent, Student, SubjectAssessment, StaffProfile, Enrollment, AcademicSession, Term, ClassSubject, PromotionCriteria
 
 
 class ParentForm(forms.ModelForm):
@@ -23,7 +23,7 @@ class ParentForm(forms.ModelForm):
 class StudentRegistrationForm(forms.ModelForm):
     class Meta:
         model = Student
-        fields = ['admission_number', 'first_name', 'last_name', 'dob', 'gender', 'status', 'living_with', 'previous_school_attended', 'current_class']
+        fields = ['admission_number', 'first_name', 'last_name', 'dob', 'gender', 'status', 'living_with', 'previous_school_attended']
         widgets = {
             'admission_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., 0202420168'}),
             'first_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'First Name'}),
@@ -33,7 +33,17 @@ class StudentRegistrationForm(forms.ModelForm):
             'status': forms.Select(choices=Student.STATUS_CHOICES, attrs={'class': 'form-select'}),
             'living_with': forms.Select(choices=Student.LIVING_WITH_CHOICES, attrs={'class': 'form-select'}),
             'previous_school_attended': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Name of Previous School'}),
-            'current_class': forms.Select(attrs={'class': 'form-select'}),
+        }
+
+
+class EnrollmentForm(forms.ModelForm):
+    class Meta:
+        model = Enrollment
+        fields = ['classroom', 'term', 'academic_year']
+        widgets = {
+            'classroom': forms.Select(attrs={'class': 'form-select'}),
+            'term': forms.TextInput(attrs={'class': 'form-control'}),
+            'academic_year': forms.TextInput(attrs={'class': 'form-control'}),
         }
 
 class MarkSubmissionForm(forms.ModelForm):
@@ -74,4 +84,43 @@ class StaffRegistrationForm(forms.ModelForm):
             'year_completed': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Year Completed'}),
             'form_class': forms.Select(attrs={'class': 'form-select'}),
             'subject_areas': forms.CheckboxSelectMultiple(),
+        }
+
+
+class AcademicSessionForm(forms.ModelForm):
+    class Meta:
+        model = AcademicSession
+        fields = '__all__'
+        widgets = {
+            'academic_year': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., 2025/2026'}),
+        }
+
+
+class TermForm(forms.ModelForm):
+    class Meta:
+        model = Term
+        fields = '__all__'
+        widgets = {
+            'session': forms.Select(attrs={'class': 'form-select'}),
+            'term_name': forms.Select(attrs={'class': 'form-select'}),
+        }
+
+
+class ClassSubjectForm(forms.ModelForm):
+    class Meta:
+        model = ClassSubject
+        fields = '__all__'
+        widgets = {
+            'classroom': forms.Select(attrs={'class': 'form-select'}),
+            'subject': forms.Select(attrs={'class': 'form-select'}),
+        }
+
+
+class PromotionCriteriaForm(forms.ModelForm):
+    class Meta:
+        model = PromotionCriteria
+        fields = '__all__'
+        widgets = {
+            'classroom': forms.Select(attrs={'class': 'form-select'}),
+            'min_grand_total': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
         }

@@ -83,10 +83,17 @@ class Student(models.Model):
     previous_school_attended = models.CharField(max_length=255, default='N/A')
     father = models.ForeignKey(Parent, on_delete=models.SET_NULL, null=True, blank=True, related_name='father_of')
     mother = models.ForeignKey(Parent, on_delete=models.SET_NULL, null=True, blank=True, related_name='mother_of')
-    current_class = models.ForeignKey(ClassRoom, on_delete=models.PROTECT)
+    
+    @property
+    def current_class(self):
+        """Return the most recent enrolled ClassRoom for this student, or None."""
+        latest = self.enrollments.order_by('-date_enrolled').first()
+        return latest.classroom if latest else None
 
     def __str__(self):
         return f"{self.first_name} {self.last_name} ({self.admission_number})"
+    
+
 
 
 class SubjectAssessment(models.Model):
@@ -155,4 +162,66 @@ class SubjectAssignment(models.Model):
 
 
 
-# Create your models here.
+class Enrollment(models.Model):
+    student = models.ForeignKey('Student', on_delete=models.CASCADE, related_name='enrollments')
+    classroom = models.ForeignKey('ClassRoom', on_delete=models.PROTECT, related_name='enrollments')
+    term = models.CharField(max_length=20, default="Term 1")
+    academic_year = models.CharField(max_length=20, default="2025/2026")
+    date_enrolled = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('student', 'classroom', 'term', 'academic_year')
+
+    def __str__(self):
+        return f"{self.student} -> {self.classroom} ({self.term} {self.academic_year})"
+
+
+class AcademicSession(models.Model):
+    academic_year = models.CharField(max_length=20, unique=True, help_text="e.g., 2025/2026")
+    is_current = models.BooleanField(default=False, help_text="True if this is the active academic year")
+
+    def __str__(self):
+        return self.academic_year
+
+
+class Term(models.Model):
+    TERM_CHOICES = [
+        ('Term 1', 'Term 1'),
+        ('Term 2', 'Term 2'),
+        ('Term 3', 'Term 3'),
+    ]
+    session = models.ForeignKey(AcademicSession, on_delete=models.CASCADE, related_name='terms')
+    term_name = models.CharField(max_length=20, choices=TERM_CHOICES)
+    is_active = models.BooleanField(default=False, help_text="True if this is the active grading term")
+
+    class Meta:
+        unique_together = ('session', 'term_name')
+
+    def __str__(self):
+        return f"{self.term_name} ({self.session.academic_year})"
+
+
+class ClassSubject(models.Model):
+    classroom = models.ForeignKey(ClassRoom, on_delete=models.CASCADE, related_name='subjects_offered')
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name='offered_in_classes')
+
+    class Meta:
+        unique_together = ('classroom', 'subject')
+        verbose_name_plural = 'Class Subjects'
+
+    def __str__(self):
+        return f"{self.subject.subject_name} — {self.classroom.class_name}"
+
+
+class PromotionCriteria(models.Model):
+    classroom = models.ForeignKey(ClassRoom, on_delete=models.CASCADE, related_name='promotion_criteria')
+    min_grand_total = models.DecimalField(
+        max_digits=5, decimal_places=2, default=50.00,
+        help_text="Minimum aggregate/grand total score required to qualify for promotion"
+    )
+
+    class Meta:
+        verbose_name_plural = 'Promotion Criteria'
+
+    def __str__(self):
+        return f"{self.classroom.class_name} (min: {self.min_grand_total})"

@@ -29,6 +29,9 @@
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'class_report_card_short' class_id=1 %}">Report</a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'class_enrollment_portal' %}">Promotion</a>
+                    </li>
                 </ul>
             </div>
         </div>
@@ -49,5 +52,6 @@
     </div>
 
     <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+    {% block extra_js %}{% endblock %}
 </body>
 </html>

@@ -1,0 +1,184 @@
+{% extends 'sis/base.html' %}
+{% load static %}
+
+{% block title %}Class Enrollment & Promotion Portal{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm border-0">
+  <div class="card-header bg-dark text-white py-3">
+    <h5 class="mb-0 fw-bold">Class Enrollment & Promotion Portal</h5>
+    <small class="text-light-50">
+      Session: <strong>{{ current_session|default:"None set" }}</strong>
+      | Term: <strong>{{ current_term|default:"None set" }}</strong>
+    </small>
+  </div>
+  <div class="card-body">
+
+    {% if not current_session or not current_term %}
+    <div class="alert alert-warning">
+      <strong>Configuration Required:</strong>
+      An active Academic Session and Term must be configured before using this portal.
+    </div>
+    {% endif %}
+
+    <!-- ===== TOP CONTROL BAR ===== -->
+    <form method="GET" class="row g-3 align-items-end mb-3" id="filterForm">
+      <div class="col-md-4">
+        <label for="source_class_id" class="form-label fw-semibold small">Current Class (Source)</label>
+        <select name="source_class_id" id="source_class_id" class="form-select" onchange="this.form.submit()">
+          <option value="">-- Select Class --</option>
+          {% for c in classrooms %}
+          <option value="{{ c.id }}" {% if source_class and source_class.id == c.id %}selected{% endif %}>
+            {{ c.class_name }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label for="next_class_id" class="form-label fw-semibold small">Next Class (Target)</label>
+        <select name="next_class_id" id="next_class_id" class="form-select" form="promoteForm">
+          <option value="">-- Select Target --</option>
+          {% for c in classrooms %}
+          <option value="{{ c.id }}">{{ c.class_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label for="search_query" class="form-label fw-semibold small">Live Search</label>
+        <input type="text" name="search_query" id="search_query" class="form-control"
+               placeholder="Search by Name or Admission No."
+               value="{{ search_query }}" oninput="this.form.submit()">
+      </div>
+    </form>
+
+    {% if promotion_criteria %}
+    <div class="alert alert-info py-2 small mb-3">
+      Promotion threshold for <strong>{{ source_class.class_name }}</strong>:
+      <strong>{{ promotion_criteria.min_grand_total }}%</strong>
+    </div>
+    {% endif %}
+
+    {% if source_class %}
+    <!-- ===== COHORT MATRIX ===== -->
+    <form method="POST" id="promoteForm">
+      {% csrf_token %}
+      <input type="hidden" name="source_class_id" value="{{ source_class.id }}">
+      <input type="hidden" name="next_class_id" id="next_class_hidden" value="">
+
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0" id="cohortTable">
+          <thead class="table-light">
+            <tr>
+              <th style="width: 40px;">
+                <input type="checkbox" id="selectAllEligible"
+                       title="Select All Eligible Students">
+              </th>
+              <th>Admission No.</th>
+              <th>Full Name</th>
+              <th>Aggregate Score</th>
+              <th>Eligibility</th>
+              <th>Subjects Offered</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in students_data %}
+            <tr>
+              <td>
+                <input type="checkbox" name="selected_students" value="{{ row.student.id }}"
+                       class="student-checkbox {% if row.eligible %}eligible{% endif %}">
+              </td>
+              <td class="font-monospace text-secondary">{{ row.student.admission_number }}</td>
+              <td class="fw-medium">{{ row.student.first_name }} {{ row.student.last_name }}</td>
+              <td>{{ row.grand_total|floatformat:2 }}</td>
+              <td>
+                {% if row.eligible %}
+                <span class="badge bg-success">Eligible</span>
+                {% else %}
+                <span class="badge bg-danger">Not Eligible</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if row.subjects %}
+                <small>{{ row.subjects|join:", " }}</small>
+                {% else %}
+                <span class="text-muted small">No subjects configured</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="6" class="text-center py-4 text-muted">
+                {% if source_class %}
+                  No students found in this class.
+                {% else %}
+                  Select a class above to view students.
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {% if students_data %}
+      <div class="card-footer bg-white py-3 d-flex justify-content-end border-top-0 px-0">
+        <button type="submit" class="btn btn-success px-5" id="enrollBtn">
+          Enroll Selected Students
+        </button>
+      </div>
+      {% endif %}
+    </form>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+  var masterCheck = document.getElementById('selectAllEligible');
+  if (masterCheck) {
+    masterCheck.addEventListener('change', function() {
+      var checkboxes = document.querySelectorAll('.student-checkbox');
+      for (var i = 0; i < checkboxes.length; i++) {
+        if (checkboxes[i].classList.contains('eligible')) {
+          checkboxes[i].checked = this.checked;
+        }
+      }
+    });
+  }
+
+  var promoteForm = document.getElementById('promoteForm');
+  if (promoteForm) {
+    promoteForm.addEventListener('submit', function(e) {
+      var nextSelect = document.getElementById('next_class_id');
+      var nextHidden = document.getElementById('next_class_hidden');
+      if (nextHidden) {
+        nextHidden.value = nextSelect.value;
+      }
+
+      var checked = this.querySelectorAll('.student-checkbox:checked');
+      if (checked.length === 0) {
+        e.preventDefault();
+        alert('Please select at least one student to enroll.');
+      }
+    });
+  }
+
+  var searchInput = document.getElementById('search_query');
+  var filterForm = document.getElementById('filterForm');
+  if (searchInput && filterForm) {
+    (function() {
+      var timer;
+      searchInput.addEventListener('input', function() {
+        clearTimeout(timer);
+        timer = setTimeout(function() {
+          filterForm.submit();
+        }, 400);
+      });
+    })();
+  }
+})();
+</script>
+{% endblock %}

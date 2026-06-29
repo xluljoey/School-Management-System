@@ -1,8 +1,17 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from .models import Parent, Student, Subject, SubjectAssessment, ClassRoom
-from .forms import ParentForm, StudentRegistrationForm, StaffRegistrationForm
-from .forms import MarkSubmissionForm
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.core.exceptions import PermissionDenied
+from django.db.models import Q
+from .models import (
+    Parent, Student, Subject, SubjectAssessment, ClassRoom, Enrollment,
+    AcademicSession, Term, ClassSubject, PromotionCriteria,
+)
+from .forms import (
+    ParentForm, StudentRegistrationForm, StaffRegistrationForm, EnrollmentForm,
+    MarkSubmissionForm,
+)
 
 # Create your views here.
 def student_list_view(request):
@@ -40,7 +49,7 @@ def student_registration_view(request):
             student.father = father
             student.mother = mother
             student.save()
-            return redirect('student_list')
+            return redirect('enroll_student', student_id=student.id)
     else:
         student_form = StudentRegistrationForm()
         father_form = ParentForm(prefix='father')
@@ -52,10 +61,17 @@ def student_registration_view(request):
         'mother_form': mother_form,
     })
 
+def _is_staff_or_admin(user):
+    return user.is_active and (user.is_superuser or user.is_staff or hasattr(user, 'staff_profile'))
+
+
 # bulk score processing view
+@login_required
 def bulk_grade_entry_view(request, class_id, subject_id):
+    if not _is_staff_or_admin(request.user):
+        raise PermissionDenied
     classroom = ClassRoom.objects.get(pk=class_id)
-    students = Student.objects.filter(current_class=classroom)
+    students = Student.objects.filter(enrollments__classroom=classroom).distinct()
     subjects = Subject.objects.all().order_by('subject_name')
 
     if subject_id:
@@ -118,9 +134,12 @@ def bulk_grade_entry_view(request, class_id, subject_id):
     }
     return render(request, 'sis/bulk_grade_entry.html', context)
 
+@login_required
 def class_report_card_view(request, class_id):
+    if not _is_staff_or_admin(request.user):
+        raise PermissionDenied
     classroom = ClassRoom.objects.get(pk=class_id)
-    students = Student.objects.filter(current_class=classroom)
+    students = Student.objects.filter(enrollments__classroom=classroom).distinct()
     
     report_data = []
     for student in students:
@@ -165,3 +184,164 @@ def register_staff_view(request):
         form = StaffRegistrationForm()
 
     return render(request, 'sis/register_staff.html', {'form': form})
+
+
+def enroll_student_view(request, student_id):
+    student = Student.objects.filter(pk=student_id).first()
+    if not student:
+        messages.error(request, 'Student not found.')
+        return redirect('student_list')
+
+    if request.method == 'POST':
+        form = EnrollmentForm(request.POST)
+        if form.is_valid():
+            enrollment = form.save(commit=False)
+            enrollment.student = student
+            enrollment.save()
+            messages.success(request, f"Student {student.first_name} {student.last_name} successfully enrolled in {enrollment.classroom}!")
+            return redirect('student_list')
+    else:
+        form = EnrollmentForm()
+
+    subjects = Subject.objects.all().order_by('subject_name')
+
+    return render(request, 'sis/enroll_student.html', {
+        'student': student,
+        'form': form,
+        'subjects': subjects,
+        'classrooms': ClassRoom.objects.all(),
+    })
+
+
+def login_view(request):
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            login(request, user)
+            if user.is_superuser:
+                return redirect('admin:index')
+            if user.is_staff or hasattr(user, 'staff_profile'):
+                return redirect('student_list')
+            return redirect('student_list')
+        else:
+            messages.error(request, 'Invalid credentials. Please try again.')
+    return render(request, 'sis/login.html')
+
+
+def logout_view(request):
+    logout(request)
+    return redirect('login')
+
+
+@login_required
+def class_enrollment_portal_view(request):
+    if not _is_staff_or_admin(request.user):
+        raise PermissionDenied
+
+    classrooms = ClassRoom.objects.all()
+    current_session = AcademicSession.objects.filter(is_current=True).first()
+    current_term = Term.objects.filter(is_active=True).first() if current_session else None
+
+    source_class = None
+    students_data = []
+    promotion_criteria = None
+    search_query = request.GET.get('search_query', '').strip()
+    source_class_id = request.GET.get('source_class_id')
+
+    if source_class_id:
+        source_class = get_object_or_404(ClassRoom, pk=source_class_id)
+        criteria_qs = PromotionCriteria.objects.filter(classroom=source_class)
+        promotion_criteria = criteria_qs.first()
+        min_score = float(promotion_criteria.min_grand_total) if promotion_criteria else 50.00
+
+        term_label = current_term.term_name if current_term else "Term 1"
+        year_label = current_session.academic_year if current_session else "2025/2026"
+
+        enrolled_ids = Enrollment.objects.filter(
+            classroom=source_class, term=term_label, academic_year=year_label
+        ).values_list('student_id', flat=True)
+
+        students = Student.objects.filter(pk__in=enrolled_ids)
+
+        if search_query:
+            students = students.filter(
+                Q(first_name__icontains=search_query) |
+                Q(last_name__icontains=search_query) |
+                Q(admission_number__icontains=search_query)
+            )
+
+        class_subject_names = list(
+            ClassSubject.objects.filter(classroom=source_class)
+            .values_list('subject__subject_name', flat=True)
+        )
+
+        for student in students:
+            assessments = SubjectAssessment.objects.filter(
+                student=student, term=term_label, academic_year=year_label
+            )
+            grand_total = sum(a.total_score for a in assessments)
+            eligible = grand_total >= min_score
+
+            students_data.append({
+                'student': student,
+                'grand_total': grand_total,
+                'eligible': eligible,
+                'subjects': class_subject_names,
+            })
+
+    if request.method == 'POST':
+        selected_ids = request.POST.getlist('selected_students')
+        next_class_id = request.POST.get('next_class_id')
+        src_id = request.POST.get('source_class_id')
+
+        if next_class_id and src_id:
+            next_class = get_object_or_404(ClassRoom, pk=next_class_id)
+            src_class = get_object_or_404(ClassRoom, pk=src_id)
+
+            term_label = current_term.term_name if current_term else "Term 1"
+            year_label = current_session.academic_year if current_session else "2025/2026"
+
+            source_ids = set(
+                Enrollment.objects.filter(
+                    classroom=src_class, term=term_label, academic_year=year_label
+                ).values_list('student_id', flat=True)
+            )
+            selected_set = set(int(sid) for sid in selected_ids)
+            held_back_ids = source_ids - selected_set
+
+            for sid in selected_set:
+                student = get_object_or_404(Student, pk=sid)
+                Enrollment.objects.update_or_create(
+                    student=student,
+                    term=term_label,
+                    academic_year=year_label,
+                    defaults={'classroom': next_class},
+                )
+
+            for sid in held_back_ids:
+                student = get_object_or_404(Student, pk=sid)
+                Enrollment.objects.update_or_create(
+                    student=student,
+                    term=term_label,
+                    academic_year=year_label,
+                    defaults={'classroom': src_class},
+                )
+
+            messages.success(
+                request,
+                "Successfully processed promotions/enrollments for the selected cohort."
+            )
+            return redirect('class_enrollment_portal')
+
+    context = {
+        'classrooms': classrooms,
+        'current_session': current_session,
+        'current_term': current_term,
+        'source_class': source_class,
+        'promotion_criteria': promotion_criteria,
+        'students_data': students_data,
+        'search_query': search_query,
+    }
+    return render(request, 'sis/class_enrollment_portal.html', context)
