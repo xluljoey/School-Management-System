@@ -544,12 +544,14 @@ def compile_grades_view(request):
     if not _is_staff_or_admin(request.user):
         raise PermissionDenied
     classrooms = ClassRoom.objects.all()
-    subjects = Subject.objects.all()
+    subjects = Subject.objects.none()  # Initialize as empty queryset
     selected_class_id = request.GET.get('class_id')
     students = []
     if selected_class_id:
         classroom = get_object_or_404(ClassRoom, pk=selected_class_id)
         students = Student.objects.filter(enrollments__classroom=classroom).distinct()
+        # Filter subjects to only those assigned to this classroom
+        subjects = Subject.objects.filter(classsubject__classroom=classroom).distinct()
     else:
         classroom = None
         students = Student.objects.none()
