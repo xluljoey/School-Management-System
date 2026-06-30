@@ -1,78 +1,150 @@
 {% extends 'sis/base.html' %}
+{% load static %}
 
 {% block title %}Register Staff{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col-lg-10">
+    <div class="col-lg-11">
         <div class="card shadow-sm border-0">
-            <div class="card-header bg-dark text-white py-3">
-                <h5 class="mb-0 fw-bold">Staff Registration</h5>
+            <div class="card-header bg-white py-3 px-4">
+                <h5 class="mb-0 fw-bold" style="color: #000000;">Staff Registration</h5>
             </div>
             <div class="card-body p-4">
-                <form method="post">
+                <form method="POST" enctype="multipart/form-data">
                     {% csrf_token %}
 
-                    <div class="card shadow-sm border-0 mb-4">
-                        <div class="card-header bg-light py-3">
-                            <h6 class="mb-0 fw-bold text-secondary">1. Personal & Identity Profile</h6>
-                        </div>
-                        <div class="card-body">
-                            <div class="row g-3">
-                                <div class="col-md-3">{{ form.title.label_tag }} {{ form.title }}</div>
-                                <div class="col-md-5">{{ form.full_name.label_tag }} {{ form.full_name }}</div>
-                                <div class="col-md-4">{{ form.staff_id.label_tag }} {{ form.staff_id }}</div>
-                                <div class="col-md-3">{{ form.gender.label_tag }} {{ form.gender }}</div>
-                                <div class="col-md-3">{{ form.dob.label_tag }} {{ form.dob }}</div>
-                                <div class="col-md-6">{{ form.email.label_tag }} {{ form.email }}</div>
-                                <div class="col-md-3">{{ form.ssnit_id.label_tag }} {{ form.ssnit_id }}</div>
+                    <div class="row g-4">
+                        <!-- LEFT COLUMN — Profile Image Uploader -->
+                        <div class="col-lg-3 d-flex flex-column align-items-center pt-4">
+                            <div style="width: 140px; height: 140px; border-radius: 50%; background-color: #F4F4F6; display: flex; align-items: center; justify-content: center; overflow: hidden; margin-bottom: 16px;">
+                                <img id="profilePreview" src="" alt="" style="width: 100%; height: 100%; object-fit: cover; display: none;">
+                                <svg id="profilePlaceholder" width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#8E8D93" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                    <circle cx="12" cy="7" r="4"/>
+                                </svg>
                             </div>
+                            {{ form.profile_picture }}
+                            <label for="id_profile_picture" style="color: #4A90D9; font-size: 0.9rem; font-weight: 500; cursor: pointer;">Upload Photo</label>
                         </div>
-                    </div>
 
-                    <div class="card shadow-sm border-0 mb-4">
-                        <div class="card-header bg-light py-3">
-                            <h6 class="mb-0 fw-bold text-secondary">2. Employment & Academic History</h6>
-                        </div>
-                        <div class="card-body">
-                            <div class="row g-3">
-                                <div class="col-md-4">{{ form.designation.label_tag }} {{ form.designation }}</div>
-                                <div class="col-md-4">{{ form.department.label_tag }} {{ form.department }}</div>
-                                <div class="col-md-4">{{ form.employment_type.label_tag }} {{ form.employment_type }}</div>
-                                <div class="col-md-4">{{ form.date_of_appointment.label_tag }} {{ form.date_of_appointment }}</div>
-                                <div class="col-md-4">{{ form.year_of_last_promotion.label_tag }} {{ form.year_of_last_promotion }}</div>
-                                <div class="col-md-4">{{ form.qualification.label_tag }} {{ form.qualification }}</div>
-                                <div class="col-md-4">{{ form.certificate.label_tag }} {{ form.certificate }}</div>
-                                <div class="col-md-4">{{ form.name_of_institution_completed.label_tag }} {{ form.name_of_institution_completed }}</div>
-                                <div class="col-md-4">{{ form.year_completed.label_tag }} {{ form.year_completed }}</div>
+                        <!-- RIGHT COLUMN — Input Fields -->
+                        <div class="col-lg-9">
+
+                            <!-- Section 1: Basic Information -->
+                            <h6 class="fw-bold mb-3" style="font-size: 0.9rem; color: #000000;">1. Basic Information</h6>
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold text-secondary" style="font-size: 0.85rem;">{{ form.title.label }}</label>
+                                    {{ form.title }}
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold text-secondary" style="font-size: 0.85rem;">{{ form.full_name.label }}</label>
+                                    {{ form.full_name }}
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold text-secondary" style="font-size: 0.85rem;">{{ form.staff_id.label }}</label>
+                                    {{ form.staff_id }}
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold text-secondary" style="font-size: 0.85rem;">{{ form.gender.label }}</label>
+                                    {{ form.gender }}
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold text-secondary" style="font-size: 0.85rem;">{{ form.dob.label }}</label>
+                                    {{ form.dob }}
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold text-secondary" style="font-size: 0.85rem;">{{ form.email.label }}</label>
+                                    {{ form.email }}
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold text-secondary" style="font-size: 0.85rem;">{{ form.ssnit_id.label }}</label>
+                                    {{ form.ssnit_id }}
+                                </div>
                             </div>
-                        </div>
-                    </div>
 
-                    <div class="card shadow-sm border-0 mb-4">
-                        <div class="card-header bg-light py-3">
-                            <h6 class="mb-0 fw-bold text-secondary">3. School Assignment Roles</h6>
-                        </div>
-                        <div class="card-body">
-                            <div class="row g-3">
-                                <div class="col-md-6">{{ form.form_class.label_tag }} {{ form.form_class }}</div>
+                            <!-- Section 2: Employment & Academic History -->
+                            <h6 class="fw-bold mb-3" style="font-size: 0.9rem; color: #000000;">2. Employment &amp; Academic History</h6>
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold text-secondary" style="font-size: 0.85rem;">{{ form.designation.label }}</label>
+                                    {{ form.designation }}
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold text-secondary" style="font-size: 0.85rem;">{{ form.department.label }}</label>
+                                    {{ form.department }}
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold text-secondary" style="font-size: 0.85rem;">{{ form.employment_type.label }}</label>
+                                    {{ form.employment_type }}
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold text-secondary" style="font-size: 0.85rem;">{{ form.date_of_appointment.label }}</label>
+                                    {{ form.date_of_appointment }}
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold text-secondary" style="font-size: 0.85rem;">{{ form.year_of_last_promotion.label }}</label>
+                                    {{ form.year_of_last_promotion }}
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold text-secondary" style="font-size: 0.85rem;">{{ form.qualification.label }}</label>
+                                    {{ form.qualification }}
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold text-secondary" style="font-size: 0.85rem;">{{ form.certificate.label }}</label>
+                                    {{ form.certificate }}
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold text-secondary" style="font-size: 0.85rem;">{{ form.name_of_institution_completed.label }}</label>
+                                    {{ form.name_of_institution_completed }}
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold text-secondary" style="font-size: 0.85rem;">{{ form.year_completed.label }}</label>
+                                    {{ form.year_completed }}
+                                </div>
+                            </div>
+
+                            <!-- Section 3: School Assignment Roles -->
+                            <h6 class="fw-bold mb-3" style="font-size: 0.9rem; color: #000000;">3. School Assignment Roles</h6>
+                            <div class="row g-3 mb-4">
                                 <div class="col-md-6">
-                                    <label class="form-label fw-semibold text-secondary">{{ form.subject_areas.label }}</label>
-                                    <div class="border rounded p-3 bg-light">
+                                    <label class="form-label fw-semibold text-secondary" style="font-size: 0.85rem;">{{ form.form_class.label }}</label>
+                                    {{ form.form_class }}
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold text-secondary" style="font-size: 0.85rem;">{{ form.subject_areas.label }}</label>
+                                    <div class="border rounded-3 p-3" style="background-color: #f8f9fa;">
                                         {{ form.subject_areas }}
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    </div>
 
-                    <div class="d-flex justify-content-end gap-2">
-                        <a href="{% url 'staff_list' %}" class="btn btn-light px-4">Cancel</a>
-                        <button type="submit" class="btn btn-primary px-4">Register Staff Member</button>
+                            <!-- Action Buttons -->
+                            <div class="d-flex justify-content-end gap-3 mt-4">
+                                <a href="{% url 'staff_list' %}" style="color: #8F8F8F; font-weight: 500; text-decoration: none; line-height: 38px;">Cancel</a>
+                                <button type="submit" style="background-color: #000000; color: #ffffff; border: none; border-radius: 25px; padding: 10px 28px; font-weight: 600; font-size: 0.9rem; cursor: pointer;">Save changes</button>
+                            </div>
+                        </div>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+document.getElementById('id_profile_picture').addEventListener('change', function(e) {
+    var file = e.target.files[0];
+    if (file) {
+        var reader = new FileReader();
+        reader.onload = function(ev) {
+            document.getElementById('profilePreview').src = ev.target.result;
+            document.getElementById('profilePreview').style.display = 'block';
+            document.getElementById('profilePlaceholder').style.display = 'none';
+        };
+        reader.readAsDataURL(file);
+    }
+});
+</script>
 {% endblock %}

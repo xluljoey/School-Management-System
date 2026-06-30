@@ -122,7 +122,7 @@ class StaffRegistrationForm(forms.ModelForm):
             'department': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Department'}),
             'name_of_institution_completed': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Institution Completed'}),
             'year_completed': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Year Completed'}),
-            'profile_picture': forms.ClearableFileInput(attrs={'class': 'form-control'}),
+            'profile_picture': forms.ClearableFileInput(attrs={'id': 'id_profile_picture', 'class': 'form-control', 'style': 'display: none;', 'accept': 'image/*'}),
             'form_class': forms.Select(attrs={'class': 'form-select'}),
             'subject_areas': forms.CheckboxSelectMultiple(),
         }
