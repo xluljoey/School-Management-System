@@ -55,7 +55,8 @@ class ClassSubjectAdmin(admin.ModelAdmin):
 
 @admin.register(Student)
 class StudentAdmin(admin.ModelAdmin):
-    list_display = ('admission_number', 'first_name', 'last_name', 'gender', 'current_class')
+    list_display = ('admission_number', 'first_name', 'last_name', 'gender', 'classroom')
+    list_editable = ('classroom',)
     list_filter = ('classroom', 'gender', 'status')
     search_fields = ('admission_number', 'first_name', 'last_name')
 
