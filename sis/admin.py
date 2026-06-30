@@ -52,9 +52,15 @@ class ClassSubjectAdmin(admin.ModelAdmin):
             'action_checkbox_name': admin.helpers.ACTION_CHECKBOX_NAME,
         })
 
+
+@admin.register(Student)
+class StudentAdmin(admin.ModelAdmin):
+    list_display = ('admission_number', 'first_name', 'last_name', 'gender', 'classroom')
+    list_filter = ('classroom', 'gender', 'status')
+    search_fields = ('admission_number', 'first_name', 'last_name')
+
 admin.site.register(ClassRoom)
 admin.site.register(Subject)
-admin.site.register(Student)
 admin.site.register(SubjectAssignment)
 admin.site.register(AcademicSession)
 admin.site.register(Term)

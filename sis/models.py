@@ -128,6 +128,7 @@ class Student(models.Model):
     living_with = models.CharField(max_length=10, choices=LIVING_WITH_CHOICES, default='Both')
     previous_school_attended = models.CharField(max_length=255, default='N/A')
     profile_picture = models.ImageField(upload_to='students/profiles/', blank=True, null=True)
+    classroom = models.ForeignKey('ClassRoom', on_delete=models.SET_NULL, null=True, blank=True, related_name='students')
     father = models.ForeignKey(Parent, on_delete=models.SET_NULL, null=True, blank=True, related_name='father_of')
     mother = models.ForeignKey(Parent, on_delete=models.SET_NULL, null=True, blank=True, related_name='mother_of')
     
