@@ -55,7 +55,7 @@ def student_list_view(request):
 @login_required
 def student_registration_view(request):
     if request.method == 'POST':
-        student_form = StudentRegistrationForm(request.POST)
+        student_form = StudentRegistrationForm(request.POST, request.FILES)
         father_form = ParentForm(request.POST, prefix='father')
         mother_form = ParentForm(request.POST, prefix='mother')
 
@@ -211,7 +211,7 @@ def class_report_card_view(request, class_id):
 @login_required
 def register_staff_view(request):
     if request.method == 'POST':
-        form = StaffRegistrationForm(request.POST)
+        form = StaffRegistrationForm(request.POST, request.FILES)
         if form.is_valid():
             # Create the staff profile first
             staff_profile = form.save(commit=False)

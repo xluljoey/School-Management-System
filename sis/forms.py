@@ -23,9 +23,9 @@ class ParentForm(forms.ModelForm):
 class StudentRegistrationForm(forms.ModelForm):
     class Meta:
         model = Student
-        fields = ['admission_number', 'first_name', 'last_name', 'dob', 'gender', 'status', 'living_with', 'previous_school_attended']
+        fields = ['admission_number', 'first_name', 'last_name', 'dob', 'gender', 'status', 'living_with', 'previous_school_attended', 'profile_picture']
         widgets = {
-            'admission_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., 0202420168'}),
+            'admission_number': forms.TextInput(attrs={'id': 'id_admission_number', 'class': 'form-control', 'placeholder': 'e.g., 0202420168'}),
             'first_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'First Name'}),
             'last_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Last Name'}),
             'dob': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
@@ -33,6 +33,7 @@ class StudentRegistrationForm(forms.ModelForm):
             'status': forms.Select(choices=Student.STATUS_CHOICES, attrs={'class': 'form-select'}),
             'living_with': forms.Select(choices=Student.LIVING_WITH_CHOICES, attrs={'class': 'form-select'}),
             'previous_school_attended': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Name of Previous School'}),
+            'profile_picture': forms.ClearableFileInput(attrs={'id': 'id_profile_picture', 'class': 'form-control', 'style': 'display: none;', 'accept': 'image/*'}),
         }
 
 
