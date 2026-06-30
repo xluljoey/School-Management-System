@@ -551,7 +551,7 @@ def compile_grades_view(request):
         classroom = get_object_or_404(ClassRoom, pk=selected_class_id)
         students = Student.objects.filter(enrollments__classroom=classroom).distinct()
         # Filter subjects to only those assigned to this classroom
-        subjects = Subject.objects.filter(classsubject__classroom=classroom).distinct()
+        subjects = Subject.objects.filter(offered_in_classes__classroom=classroom).distinct()
     else:
         classroom = None
         students = Student.objects.none()
