@@ -6,6 +6,8 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.models import User
 from django.core.exceptions import PermissionDenied
 from django.db.models import Q
+from django.http import JsonResponse
+from django.urls import reverse
 from .models import (
     Parent, Student, Subject, SubjectAssessment, ClassRoom, Enrollment,
     StaffProfile, AcademicSession, Term, ClassSubject, PromotionCriteria,
@@ -494,3 +496,38 @@ def configure_session_view(request):
         'current_term': Term.objects.filter(is_active=True).first(),
     }
     return render(request, 'sis/configure_session.html', context)
+
+
+@login_required
+def global_search_view(request):
+    q = request.GET.get('q', '').strip()
+    if len(q) < 2:
+        return JsonResponse({'results': []})
+
+    full_name_q = Q(first_name__icontains=q) | Q(last_name__icontains=q)
+
+    students = Student.objects.filter(
+        full_name_q | Q(admission_number__icontains=q)
+    )[:5]
+
+    staff = StaffProfile.objects.filter(
+        Q(full_name__icontains=q) | Q(staff_id__icontains=q)
+    )[:5]
+
+    results = []
+    for s in students:
+        results.append({
+            'id': s.id,
+            'name': f"{s.first_name} {s.last_name} ({s.admission_number})",
+            'type': 'Student',
+            'url': reverse('student_list'),
+        })
+    for st in staff:
+        results.append({
+            'id': st.id,
+            'name': f"{st.full_name} ({st.staff_id})",
+            'type': 'Staff',
+            'url': reverse('staff_detail', args=[st.id]),
+        })
+
+    return JsonResponse({'results': results})

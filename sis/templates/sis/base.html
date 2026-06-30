@@ -158,6 +158,20 @@
             gap: 10px;
             flex-shrink: 0;
         }
+        .back-btn {
+            cursor: pointer;
+            border: none;
+            background: #FFFFFF;
+            border-radius: 12px;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0px 2px 4px rgba(0,0,0,0.05);
+            color: #1A1A1A;
+            flex-shrink: 0;
+        }
         .content-body {
             margin-top: 24px;
             flex: 1 1 auto;
@@ -204,9 +218,9 @@
     <div class="main-workspace-column">
         <header class="global-top-bar" style="height: 70px; display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 0 24px; box-sizing: border-box; background-color: transparent; flex-wrap: nowrap; flex-shrink: 0;">
             <div class="header-left-controls">
-                <div style="width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; background-color: #ffffff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); cursor: pointer; flex-shrink: 0;">
-                    <span style="font-size: 1.25rem; line-height: 1; color: #1A1A1A;">←</span>
-                </div>
+                <button type="button" onclick="window.history.back();" class="back-btn" aria-label="Go back">
+                    <i class="bi bi-arrow-left"></i>
+                </button>
                 <div class="header-search-field">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8E8D93" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="11" cy="11" r="8"/>

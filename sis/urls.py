@@ -14,6 +14,7 @@ from .views import (
     logout_view,
     class_enrollment_portal_view,
     configure_session_view,
+    global_search_view,
 )
 
 urlpatterns = [
@@ -35,4 +36,5 @@ urlpatterns = [
     path('logout/', logout_view, name='logout'),
     path('enrollment/portal/', class_enrollment_portal_view, name='class_enrollment_portal'),
     path('settings/academic-session/', configure_session_view, name='configure_session'),
+    path('api/search/', global_search_view, name='global_search_api'),
 ]
