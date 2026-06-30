@@ -127,8 +127,6 @@
             gap: 12px;
             flex-shrink: 0;
             min-width: 0;
-            width: 100%;
-            max-width: 600px;
         }
         .header-search-field {
             flex: 1;
@@ -229,7 +227,6 @@
 
     <div class="main-workspace-column">
         <header class="global-top-bar" style="height: 70px; display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 0 24px; box-sizing: border-box; background-color: transparent; flex-wrap: nowrap; flex-shrink: 0;">
-            <div style="display: flex; align-items: center; gap: 16px; width: 100%; max-width: 1400px; margin: 0 auto;">
             <div class="header-left-controls">
                 <button type="button" onclick="window.history.back();" class="back-btn" aria-label="Go back">
                     <i class="bi bi-arrow-left"></i>
@@ -264,7 +261,6 @@
                     </span>
                     <span style="font-size: 0.9rem; font-weight: 600; color: #1A1A1A;">{{ request.user.username }}</span>
                 </div>
-            </div>
             </div>
         </header>
 
