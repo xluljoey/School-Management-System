@@ -607,3 +607,16 @@ def compile_grades_view(request):
         'selected_class': classroom,
     }
     return render(request, 'sis/compile_grades.html', context)
+
+
+@login_required
+def api_class_subjects(request):
+    class_id = request.GET.get('class_id')
+    if not class_id:
+        return JsonResponse({'subjects': []})
+    mappings = ClassSubject.objects.filter(classroom_id=class_id).select_related('subject')
+    subjects_list = [
+        {'id': m.subject.id, 'name': m.subject.subject_name}
+        for m in mappings
+    ]
+    return JsonResponse({'subjects': subjects_list})
