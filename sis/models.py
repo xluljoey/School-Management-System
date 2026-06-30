@@ -295,3 +295,19 @@ class PromotionCriteria(models.Model):
 
     def __str__(self):
         return f"{self.classroom.class_name} (min: {self.min_grand_total})"
+
+
+class GradeVerification(models.Model):
+    classroom = models.ForeignKey(ClassRoom, on_delete=models.CASCADE, related_name='grade_verifications')
+    verified_by = models.ForeignKey(StaffProfile, on_delete=models.SET_NULL, null=True, blank=True, related_name='verifications')
+    verified_at = models.DateTimeField(auto_now_add=True)
+    term = models.IntegerField()
+    academic_year = models.CharField(max_length=9)
+
+    class Meta:
+        unique_together = ('classroom', 'term', 'academic_year')
+        verbose_name = 'Grade Verification'
+        verbose_name_plural = 'Grade Verifications'
+
+    def __str__(self):
+        return f"{self.classroom.class_name} - Term {self.term} ({self.academic_year}) verified"

@@ -7,7 +7,11 @@
     <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
         <div>
             <h5 class="mb-0 fw-bold text-dark">Master Continuous Assessment Summary</h5>
-            <small class="text-muted">Class: <strong>{{ classroom.class_name }}</strong></small>
+            <small class="text-muted">Class: <strong>{{ classroom.class_name }}</strong>
+            {% if verification %}
+                <span class="badge bg-success ms-2">Verified by {{ verification.verified_by.full_name }}</span>
+            {% endif %}
+            </small>
         </div>
         <div class="d-flex align-items-center gap-2">
             <div class="dropdown d-print-none">
@@ -21,6 +25,14 @@
                 </ul>
             </div>
             <button class="btn btn-sm btn-outline-secondary d-print-none" onclick="window.print()">🖨️ Print Report</button>
+            {% if is_form_teacher and has_graded_records %}
+            <form method="POST" action="{% url 'verify_class_rankings' class_id=classroom.id %}" style="display: inline;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-outline-success d-print-none" {% if verification %}disabled{% endif %}>
+                    {% if verification %}✓ Verified{% else %}✓ Verify Rankings{% endif %}
+                </button>
+            </form>
+            {% endif %}
             <a href="{% url 'compile_grades' %}" style="background-color: #000000; color: #ffffff; border: none; border-radius: 25px; padding: 8px 20px; font-weight: 600; font-size: 0.85rem; text-decoration: none; display: inline-block; cursor: pointer;">+ New Grade Entry</a>
         </div>
     </div>

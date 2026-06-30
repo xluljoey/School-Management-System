@@ -11,7 +11,7 @@ from django.urls import reverse
 from .models import (
     Parent, Student, Subject, SubjectAssessment, ClassRoom, Enrollment,
     StaffProfile, AcademicSession, Term, ClassSubject, PromotionCriteria,
-    Department, Designation,
+    Department, Designation, GradeVerification,
 )
 from .forms import (
     ParentForm, StudentRegistrationForm, StaffRegistrationForm, EnrollmentForm,
@@ -195,33 +195,40 @@ def class_report_card_view(request, class_id):
     
     report_data = []
     for student in students:
-        # Fetch all subject scores for this specific student
         assessments = SubjectAssessment.objects.filter(student=student, term=1)
-        
-        # Calculate Grand Total across all subjects dynamically
         grand_total = sum(ast.total_score for ast in assessments)
-        
         report_data.append({
             'student': student,
             'assessments': assessments,
             'grand_total': grand_total,
         })
         
-    # Sort students by grand total descending to rank them automatically
     report_data = sorted(report_data, key=lambda x: x['grand_total'], reverse=True)
 
-    # Inject rank integer positions into the sorted data stream
     for index, row in enumerate(report_data):
         row['rank'] = index + 1
     
     classrooms = ClassRoom.objects.all()
     has_graded_records = any(row['assessments'].exists() for row in report_data)
 
+    staff = getattr(request.user, 'staff_profile', None)
+    is_form_teacher = staff and staff.form_class == classroom
+
+    current_term = Term.objects.filter(is_active=True).first()
+    term_number = int(current_term.term_name.split()[-1]) if current_term else 1
+    year_label = current_term.session.academic_year if current_term and current_term.session else "2025/2026"
+
+    verification = GradeVerification.objects.filter(
+        classroom=classroom, term=term_number, academic_year=year_label
+    ).first()
+
     return render(request, 'sis/class_report.html', {
         'classroom': classroom,
         'report_data': report_data,
         'classrooms': classrooms,
         'has_graded_records': has_graded_records,
+        'is_form_teacher': is_form_teacher,
+        'verification': verification,
     })
 
 
@@ -629,3 +636,65 @@ def api_class_subjects(request):
         for m in mappings
     ]
     return JsonResponse({'subjects': subjects_list})
+
+
+@login_required
+def verify_class_rankings_view(request, class_id):
+    if not _is_staff_or_admin(request.user):
+        raise PermissionDenied
+
+    classroom = get_object_or_404(ClassRoom, pk=class_id)
+
+    staff = getattr(request.user, 'staff_profile', None)
+    is_form_teacher = staff and staff.form_class == classroom
+
+    if not is_form_teacher and not _is_admin(request.user):
+        messages.error(request, 'Only the form teacher of this class can verify rankings.')
+        return redirect('class_report', class_id=class_id)
+
+    students = Student.objects.filter(enrollments__classroom=classroom).distinct()
+
+    report_data = []
+    for student in students:
+        assessments = SubjectAssessment.objects.filter(student=student, term=1)
+        grand_total = sum(ast.total_score for ast in assessments)
+        report_data.append({
+            'student': student,
+            'assessments': assessments,
+            'grand_total': grand_total,
+        })
+
+    report_data = sorted(report_data, key=lambda x: x['grand_total'], reverse=True)
+    for index, row in enumerate(report_data):
+        row['rank'] = index + 1
+
+    current_term = Term.objects.filter(is_active=True).first()
+    term_number = int(current_term.term_name.split()[-1]) if current_term else 1
+    year_label = current_term.session.academic_year if current_term and current_term.session else "2025/2026"
+
+    verification = GradeVerification.objects.filter(
+        classroom=classroom, term=term_number, academic_year=year_label
+    ).first()
+
+    if request.method == 'POST':
+        if not verification:
+            GradeVerification.objects.create(
+                classroom=classroom,
+                verified_by=staff,
+                term=term_number,
+                academic_year=year_label,
+            )
+            messages.success(request, f'Rankings for {classroom.class_name} verified successfully.')
+        else:
+            messages.info(request, 'Rankings were already verified for this term.')
+        return redirect('class_report', class_id=class_id)
+
+    has_graded_records = any(row['assessments'].exists() for row in report_data)
+
+    return render(request, 'sis/class_report.html', {
+        'classroom': classroom,
+        'report_data': report_data,
+        'is_form_teacher': is_form_teacher,
+        'verification': verification,
+        'has_graded_records': has_graded_records,
+    })
