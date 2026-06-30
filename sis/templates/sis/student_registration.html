@@ -13,6 +13,34 @@
             <div class="card-body p-4">
                 <form method="POST" enctype="multipart/form-data">
                     {% csrf_token %}
+                    
+                    <!-- Display form errors at the top -->
+                    {% if student_form.errors or father_form.errors or mother_form.errors %}
+                    <div class="alert alert-danger mt-3">
+                        <strong>Please correct the errors below:</strong>
+                        {% if student_form.errors %}
+                            {% for field, errors in student_form.errors.items %}
+                                {% for error in errors %}
+                                    <div>{{ student_form[field].label }}: {{ error }}</div>
+                                {% endfor %}
+                            {% endfor %}
+                        {% endif %}
+                        {% if father_form.errors %}
+                            {% for field, errors in father_form.errors.items %}
+                                {% for error in errors %}
+                                    <div>Father's {{ father_form[field].label }}: {{ error }}</div>
+                                {% endfor %}
+                            {% endfor %}
+                        {% endif %}
+                        {% if mother_form.errors %}
+                            {% for field, errors in mother_form.errors.items %}
+                                {% for error in errors %}
+                                    <div>Mother's {{ mother_form[field].label }}: {{ error }}</div>
+                                {% endfor %}
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                    {% endif %}
 
                     <div class="row g-4">
                         <!-- LEFT COLUMN — Profile Image Uploader -->
@@ -34,6 +62,9 @@
                                 <div class="col-md-6">
                                     <label class="form-label fw-semibold text-secondary" style="font-size: 0.85rem;">First Name</label>
                                     {{ student_form.first_name }}
+                                    {% if student_form.first_name.errors %}
+                                        <div class="text-danger small">{{ student_form.first_name.errors.0 }}</div>
+                                    {% endif %}
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label fw-semibold text-secondary" style="font-size: 0.85rem;">Last Name</label>
@@ -42,6 +73,9 @@
                                 <div class="col-md-6">
                                     <label class="form-label fw-semibold text-secondary" style="font-size: 0.85rem;">Admission Number</label>
                                     {{ student_form.admission_number }}
+                                    {% if student_form.admission_number.errors %}
+                                        <div class="text-danger small">{{ student_form.admission_number.errors.0 }}</div>
+                                    {% endif %}
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label fw-semibold text-secondary" style="font-size: 0.85rem;">Date of Birth</label>

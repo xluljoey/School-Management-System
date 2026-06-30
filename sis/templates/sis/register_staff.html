@@ -13,6 +13,18 @@
             <div class="card-body p-4">
                 <form method="POST" enctype="multipart/form-data">
                     {% csrf_token %}
+                    
+                    <!-- Display form errors at the top -->
+                    {% if form.errors %}
+                    <div class="alert alert-danger mt-3">
+                        <strong>Please correct the errors below:</strong>
+                        {% for field, errors in form.errors.items %}
+                            {% for error in errors %}
+                                <div>{{ form[field].label }}: {{ error }}</div>
+                            {% endfor %}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
 
                     <div class="row g-4">
                         <!-- LEFT COLUMN — Profile Image Uploader -->
