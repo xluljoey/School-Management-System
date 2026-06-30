@@ -41,7 +41,7 @@
                     </div>
                 </td>
                 <td style="padding: 14px 16px; border-bottom: 1px solid #f5f5f5; color: #1A1A1A; font-size: 0.9rem;">{{ student.gender }}</td>
-                <td style="padding: 14px 16px; border-bottom: 1px solid #f5f5f5; color: #1A1A1A; font-size: 0.9rem;">{% if student.current_class %}{{ student.current_class }}{% else %}&mdash;{% endif %}</td>
+                <td style="padding: 14px 16px; border-bottom: 1px solid #f5f5f5; color: #1A1A1A; font-size: 0.9rem;">{% if student.classroom %}{{ student.classroom.class_name }}{% else %}<span class="text-muted">No Class Assigned</span>{% endif %}</td>
                 <td style="padding: 14px 16px; border-bottom: 1px solid #f5f5f5;">
                     <span style="background-color: #E8F5E9; color: #2E7D32; border-radius: 12px; padding: 4px 12px; font-weight: 500; font-size: 0.8rem; display: inline-block;">{{ student.status }}</span>
                 </td>

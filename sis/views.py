@@ -48,7 +48,7 @@ def dashboard_view(request):
 
 @login_required
 def student_list_view(request):
-    students = Student.objects.all()
+    students = Student.objects.all().select_related('classroom')
     classrooms = ClassRoom.objects.all()
     return render(request, 'sis/student_list.html', {
         'students': students,
