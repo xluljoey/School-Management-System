@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import ClassRoom, Subject, StaffProfile, Student, SubjectAssignment, AcademicSession, Term, ClassSubject
+from .models import ClassRoom, Subject, StaffProfile, Student, SubjectAssignment, AcademicSession, Term, ClassSubject, Parent
 
 # Register your models here.
 class ClassSubjectAdmin(admin.ModelAdmin):
@@ -15,3 +15,4 @@ admin.site.register(SubjectAssignment)
 admin.site.register(AcademicSession)
 admin.site.register(Term)
 admin.site.register(ClassSubject, ClassSubjectAdmin)
+admin.site.register(Parent)

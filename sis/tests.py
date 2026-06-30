@@ -6,6 +6,11 @@ from .models import ClassRoom, Parent, Student, Subject, SubjectAssessment, Staf
 
 
 class StudentRegistrationTests(TestCase):
+    def setUp(self):
+        from django.contrib.auth.models import User
+        self.user = User.objects.create_superuser(username="admin", password="password", email="admin@example.com")
+        self.client.login(username="admin", password="password")
+
     def test_e_path_redirects_to_students(self):
         response = self.client.get("/e")
         self.assertRedirects(response, reverse("student_list"))

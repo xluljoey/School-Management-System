@@ -71,6 +71,30 @@ class Parent(models.Model):
     email = models.EmailField(blank=True, null=True)
     telephone_number = models.CharField(max_length=20, blank=True, null=True)
 
+    @property
+    def full_name(self):
+        return self.name
+
+    @full_name.setter
+    def full_name(self, value):
+        self.name = value
+
+    @property
+    def phone(self):
+        return self.telephone_number
+
+    @phone.setter
+    def phone(self, value):
+        self.telephone_number = value
+
+    @property
+    def address(self):
+        return self.residential_address
+
+    @address.setter
+    def address(self, value):
+        self.residential_address = value
+
     def __str__(self):
         return self.name or "Unnamed Parent"
 
@@ -98,6 +122,29 @@ class Student(models.Model):
         """Return the most recent enrolled ClassRoom for this student, or None."""
         latest = self.enrollments.order_by('-date_enrolled').first()
         return latest.classroom if latest else None
+
+    @current_class.setter
+    def current_class(self, classroom):
+        self._temp_current_class = classroom
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        if hasattr(self, '_temp_current_class') and self._temp_current_class:
+            from .models import Enrollment
+            # Find current active term if available
+            from .models import Term, AcademicSession
+            current_session = AcademicSession.objects.filter(is_current=True).first()
+            current_term = Term.objects.filter(is_active=True).first() if current_session else None
+            term_name = current_term.term_name if current_term else "Term 1"
+            acad_year = current_session.academic_year if current_session else "2025/2026"
+            
+            Enrollment.objects.get_or_create(
+                student=self,
+                classroom=self._temp_current_class,
+                term=term_name,
+                academic_year=acad_year,
+            )
+            del self._temp_current_class
 
     def __str__(self):
         return f"{self.first_name} {self.last_name} ({self.admission_number})"
