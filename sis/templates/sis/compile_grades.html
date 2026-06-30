@@ -1,0 +1,89 @@
+{% extends 'sis/base.html' %}
+{% load static %}
+
+{% block title %}Compile Grades & Assessment{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-1" style="color: #000000;">Compile Grades &amp; Assessment</h4>
+        <span style="color: #8E8D93; font-size: 0.85rem;">
+            {% if selected_class %}
+                Class: <strong>{{ selected_class.class_name }}</strong>
+            {% else %}
+                Select a class to begin
+            {% endif %}
+        </span>
+    </div>
+    <form method="get" class="d-flex align-items-center gap-2">
+        <select name="class_id" class="form-select" style="width: auto; border-radius: 12px; font-size: 0.9rem;" onchange="this.form.submit()">
+            <option value="">-- Select Class --</option>
+            {% for c in classrooms %}
+            <option value="{{ c.id }}" {% if selected_class and selected_class.id == c.id %}selected{% endif %}>{{ c.class_name }}</option>
+            {% endfor %}
+        </select>
+    </form>
+</div>
+
+{% if selected_class and students %}
+<form method="POST">
+    {% csrf_token %}
+    <input type="hidden" name="class_id" value="{{ selected_class.id }}">
+    <div class="table-responsive">
+        <table class="table table-bordered align-middle" style="border-collapse: separate; border-spacing: 0; font-size: 0.85rem;">
+            <thead>
+                <tr style="background-color: #f8f9fa; color: #1A1A1A; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px;">
+                    <th style="padding: 10px 12px; min-width: 180px; position: sticky; left: 0; background: #f8f9fa; z-index: 2;">Student</th>
+                    {% for subject in subjects %}
+                    <th style="padding: 10px 12px; text-align: center;" colspan="2">{{ subject.subject_name }}</th>
+                    {% endfor %}
+                    <th style="padding: 10px 12px; text-align: center; min-width: 80px;">Grand Total</th>
+                    <th style="padding: 10px 12px; text-align: center; min-width: 70px;">Rank</th>
+                </tr>
+                <tr style="background-color: #f8f9fa; color: #8E8D93; font-size: 0.7rem; font-weight: 500;">
+                    <th style="padding: 6px 12px; position: sticky; left: 0; background: #f8f9fa; z-index: 2;"></th>
+                    {% for subject in subjects %}
+                    <th style="padding: 6px 12px; text-align: center; width: 70px;">Score</th>
+                    <th style="padding: 6px 12px; text-align: center; width: 60px;">Rank</th>
+                    {% endfor %}
+                    <th style="padding: 6px 12px; text-align: center;"></th>
+                    <th style="padding: 6px 12px; text-align: center;"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for student in students %}
+                <tr>
+                    <td style="padding: 8px 12px; font-weight: 600; color: #000000; position: sticky; left: 0; background: #ffffff; z-index: 1;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="width: 28px; height: 28px; border-radius: 50%; background-color: #000000; color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.7rem; flex-shrink: 0;">{{ student.first_name|first|upper }}</span>
+                            <div>
+                                <div style="font-size: 0.85rem; line-height: 1.2;">{{ student.first_name }} {{ student.last_name }}</div>
+                                <div style="color: #8E8D93; font-size: 0.7rem;">{{ student.admission_number }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    {% for subject in subjects %}
+                    <td style="padding: 4px 6px; text-align: center;">
+                        <input type="number" name="cs_{{ student.id }}_{{ subject.id }}" step="0.01" min="0" max="100" placeholder="0" style="width: 60px; border: 1px solid #e0e0e0; border-radius: 8px; padding: 6px 4px; text-align: center; font-size: 0.85rem; outline: none;">
+                    </td>
+                    <td style="padding: 4px 6px; text-align: center; color: #8E8D93; font-size: 0.8rem;">—</td>
+                    {% endfor %}
+                    <td style="padding: 8px 12px; text-align: center; color: #8E8D93; font-size: 0.85rem;">—</td>
+                    <td style="padding: 8px 12px; text-align: center; color: #8E8D93; font-size: 0.85rem;">—</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center mt-4 pt-3" style="border-top: 1px solid #f0f0f0;">
+        <a href="{% url 'class_report' class_id=selected_class.id %}" style="color: #8F8F8F; font-weight: 500; text-decoration: none; line-height: 38px;">Cancel</a>
+        <button type="submit" style="background-color: #000000; color: #ffffff; border: none; border-radius: 25px; padding: 10px 28px; font-weight: 600; font-size: 0.9rem; cursor: pointer;">Save and Exit</button>
+    </div>
+</form>
+{% elif selected_class and not students %}
+<div style="text-align: center; padding: 80px 0; color: #8E8D93;">
+    <p>No students enrolled in this class.</p>
+</div>
+{% endif %}
+{% endblock %}

@@ -537,3 +537,51 @@ def global_search_view(request):
         })
 
     return JsonResponse({'results': results})
+
+
+@login_required
+def compile_grades_view(request):
+    if not _is_staff_or_admin(request.user):
+        raise PermissionDenied
+    classrooms = ClassRoom.objects.all()
+    subjects = Subject.objects.all()
+    selected_class_id = request.GET.get('class_id')
+    students = []
+    if selected_class_id:
+        classroom = get_object_or_404(ClassRoom, pk=selected_class_id)
+        students = Student.objects.filter(enrollments__classroom=classroom).distinct()
+    else:
+        classroom = None
+        students = Student.objects.none()
+
+    if request.method == 'POST':
+        selected_class_id = request.POST.get('class_id')
+        classroom = get_object_or_404(ClassRoom, pk=selected_class_id)
+        students = Student.objects.filter(enrollments__classroom=classroom).distinct()
+        for student in students:
+            for subject in subjects:
+                class_score_key = f'cs_{student.id}_{subject.id}'
+                exam_score_key = f'es_{student.id}_{subject.id}'
+                cs = request.POST.get(class_score_key)
+                es = request.POST.get(exam_score_key)
+                if cs or es:
+                    SubjectAssessment.objects.update_or_create(
+                        student=student,
+                        subject=subject,
+                        term=1,
+                        defaults={
+                            'class_score': cs or 0,
+                            'exam_score': es or 0,
+                            'academic_year': '2025/2026',
+                        }
+                    )
+        messages.success(request, 'Grades saved successfully!')
+        return redirect('class_report', class_id=selected_class_id)
+
+    context = {
+        'classrooms': classrooms,
+        'subjects': subjects,
+        'students': students,
+        'selected_class': classroom,
+    }
+    return render(request, 'sis/compile_grades.html', context)
