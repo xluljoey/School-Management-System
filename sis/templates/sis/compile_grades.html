@@ -22,6 +22,10 @@
             <option value="{{ c.id }}" {% if selected_class and selected_class.id == c.id %}selected{% endif %}>{{ c.class_name }}</option>
             {% endfor %}
         </select>
+        <select name="assessment_type" id="assessment-type-select" class="form-select" style="width: 200px; height: 42px; border-radius: 10px; border: 1px solid #E4E4E7; font-size: 14px;">
+            <option value="class_score" selected>Class Score (30%)</option>
+            <option value="exam_score">Exam Score (70%)</option>
+        </select>
     </form>
 </div>
 
@@ -54,7 +58,8 @@
                     </td>
                     {% for subject in subjects %}
                     <td style="padding: 6px 8px; text-align: center;">
-                        <input type="number" name="cs_{{ student.id }}_{{ subject.id }}" step="0.01" min="0" max="100" placeholder="—" style="width: 65px; height: 38px; border: 1px solid #E4E4E7; border-radius: 8px; text-align: center; font-size: 14px; outline: none; box-sizing: border-box;" onfocus="this.style.borderColor='#000000'" onblur="this.style.borderColor='#E4E4E7'">
+                        <input type="number" name="cs_{{ student.id }}_{{ subject.id }}" class="grade-input class-score-field" step="0.01" min="0" max="30" placeholder="Max 30" style="width: 65px; height: 38px; border: 1px solid #E4E4E7; border-radius: 8px; text-align: center; font-size: 14px; outline: none; box-sizing: border-box;" onfocus="this.style.borderColor='#000000'" onblur="this.style.borderColor='#E4E4E7'">
+                        <input type="number" name="es_{{ student.id }}_{{ subject.id }}" class="grade-input exam-score-field" step="0.01" min="0" max="70" placeholder="Max 70" style="width: 65px; height: 38px; border: 1px solid #E4E4E7; border-radius: 8px; text-align: center; font-size: 14px; outline: none; box-sizing: border-box; display: none;" onfocus="this.style.borderColor='#000000'" onblur="this.style.borderColor='#E4E4E7'">
                     </td>
                     {% endfor %}
                     <td style="padding: 10px 16px; text-align: center;">
@@ -114,6 +119,22 @@
             e.returnValue = '';
         }
     });
+
+    var toggle = document.getElementById('assessment-type-select');
+    if (toggle) {
+        toggle.addEventListener('change', function() {
+            var show = this.value;
+            var classFields = document.querySelectorAll('.class-score-field');
+            var examFields = document.querySelectorAll('.exam-score-field');
+            if (show === 'class_score') {
+                classFields.forEach(function(el) { el.style.display = ''; });
+                examFields.forEach(function(el) { el.style.display = 'none'; });
+            } else {
+                classFields.forEach(function(el) { el.style.display = 'none'; });
+                examFields.forEach(function(el) { el.style.display = ''; });
+            }
+        });
+    }
 })();
 </script>
 {% endblock %}
