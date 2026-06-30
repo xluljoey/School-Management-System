@@ -320,6 +320,8 @@ def enroll_student_view(request, student_id):
             enrollment.student = student
             enrollment.academic_year = form.cleaned_data['term'].session.academic_year
             enrollment.save()
+            student.classroom = enrollment.classroom
+            student.save(update_fields=['classroom'])
             messages.success(request, f"Student {student.first_name} {student.last_name} successfully enrolled in {enrollment.classroom}!")
             return redirect('student_list')
     else:
@@ -451,6 +453,8 @@ def class_enrollment_portal_view(request):
                     academic_year=year_label,
                     defaults={'classroom': next_class},
                 )
+                student.classroom = next_class
+                student.save(update_fields=['classroom'])
 
             for sid in held_back_ids:
                 student = get_object_or_404(Student, pk=sid)
@@ -460,6 +464,8 @@ def class_enrollment_portal_view(request):
                     academic_year=year_label,
                     defaults={'classroom': src_class},
                 )
+                student.classroom = src_class
+                student.save(update_fields=['classroom'])
 
             messages.success(
                 request,
