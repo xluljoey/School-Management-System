@@ -18,6 +18,39 @@ class ClassSubjectAdmin(admin.ModelAdmin):
     list_display = ('classroom', 'subject')
     list_filter = ('classroom', 'subject')
     search_fields = ('classroom__class_name', 'subject__subject_name')
+    actions = ['clone_class_subjects']
+
+    @admin.action(description="Clone selected subjects to another class")
+    def clone_class_subjects(self, request, queryset):
+        from django.shortcuts import render
+        from django.http import HttpResponseRedirect
+        from .models import ClassRoom
+
+        if 'apply' in request.POST:
+            target_class_id = request.POST.get('target_classroom')
+            target_classroom = ClassRoom.objects.get(id=target_class_id)
+
+            cloned_count = 0
+            for class_subject in queryset:
+                obj, created = ClassSubject.objects.get_or_create(
+                    classroom=target_classroom,
+                    subject=class_subject.subject
+                )
+                if created:
+                    cloned_count += 1
+
+            self.message_user(request, f"Successfully cloned {cloned_count} subjects to {target_classroom.class_name}.")
+            return HttpResponseRedirect(request.get_full_path())
+
+        classrooms = ClassRoom.objects.exclude(
+            id__in=queryset.values_list('classroom_id', flat=True).distinct()
+        )
+
+        return render(request, 'admin/clone_subjects_intermediate.html', context={
+            'selected_subjects': queryset,
+            'classrooms': classrooms,
+            'action_checkbox_name': admin.helpers.ACTION_CHECKBOX_NAME,
+        })
 
 admin.site.register(ClassRoom)
 admin.site.register(Subject)

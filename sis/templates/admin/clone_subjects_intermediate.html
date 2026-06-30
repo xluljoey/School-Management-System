@@ -1,0 +1,19 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<form action="" method="post">
+    {% csrf_token %}
+    <p>Select the target class to clone these {{ selected_subjects.count }} subjects into:</p>
+    <select name="target_classroom" required style="padding: 6px; border-radius: 4px; margin-bottom: 15px;">
+        {% for room in classrooms %}
+            <option value="{{ room.id }}">{{ room.class_name }}</option>
+        {% endfor %}
+    </select>
+    {% for obj in selected_subjects %}
+        <input type="hidden" name="{{ action_checkbox_name }}" value="{{ obj.pk }}" />
+    {% endfor %}
+    <input type="hidden" name="action" value="clone_class_subjects" />
+    <input type="hidden" name="apply" value="True" />
+    <br>
+    <input type="submit" value="Confirm Clone" class="default" style="background: #417690; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer;" />
+</form>
+{% endblock %}
