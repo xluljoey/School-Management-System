@@ -71,39 +71,27 @@ def student_registration_view(request):
         if student_form.is_valid() and father_form.is_valid() and mother_form.is_valid():
             student_instance = student_form.save(commit=False)
             
-            # Extract and create Father profile
-            father_name = request.POST.get('father-name') or request.POST.get('father_name')
-            father_phone = request.POST.get('father-telephone_number') or request.POST.get('father_phone') or request.POST.get('father-phone') or request.POST.get('father_telephone_number')
-            father_occupation = request.POST.get('father-occupation') or request.POST.get('father_occupation')
-            father_address = request.POST.get('father-residential_address') or request.POST.get('father_address') or request.POST.get('father-address') or request.POST.get('father_residential_address')
-            father_email = request.POST.get('father-email') or request.POST.get('father_email')
-            
+            # Save parent forms if they have data
             father_obj = None
-            if (father_name and father_name.strip()) or (father_phone and father_phone.strip()):
-                father_obj = Parent.objects.create(
-                    name=father_name,
-                    telephone_number=father_phone,
-                    occupation=father_occupation,
-                    residential_address=father_address,
-                    email=father_email,
-                )
-            
-            # Extract and create Mother profile
-            mother_name = request.POST.get('mother-name') or request.POST.get('mother_name')
-            mother_phone = request.POST.get('mother-telephone_number') or request.POST.get('mother_phone') or request.POST.get('mother-phone') or request.POST.get('mother_telephone_number')
-            mother_occupation = request.POST.get('mother-occupation') or request.POST.get('mother_occupation')
-            mother_address = request.POST.get('mother-residential_address') or request.POST.get('mother_address') or request.POST.get('mother-address') or request.POST.get('mother_residential_address')
-            mother_email = request.POST.get('mother-email') or request.POST.get('mother_email')
-            
             mother_obj = None
-            if (mother_name and mother_name.strip()) or (mother_phone and mother_phone.strip()):
-                mother_obj = Parent.objects.create(
-                    name=mother_name,
-                    telephone_number=mother_phone,
-                    occupation=mother_occupation,
-                    residential_address=mother_address,
-                    email=mother_email,
-                )
+            
+            # Check if father form has any data
+            father_has_data = any([
+                father_form.cleaned_data.get('name'),
+                father_form.cleaned_data.get('telephone_number')
+            ])
+            
+            if father_has_data:
+                father_obj = father_form.save()
+            
+            # Check if mother form has any data
+            mother_has_data = any([
+                mother_form.cleaned_data.get('name'),
+                mother_form.cleaned_data.get('telephone_number')
+            ])
+            
+            if mother_has_data:
+                mother_obj = mother_form.save()
             
             # Link them directly to the student row
             student_instance.father = father_obj
