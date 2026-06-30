@@ -205,14 +205,14 @@
                 <a href="{% url 'promotion_portal' %}" class="{% if request.path == '/enrollment/portal/' %}active{% endif %}">
                     <i class="bi bi-arrow-up-circle"></i> Promotion Portal
                 </a>
-                <a href="{% url 'academic_settings' %}" class="{% if request.path == '/settings/academic-session/' %}active{% endif %}">
-                    <i class="bi bi-gear"></i> Academic Settings
-                </a>
                 <a href="{% url 'register_student' %}" class="{% if request.path == '/students/register/' %}active{% endif %}">
                     <i class="bi bi-person-plus"></i> Add Student
                 </a>
                 <a href="{% url 'register_staff' %}" class="{% if request.path == '/staff/register/' %}active{% endif %}">
                     <i class="bi bi-person-badge"></i> Onboard Staff
+                </a>
+                <a href="{% url 'academic_settings' %}" class="{% if request.path == '/settings/academic-session/' %}active{% endif %}">
+                    <i class="bi bi-gear"></i> Academic Settings
                 </a>
             </nav>
         </div>
