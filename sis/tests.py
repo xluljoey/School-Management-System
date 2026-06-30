@@ -2,7 +2,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from .forms import StaffRegistrationForm, StudentRegistrationForm
-from .models import ClassRoom, Parent, Student, Subject, SubjectAssessment, StaffProfile
+from .models import ClassRoom, Department, Designation, Parent, Student, Subject, SubjectAssessment, StaffProfile
 
 
 class StudentRegistrationTests(TestCase):

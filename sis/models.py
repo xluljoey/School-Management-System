@@ -22,6 +22,20 @@ class Subject(models.Model):
     def __str__(self):
         return self.subject_name
     
+class Department(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+
+    def __str__(self):
+        return self.name
+
+
+class Designation(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+
+    def __str__(self):
+        return self.name
+
+
 class StaffProfile(models.Model):
     TITLE_CHOICES = [
         ('Mr.', 'Mr.'),
@@ -45,13 +59,13 @@ class StaffProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='staff_profile', null=True, blank=True)
     gender = models.CharField(max_length=10, choices=GENDER_CHOICES, default='Male')
     dob = models.DateField(verbose_name="Date of Birth", default=date.today)
-    designation = models.CharField(max_length=100, default='')
+    designation = models.ForeignKey(Designation, on_delete=models.SET_NULL, null=True, blank=True)
     ssnit_id = models.CharField(max_length=50, blank=True, null=True, verbose_name="SSNIT ID")
     email = models.EmailField(unique=True)
     employment_type = models.CharField(max_length=50, choices=EMPLOYMENT_CHOICES, default='Permanent')
     date_of_appointment = models.DateField(default=date.today)
     year_of_last_promotion = models.IntegerField(blank=True, null=True)
-    department = models.CharField(max_length=100, default='')
+    department = models.ForeignKey(Department, on_delete=models.SET_NULL, null=True, blank=True)
     qualification = models.CharField(max_length=150, default='')
     certificate = models.CharField(max_length=150, default='')
     name_of_institution_completed = models.CharField(max_length=255, default='')

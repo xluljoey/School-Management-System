@@ -11,6 +11,7 @@ from django.urls import reverse
 from .models import (
     Parent, Student, Subject, SubjectAssessment, ClassRoom, Enrollment,
     StaffProfile, AcademicSession, Term, ClassSubject, PromotionCriteria,
+    Department, Designation,
 )
 from .forms import (
     ParentForm, StudentRegistrationForm, StaffRegistrationForm, EnrollmentForm,
@@ -238,16 +239,31 @@ def class_report_card_view(request, class_id):
 
 @login_required
 def register_staff_view(request):
+    departments = Department.objects.all()
+    designations = Designation.objects.all()
+
     if request.method == 'POST':
         form = StaffRegistrationForm(request.POST, request.FILES)
         if form.is_valid():
             # Create the staff profile first
             staff_profile = form.save(commit=False)
-            
+
+            # Handle department FK
+            dept_name = form.cleaned_data.get('department')
+            if dept_name:
+                dept, _ = Department.objects.get_or_create(name=dept_name)
+                staff_profile.department = dept
+
+            # Handle designation FK
+            desig_name = form.cleaned_data.get('designation')
+            if desig_name:
+                desig, _ = Designation.objects.get_or_create(name=desig_name)
+                staff_profile.designation = desig
+
             # Create a corresponding user account using staff_id as username
             username = staff_profile.staff_id
             password = 'staff123'  # Default password
-            
+
             # Create user if it doesn't exist
             user, created = User.objects.get_or_create(
                 username=username,
@@ -258,22 +274,27 @@ def register_staff_view(request):
                     'is_staff': True,
                 }
             )
-            
+
             # Set the password if user was just created
             if created:
                 user.set_password(password)
                 user.save()
-            
+
             # Link the user to the staff profile
             staff_profile.user = user
             staff_profile.save()
-            
+            form.save_m2m()
+
             messages.success(request, f'Staff member registered successfully. Username: {username}, Password: {password}')
             return redirect('staff_list')
     else:
         form = StaffRegistrationForm()
 
-    return render(request, 'sis/register_staff.html', {'form': form})
+    return render(request, 'sis/register_staff.html', {
+        'form': form,
+        'departments': departments,
+        'designations': designations,
+    })
 
 
 @login_required

@@ -98,12 +98,31 @@ class StaffRegistrationForm(forms.ModelForm):
     qualification = forms.ChoiceField(choices=QUALIFICATION_CHOICES, widget=forms.Select(attrs={'class': 'form-select'}))
     certificate = forms.ChoiceField(choices=CERTIFICATE_CHOICES, widget=forms.Select(attrs={'class': 'form-select'}))
 
+    department = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Select or type department...',
+            'list': 'departments-list',
+            'style': 'border-radius: 10px; border: 1px solid #E4E4E7; height: 42px;',
+        })
+    )
+    designation = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Select or type designation...',
+            'list': 'designations-list',
+            'style': 'border-radius: 10px; border: 1px solid #E4E4E7; height: 42px;',
+        })
+    )
+
     class Meta:
         model = StaffProfile
         fields = [
-            'title', 'full_name', 'staff_id', 'gender', 'dob', 'designation',
+            'title', 'full_name', 'staff_id', 'gender', 'dob',
             'ssnit_id', 'email', 'employment_type', 'date_of_appointment',
-            'year_of_last_promotion', 'department', 'qualification', 'certificate',
+            'year_of_last_promotion', 'qualification', 'certificate',
             'name_of_institution_completed', 'year_completed', 'profile_picture',
             'form_class', 'subject_areas',
         ]
@@ -113,13 +132,11 @@ class StaffRegistrationForm(forms.ModelForm):
             'staff_id': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Staff ID'}),
             'gender': forms.Select(attrs={'class': 'form-select'}),
             'dob': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'designation': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., Senior Superintendent'}),
             'ssnit_id': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'SSNIT ID'}),
             'email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'Email Address'}),
             'employment_type': forms.Select(attrs={'class': 'form-select'}),
             'date_of_appointment': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'year_of_last_promotion': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Year of Last Promotion'}),
-            'department': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Department'}),
             'name_of_institution_completed': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Institution Completed'}),
             'year_completed': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Year Completed'}),
             'profile_picture': forms.ClearableFileInput(attrs={'id': 'id_profile_picture', 'class': 'form-control', 'style': 'display: none;', 'accept': 'image/*'}),

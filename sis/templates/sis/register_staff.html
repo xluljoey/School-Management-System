@@ -68,12 +68,22 @@
                             <h6 class="fw-bold mb-3" style="font-size: 0.9rem; color: #000000;">2. Employment &amp; Academic History</h6>
                             <div class="row g-3 mb-4">
                                 <div class="col-md-4">
-                                    <label class="form-label fw-semibold text-secondary" style="font-size: 0.85rem;">{{ form.designation.label }}</label>
+                                    <label class="form-label fw-semibold text-secondary" style="font-size: 0.85rem;">Designation</label>
                                     {{ form.designation }}
+                                    <datalist id="designations-list">
+                                        {% for desig in designations %}
+                                            <option value="{{ desig.name }}">
+                                        {% endfor %}
+                                    </datalist>
                                 </div>
                                 <div class="col-md-4">
-                                    <label class="form-label fw-semibold text-secondary" style="font-size: 0.85rem;">{{ form.department.label }}</label>
+                                    <label class="form-label fw-semibold text-secondary" style="font-size: 0.85rem;">Department</label>
                                     {{ form.department }}
+                                    <datalist id="departments-list">
+                                        {% for dept in departments %}
+                                            <option value="{{ dept.name }}">
+                                        {% endfor %}
+                                    </datalist>
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label fw-semibold text-secondary" style="font-size: 0.85rem;">{{ form.employment_type.label }}</label>
