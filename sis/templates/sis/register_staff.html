@@ -20,7 +20,7 @@
                         <strong>Please correct the errors below:</strong>
                         {% for field, errors in form.errors.items %}
                             {% for error in errors %}
-                                <div>{{ form[field].label }}: {{ error }}</div>
+                                <div>{{ field|title }}: {{ error }}</div>
                             {% endfor %}
                         {% endfor %}
                     </div>
