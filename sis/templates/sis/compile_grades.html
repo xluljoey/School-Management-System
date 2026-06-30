@@ -26,7 +26,7 @@
 </div>
 
 {% if selected_class and students %}
-<form method="POST">
+<form method="POST" id="grade-matrix-form">
     {% csrf_token %}
     <input type="hidden" name="class_id" value="{{ selected_class.id }}">
 
@@ -70,7 +70,7 @@
     </div>
 
     <div class="d-flex justify-content-between align-items-center" style="margin-top: 24px;">
-        <a href="{% url 'class_report' class_id=selected_class.id %}" style="color: #8F8F8F; font-weight: 500; text-decoration: none; line-height: 38px;">Cancel</a>
+        <a href="{% url 'class_report' class_id=selected_class.id %}" id="cancel-link" style="color: #8F8F8F; font-weight: 500; text-decoration: none; line-height: 38px;">Cancel</a>
         <button type="submit" style="background-color: #000000; color: #ffffff; border: none; border-radius: 25px; padding: 10px 28px; font-weight: 600; font-size: 0.9rem; cursor: pointer;">Save and Exit</button>
     </div>
 </form>
@@ -79,4 +79,41 @@
     <p>No students enrolled in this class.</p>
 </div>
 {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    var isFormDirty = false;
+    var form = document.getElementById('grade-matrix-form');
+    var cancelLink = document.getElementById('cancel-link');
+
+    if (form) {
+        form.addEventListener('input', function() {
+            isFormDirty = true;
+        });
+
+        form.addEventListener('submit', function() {
+            isFormDirty = false;
+        });
+    }
+
+    if (cancelLink) {
+        cancelLink.addEventListener('click', function(e) {
+            if (isFormDirty) {
+                if (!window.confirm('You have unsaved grading changes. Are you sure you want to leave this page? Your changes will be lost.')) {
+                    e.preventDefault();
+                }
+            }
+        });
+    }
+
+    window.addEventListener('beforeunload', function(e) {
+        if (isFormDirty) {
+            e.preventDefault();
+            e.returnValue = '';
+        }
+    });
+})();
+</script>
 {% endblock %}
