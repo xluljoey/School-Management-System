@@ -123,22 +123,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 </div>
             </div>
         </div>
-
-        <!-- Quick Actions -->
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-white py-3">
-                <h6 class="mb-0 fw-bold" style="color: #000000;">Quick Actions</h6>
-            </div>
-            <div class="card-body d-flex gap-2 flex-wrap">
-                <a href="{% url 'student_registration' %}" class="btn btn-outline-primary">➕ Register Student</a>
-                <a href="{% url 'register_staff' %}" class="btn btn-outline-success">👤 Register Staff</a>
-                {% if user.is_superuser %}
-                <a href="{% url 'class_enrollment_portal' %}" class="btn btn-outline-dark">🚀 Promotion Portal</a>
-                <a href="{% url 'configure_session' %}" class="btn btn-outline-secondary">⚙️ Academic Settings</a>
-                {% endif %}
-            </div>
-        </div>
-    </div>
+</div>
 
     <!-- RIGHT COLUMN - Summary Cards -->
     <div class="col-lg-4 d-flex flex-column gap-3">

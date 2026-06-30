@@ -54,6 +54,12 @@ def student_list_view(request):
         'classrooms': classrooms,
     })
 
+
+@login_required
+def student_detail_view(request, student_id):
+    student = get_object_or_404(Student, pk=student_id)
+    return render(request, 'sis/student_detail.html', {'student': student})
+
 @login_required
 def student_registration_view(request):
     if request.method == 'POST':

@@ -199,11 +199,20 @@
                 <a href="{% url 'student_list' %}" class="{% if request.path == '/students/' %}active{% endif %}">
                     <i class="bi bi-mortarboard"></i> Students
                 </a>
-                <a href="{% url 'class_report_card_short' class_id=1 %}" class="{% if '/class/' in request.path and '/report/' in request.path %}active{% endif %}">
+                <a href="{% url 'reports' %}" class="{% if request.path == '/reports/' %}active{% endif %}">
                     <i class="bi bi-bar-chart"></i> Report
                 </a>
-                <a href="{% url 'class_enrollment_portal' %}" class="{% if request.path == '/enrollment/portal/' %}active{% endif %}">
-                    <i class="bi bi-arrow-up-circle"></i> Promotion
+                <a href="{% url 'promotion_portal' %}" class="{% if request.path == '/enrollment/portal/' %}active{% endif %}">
+                    <i class="bi bi-arrow-up-circle"></i> Promotion Portal
+                </a>
+                <a href="{% url 'academic_settings' %}" class="{% if request.path == '/settings/academic-session/' %}active{% endif %}">
+                    <i class="bi bi-gear"></i> Academic Settings
+                </a>
+                <a href="{% url 'register_student' %}" class="{% if request.path == '/students/register/' %}active{% endif %}">
+                    <i class="bi bi-person-plus"></i> Add Student
+                </a>
+                <a href="{% url 'register_staff' %}" class="{% if request.path == '/staff/register/' %}active{% endif %}">
+                    <i class="bi bi-person-badge"></i> Onboard Staff
                 </a>
             </nav>
         </div>
@@ -221,12 +230,13 @@
                 <button type="button" onclick="window.history.back();" class="back-btn" aria-label="Go back">
                     <i class="bi bi-arrow-left"></i>
                 </button>
-                <div class="header-search-field">
+                <div class="header-search-field" style="position: relative;">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8E8D93" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="11" cy="11" r="8"/>
                         <path d="M21 21l-4.35-4.35"/>
                     </svg>
-                    <input type="text" placeholder="Search anything..." style="flex: 1; border: none; outline: none; background: transparent; font-size: 0.95rem; color: #8E8D93; line-height: 1; min-width: 0;">
+                    <input id="globalSearchInput" type="text" placeholder="Search anything..." style="flex: 1; border: none; outline: none; background: transparent; font-size: 0.95rem; color: #8E8D93; line-height: 1; min-width: 0;">
+                    <div id="search-results-dropdown" class="shadow-lg" style="position: absolute; top: 100%; left: 0; width: 100%; max-height: 300px; overflow-y: auto; background: #FFFFFF; border-radius: 12px; z-index: 1050; display: none; margin-top: 8px; border: 1px solid rgba(0,0,0,0.08);"></div>
                 </div>
             </div>
             <div class="header-right-utilities">
@@ -274,6 +284,54 @@
 {% endif %}
 
 <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var input = document.getElementById('globalSearchInput');
+    var dropdown = document.getElementById('search-results-dropdown');
+
+    if (!input) return;
+
+    input.addEventListener('input', function() {
+        var q = this.value.trim();
+        if (q.length < 2) {
+            dropdown.style.display = 'none';
+            return;
+        }
+        fetch('/api/search/?q=' + encodeURIComponent(q))
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                dropdown.innerHTML = '';
+                if (!data.results || data.results.length === 0) {
+                    dropdown.style.display = 'none';
+                    return;
+                }
+                data.results.forEach(function(item) {
+                    var row = document.createElement('a');
+                    row.href = item.url;
+                    row.style.cssText = 'display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; text-decoration: none; color: #1A1A1A; border-bottom: 1px solid #f0f0f0; transition: background 0.15s;';
+                    row.innerHTML = '<span style="font-size: 0.9rem; font-weight: 500;">' + escapeHtml(item.name) + '</span><span style="font-size: 0.7rem; font-weight: 600; padding: 2px 10px; border-radius: 10px; background: ' + (item.type === 'Staff' ? '#C3C4FF' : '#FFE89C') + '; color: #000000;">' + item.type + '</span>';
+                    row.addEventListener('mouseenter', function() { this.style.background = '#f8f9fa'; });
+                    row.addEventListener('mouseleave', function() { this.style.background = ''; });
+                    dropdown.appendChild(row);
+                });
+                dropdown.style.display = 'block';
+            })
+            .catch(function() { dropdown.style.display = 'none'; });
+    });
+
+    document.addEventListener('click', function(e) {
+        if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+            dropdown.style.display = 'none';
+        }
+    });
+
+    function escapeHtml(str) {
+        var div = document.createElement('div');
+        div.appendChild(document.createTextNode(str));
+        return div.innerHTML;
+    }
+});
+</script>
 {% block extra_js %}{% endblock %}
 </body>
 </html>

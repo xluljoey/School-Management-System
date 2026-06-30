@@ -1,69 +1,57 @@
 {% extends 'sis/base.html' %}
+{% load static %}
 
-{% block title %} Student Directory {% endblock %}
+{% block title %}Student Directory{% endblock %}
 
 {% block content %}
-<div class="card shadow-sm border-0">
-    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-        <h5 class="mb-0 fw-bold text-secondary">Registered Student Directory</h5>
-        <div>
-            <span class="badge bg-primary rounded-pill me-2">{{ students|length }} Records</span>
-            <div class="dropdown d-inline-block">
-                <button class="btn btn-sm btn-success dropdown-toggle me-2" type="button" id="enterGradesDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                    📘 Enter Grades
-                </button>
-                <ul class="dropdown-menu" aria-labelledby="enterGradesDropdown">
-                    {% for classroom in classrooms %}
-                    <li><a class="dropdown-item" href="{% url 'bulk_grade_entry' class_id=classroom.id subject_id=1 %}">{{ classroom.class_name }}</a></li>
-                    {% empty %}
-                    <li><span class="dropdown-item text-muted">No classes available</span></li>
-                    {% endfor %}
-                </ul>
-            </div>
-            <a href="{% url 'student_registration' %}" class="btn btn-sm btn-dark">+ Register Student</a>
-        </div>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-1" style="color: #000000;">All Students</h4>
+        <span style="color: #8E8D93; font-size: 0.85rem;">{{ students|length }} students total</span>
     </div>
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover table-striped mb-0 align-middle">
-                <thead class="table-light">
-                    <tr>
-                        <th class="ps-4">Admission No.</th>
-                        <th>First Name</th>
-                        <th>Last Name</th>
-                        <th>Gender</th>
-                        <th>Current Class</th>
-                        <th class="pe-4">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for student in students %}
-                    <tr>
-                        <td class="ps-4 fw-medium text-primary">{{ student.admission_number }}</td>
-                        <td>{{ student.first_name }}</td>
-                        <td>{{ student.last_name }}</td>
-                        <td>{{ student.gender }}</td>
-                        <td>
-                            <span class="badge bg-secondary">{% if student.current_class %}{{ student.current_class }}{% else %}&mdash;{% endif %}</span>
-                        </td>
-                        <td class="pe-4">
-                            {% if student.current_class %}
-                            <a href="{% url 'bulk_grade_entry' class_id=student.current_class.id subject_id=1 %}" class="btn btn-sm btn-outline-primary py-0 px-2 text-decoration-none">
-                                📝 Enter Class Grades
-                            </a>
-                            {% else %}
-                            <span class="text-muted small">No class</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="6" class="text-center py-4 text-muted">No students registered in the database yet.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+    <div>
+        <a href="{% url 'student_registration' %}" style="background-color: #000000; color: #ffffff; border: none; border-radius: 25px; padding: 10px 24px; font-weight: 600; font-size: 0.9rem; text-decoration: none; display: inline-block; cursor: pointer;">+ Add Student</a>
     </div>
+</div>
+
+<div class="table-responsive">
+    <table class="table table-hover align-middle" style="border-collapse: separate; border-spacing: 0;">
+        <thead>
+            <tr style="color: #8E8D93; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+                <th style="padding: 12px 16px; border-bottom: 1px solid #f0f0f0;">ID / Name</th>
+                <th style="padding: 12px 16px; border-bottom: 1px solid #f0f0f0;">Gender</th>
+                <th style="padding: 12px 16px; border-bottom: 1px solid #f0f0f0;">Class</th>
+                <th style="padding: 12px 16px; border-bottom: 1px solid #f0f0f0;">Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for student in students %}
+            <tr style="cursor: pointer; transition: background 0.15s;" onclick="window.location='{% url 'student_detail' student.id %}';">
+                <td style="padding: 14px 16px; border-bottom: 1px solid #f5f5f5;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        {% if student.profile_picture %}
+                        <img src="{{ student.profile_picture.url }}" alt="" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover;">
+                        {% else %}
+                        <span style="width: 36px; height: 36px; border-radius: 50%; background-color: #000000; color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem; flex-shrink: 0;">{{ student.first_name|first|upper }}</span>
+                        {% endif %}
+                        <div>
+                            <div style="font-weight: 600; color: #000000; font-size: 0.9rem;">{{ student.first_name }} {{ student.last_name }}</div>
+                            <div style="color: #8E8D93; font-size: 0.8rem;">{{ student.admission_number }}</div>
+                        </div>
+                    </div>
+                </td>
+                <td style="padding: 14px 16px; border-bottom: 1px solid #f5f5f5; color: #1A1A1A; font-size: 0.9rem;">{{ student.gender }}</td>
+                <td style="padding: 14px 16px; border-bottom: 1px solid #f5f5f5; color: #1A1A1A; font-size: 0.9rem;">{% if student.current_class %}{{ student.current_class }}{% else %}&mdash;{% endif %}</td>
+                <td style="padding: 14px 16px; border-bottom: 1px solid #f5f5f5;">
+                    <span style="background-color: #E8F5E9; color: #2E7D32; border-radius: 12px; padding: 4px 12px; font-weight: 500; font-size: 0.8rem; display: inline-block;">{{ student.status }}</span>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4" class="text-center py-5" style="color: #8E8D93;">No students registered yet.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 </div>
 {% endblock %}
