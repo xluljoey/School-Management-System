@@ -211,6 +211,10 @@ class SubjectAssignment(models.Model):
     class_score = models.DecimalField(max_digits=5, decimal_places=2) # Out of 30/40
     exam_score = models.DecimalField(max_digits=5, decimal_places=2) # Out of 60/70
 
+    class Meta:
+        verbose_name = "Student Subject Record"
+        verbose_name_plural = "Student Subject Records"
+
     @property
     def total_score(self):
         """Adds class score and exam score together dynamically."""
@@ -230,6 +234,19 @@ class SubjectAssignment(models.Model):
         elif total >= 40: return ("8", "Pass")
         else: return ("9", "Fail")
 
+
+class StaffClassSubject(models.Model):
+    staff = models.ForeignKey('StaffProfile', on_delete=models.CASCADE, related_name='assigned_classes_subjects')
+    classroom = models.ForeignKey('ClassRoom', on_delete=models.CASCADE, related_name='assigned_teachers')
+    subject = models.ForeignKey('Subject', on_delete=models.CASCADE, related_name='assigned_teachers')
+
+    class Meta:
+        verbose_name = "Teacher Subject Assignment"
+        verbose_name_plural = "Teacher Subject Assignments"
+        unique_together = ('staff', 'classroom', 'subject')
+
+    def __str__(self):
+        return f"{self.staff} -> {self.classroom.class_name} ({self.subject.subject_name})"
 
 
 class Enrollment(models.Model):
