@@ -9,6 +9,7 @@ class ClassRoom(models.Model):
         default=0,
         help_text="Used to sort classes hierarchically (e.g., Class 1 = 1, JHS 3 = 9)"
     )
+    form_master = models.ForeignKey('StaffProfile', on_delete=models.SET_NULL, null=True, blank=True, related_name='managed_class')
 
     class Meta:
         ordering = ['order']

@@ -123,8 +123,20 @@ def bulk_grade_entry_view(request, class_id, subject_id):
     if not _is_staff_or_admin(request.user):
         raise PermissionDenied
     classroom = ClassRoom.objects.get(pk=class_id)
+    staff = getattr(request.user, 'staff_profile', None)
+
+    if not request.user.is_superuser:
+        has_assignment = StaffClassSubject.objects.filter(staff=staff, classroom=classroom, subject_id=subject_id).exists()
+        if not has_assignment:
+            messages.error(request, 'You can only enter grades for subjects and classes assigned to you.')
+            return redirect('dashboard')
+
     students = Student.objects.filter(enrollments__classroom=classroom).distinct()
-    subjects = Subject.objects.all().order_by('subject_name')
+    if request.user.is_superuser:
+        subjects = Subject.objects.all().order_by('subject_name')
+    else:
+        assigned_subject_ids = StaffClassSubject.objects.filter(staff=staff, classroom=classroom).values_list('subject_id', flat=True).distinct()
+        subjects = Subject.objects.filter(id__in=assigned_subject_ids).order_by('subject_name')
 
     if subject_id:
         subject = Subject.objects.filter(pk=subject_id).first()
@@ -191,6 +203,15 @@ def class_report_card_view(request, class_id):
     if not _is_staff_or_admin(request.user):
         raise PermissionDenied
     classroom = ClassRoom.objects.get(pk=class_id)
+
+    staff = getattr(request.user, 'staff_profile', None)
+    is_form_teacher = staff and staff.form_class == classroom
+    is_form_master = staff and classroom.form_master == staff
+
+    if not request.user.is_superuser and not is_form_teacher and not is_form_master:
+        messages.error(request, 'Only the form teacher or form master can view the full class assessment summary.')
+        return redirect('dashboard')
+
     students = Student.objects.filter(enrollments__classroom=classroom).distinct()
     
     report_data = []
@@ -208,11 +229,18 @@ def class_report_card_view(request, class_id):
     for index, row in enumerate(report_data):
         row['rank'] = index + 1
     
-    classrooms = ClassRoom.objects.all()
+    if request.user.is_superuser:
+        classrooms = ClassRoom.objects.all()
+    else:
+        staff_class_ids = StaffClassSubject.objects.filter(staff=staff).values_list('classroom_id', flat=True).distinct()
+        form_ids = [classroom.id] if classroom else []
+        if staff and staff.form_class:
+            form_ids.append(staff.form_class.id)
+        if staff and classroom.form_master == staff:
+            form_ids.append(classroom.id)
+        accessible_ids = set(list(staff_class_ids) + form_ids)
+        classrooms = ClassRoom.objects.filter(id__in=accessible_ids) if accessible_ids else ClassRoom.objects.none()
     has_graded_records = any(row['assessments'].exists() for row in report_data)
-
-    staff = getattr(request.user, 'staff_profile', None)
-    is_form_teacher = staff and staff.form_class == classroom
 
     current_term = Term.objects.filter(is_active=True).first()
     term_number = int(current_term.term_name.split()[-1]) if current_term else 1
@@ -228,6 +256,7 @@ def class_report_card_view(request, class_id):
         'classrooms': classrooms,
         'has_graded_records': has_graded_records,
         'is_form_teacher': is_form_teacher,
+        'is_form_master': is_form_master,
         'verification': verification,
     })
 
@@ -585,15 +614,23 @@ def global_search_view(request):
 def compile_grades_view(request):
     if not _is_staff_or_admin(request.user):
         raise PermissionDenied
-    classrooms = ClassRoom.objects.all()
-    subjects = Subject.objects.none()  # Initialize as empty queryset
+    staff = getattr(request.user, 'staff_profile', None)
+    if request.user.is_superuser:
+        classrooms = ClassRoom.objects.all()
+    else:
+        assigned_class_ids = StaffClassSubject.objects.filter(staff=staff).values_list('classroom_id', flat=True).distinct()
+        classrooms = ClassRoom.objects.filter(id__in=assigned_class_ids)
+    subjects = Subject.objects.none()
     selected_class_id = request.GET.get('class_id')
     students = []
     if selected_class_id:
         classroom = get_object_or_404(ClassRoom, pk=selected_class_id)
         students = Student.objects.filter(enrollments__classroom=classroom).distinct()
-        # Filter subjects to only those assigned to this classroom
-        subjects = Subject.objects.filter(offered_in_classes__classroom=classroom).distinct()
+        subject_qs = Subject.objects.filter(offered_in_classes__classroom=classroom).distinct()
+        if not request.user.is_superuser and staff:
+            assigned_subject_ids = StaffClassSubject.objects.filter(staff=staff, classroom=classroom).values_list('subject_id', flat=True).distinct()
+            subject_qs = subject_qs.filter(id__in=assigned_subject_ids)
+        subjects = subject_qs
     else:
         classroom = None
         students = Student.objects.none()
