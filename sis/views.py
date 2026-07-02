@@ -228,7 +228,11 @@ def class_report_card_view(request, class_id):
     for index, row in enumerate(report_data):
         row['rank'] = index + 1
 
-    classrooms = ClassRoom.objects.all()
+    if request.user.is_superuser:
+        classrooms = ClassRoom.objects.all()
+    else:
+        assigned_ids = StaffClassSubject.objects.filter(staff=staff).values_list('classroom_id', flat=True).distinct()
+        classrooms = ClassRoom.objects.filter(id__in=assigned_ids) if assigned_ids else ClassRoom.objects.none()
     has_graded_records = any(row['assessments'].exists() for row in report_data)
 
     current_term = Term.objects.filter(is_active=True).first()
