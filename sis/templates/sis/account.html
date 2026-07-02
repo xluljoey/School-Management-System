@@ -1,0 +1,93 @@
+{% extends 'sis/base.html' %}
+{% load static %}
+
+{% block title %}My Account — School Management System{% endblock %}
+
+{% block content %}
+<div style="max-width: 900px; margin: 0 auto;">
+    <h2 style="font-weight: 700; margin-bottom: 24px; color: #1A1A1A;">My Account</h2>
+
+    <div style="background: #fff; border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 24px;">
+        <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 20px;">
+            {% if staff_profile and staff_profile.profile_picture %}
+            <img src="{{ staff_profile.profile_picture.url }}" alt="Avatar" style="width: 72px; height: 72px; border-radius: 50%; object-fit: cover;">
+            {% else %}
+            <span style="display: inline-flex; width: 72px; height: 72px; border-radius: 50%; background-color: #000000; color: #ffffff; font-weight: 700; font-size: 1.6rem; align-items: center; justify-content: center;">
+                {{ user.username|first|upper }}
+            </span>
+            {% endif %}
+            <div>
+                <h3 style="margin: 0 0 4px 0; font-weight: 600;">{{ user.get_full_name|default:user.username }}</h3>
+                <span style="font-size: 13px; color: #666;">{{ staff_profile.staff_id|default:"N/A" }} &middot; {{ staff_profile.designation.name|default:"Administrator" }}</span>
+            </div>
+        </div>
+        <hr style="border: 0; border-top: 1px solid #eee; margin: 16px 0;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 14px;">
+            <div><strong>Username:</strong> {{ user.username }}</div>
+            <div><strong>Email:</strong> {{ staff_profile.email|default:user.email|default:"—" }}</div>
+            <div><strong>Full Name:</strong> {{ staff_profile.full_name|default:user.get_full_name|default:"—" }}</div>
+            <div><strong>Gender:</strong> {{ staff_profile.gender|default:"—" }}</div>
+            <div><strong>Staff ID:</strong> {{ staff_profile.staff_id|default:"—" }}</div>
+            <div><strong>Designation:</strong> {{ staff_profile.designation.name|default:"—" }}</div>
+            <div><strong>Department:</strong> {{ staff_profile.department.name|default:"—" }}</div>
+            <div><strong>Employment Type:</strong> {{ staff_profile.employment_type|default:"—" }}</div>
+            <div><strong>Date of Appointment:</strong> {{ staff_profile.date_of_appointment|date:"d M Y"|default:"—" }}</div>
+            <div><strong>Qualification:</strong> {{ staff_profile.qualification|default:"—" }}</div>
+            <div><strong>Certificate:</strong> {{ staff_profile.certificate|default:"—" }}</div>
+            <div><strong>Institution:</strong> {{ staff_profile.name_of_institution_completed|default:"—" }}</div>
+        </div>
+    </div>
+
+    <div style="background: #fff; border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 24px;">
+        <h4 style="font-weight: 600; margin: 0 0 16px 0;">Subject & Class Assignments</h4>
+        {% if subjects_with_classes %}
+        <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+            <thead>
+                <tr style="border-bottom: 2px solid #eee;">
+                    <th style="text-align: left; padding: 10px 8px; font-weight: 600;">Subject</th>
+                    <th style="text-align: left; padding: 10px 8px; font-weight: 600;">Class</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for assignment in subjects_with_classes %}
+                <tr style="border-bottom: 1px solid #f0f0f0;">
+                    <td style="padding: 10px 8px;">{{ assignment.subject.subject_name }}</td>
+                    <td style="padding: 10px 8px;">{{ assignment.classroom.class_name }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p style="color: #888; font-size: 14px;">No subject assignments found.</p>
+        {% endif %}
+    </div>
+
+    <div style="background: #fff; border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
+        <h4 style="font-weight: 600; margin: 0 0 16px 0;">My Students</h4>
+        {% if my_students %}
+        <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+            <thead>
+                <tr style="border-bottom: 2px solid #eee;">
+                    <th style="text-align: left; padding: 10px 8px; font-weight: 600;">Admission No.</th>
+                    <th style="text-align: left; padding: 10px 8px; font-weight: 600;">Full Name</th>
+                    <th style="text-align: left; padding: 10px 8px; font-weight: 600;">Class</th>
+                    <th style="text-align: left; padding: 10px 8px; font-weight: 600;">Gender</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for student in my_students %}
+                <tr style="border-bottom: 1px solid #f0f0f0;">
+                    <td style="padding: 10px 8px;">{{ student.admission_number }}</td>
+                    <td style="padding: 10px 8px;">{{ student.first_name }} {{ student.last_name }}</td>
+                    <td style="padding: 10px 8px;">{{ student.classroom.class_name|default:"—" }}</td>
+                    <td style="padding: 10px 8px;">{{ student.gender }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p style="color: #888; font-size: 14px;">No students assigned.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

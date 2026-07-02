@@ -19,6 +19,7 @@ from .views import (
     global_search_view,
     api_class_subjects,
     verify_class_rankings_view,
+    view_account,
 )
 
 urlpatterns = [
@@ -48,4 +49,5 @@ urlpatterns = [
     path('api/search/', global_search_view, name='global_search_api'),
     path('api/class-subjects/', api_class_subjects, name='api_class_subjects'),
     path('class/<int:class_id>/verify/', verify_class_rankings_view, name='verify_class_rankings'),
+    path('account/', view_account, name='view_account'),
 ]

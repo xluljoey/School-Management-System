@@ -275,11 +275,36 @@
                         <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
                     </svg>
                 </div>
-                <div class="header-profile-pill d-flex align-items-center" style="gap: 10px; margin-left: 20px;">
-                    <span style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background-color: #000000; color: #ffffff; font-weight: 700; font-size: 0.85rem; line-height: 1;">
-                        {{ request.user.username|first|upper }}
-                    </span>
-                    <span style="font-size: 0.9rem; font-weight: 600; color: #1A1A1A;">{{ request.user.username }}</span>
+                <div class="profile-dropdown-container" style="position: relative;">
+                    <div class="header-profile-pill d-flex align-items-center" style="gap: 10px; margin-left: 20px; cursor: pointer;" onclick="toggleProfileCard()">
+                        {% if staff_profile and staff_profile.profile_picture %}
+                        <img src="{{ staff_profile.profile_picture.url }}" alt="Avatar" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover;">
+                        {% else %}
+                        <span style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background-color: #000000; color: #ffffff; font-weight: 700; font-size: 0.85rem; line-height: 1;">
+                            {{ request.user.username|first|upper }}
+                        </span>
+                        {% endif %}
+                        <span style="font-size: 0.9rem; font-weight: 600; color: #1A1A1A;">{{ request.user.username }}</span>
+                    </div>
+                    <div id="profileQuickCard" style="display: none; position: absolute; right: 0; top: 50px; background: #fff; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); width: 260px; padding: 20px; z-index: 1000; color: #111;">
+                        <div style="text-align: center; margin-bottom: 15px;">
+                            {% if staff_profile and staff_profile.profile_picture %}
+                            <img src="{{ staff_profile.profile_picture.url }}" alt="Avatar" style="width: 56px; height: 56px; border-radius: 50%; object-fit: cover; margin-bottom: 8px;">
+                            {% else %}
+                            <span style="display: inline-block; width: 56px; height: 56px; line-height: 56px; border-radius: 50%; background-color: #000000; color: #ffffff; font-weight: 700; font-size: 1.3rem; text-align: center; margin-bottom: 8px;">
+                                {{ request.user.username|first|upper }}
+                            </span>
+                            {% endif %}
+                            <h4 style="margin: 5px 0 2px 0; font-weight: 600;">{{ user.get_full_name|default:user.username }}</h4>
+                            <span style="font-size: 11px; color: #666;">ID: {{ staff_profile.staff_id|default:"N/A" }}</span>
+                        </div>
+                        <hr style="border: 0; border-top: 1px solid #eee; margin: 10px 0;">
+                        <div style="font-size: 13px; margin-bottom: 15px;">
+                            <div><strong>Designation:</strong> {{ staff_profile.designation.name|default:"Administrator" }}</div>
+                            <div><strong>Subject Areas:</strong> {{ subject_count }}</div>
+                        </div>
+                        <a href="{% url 'view_account' %}" style="display: block; text-align: center; background: #000; color: #fff; padding: 10px; border-radius: 8px; text-decoration: none; font-size: 13px; font-weight: 500;">View Account</a>
+                    </div>
                 </div>
             </div>
         </header>
@@ -352,7 +377,24 @@ document.addEventListener('DOMContentLoaded', function() {
         div.appendChild(document.createTextNode(str));
         return div.innerHTML;
     }
+
+    var profileCard = document.getElementById('profileQuickCard');
+    if (profileCard) {
+        document.addEventListener('click', function(e) {
+            var container = document.querySelector('.profile-dropdown-container');
+            if (container && !container.contains(e.target)) {
+                profileCard.style.display = 'none';
+            }
+        });
+    }
 });
+
+function toggleProfileCard() {
+    var card = document.getElementById('profileQuickCard');
+    if (card) {
+        card.style.display = card.style.display === 'none' ? 'block' : 'none';
+    }
+}
 </script>
 {% block extra_js %}{% endblock %}
 </body>

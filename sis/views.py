@@ -11,7 +11,7 @@ from django.urls import reverse
 from .models import (
     Parent, Student, Subject, SubjectAssessment, ClassRoom, Enrollment,
     StaffProfile, AcademicSession, Term, ClassSubject, PromotionCriteria,
-    Department, Designation, GradeVerification,
+    StaffClassSubject, Department, Designation, GradeVerification,
 )
 from .forms import (
     ParentForm, StudentRegistrationForm, StaffRegistrationForm, EnrollmentForm,
@@ -703,4 +703,27 @@ def verify_class_rankings_view(request, class_id):
         'is_form_teacher': is_form_teacher,
         'verification': verification,
         'has_graded_records': has_graded_records,
+    })
+
+
+@login_required
+def view_account(request):
+    staff_profile = getattr(request.user, 'staff_profile', None)
+    subjects_with_classes = []
+    my_students = []
+
+    if staff_profile:
+        assignments = StaffClassSubject.objects.filter(staff=staff_profile).select_related('classroom', 'subject')
+        subjects_with_classes = assignments
+
+        if staff_profile.form_class:
+            my_students = Student.objects.filter(classroom=staff_profile.form_class).order_by('first_name')
+        else:
+            class_ids = assignments.values_list('classroom_id', flat=True).distinct()
+            my_students = Student.objects.filter(classroom_id__in=class_ids).order_by('first_name') if class_ids else []
+
+    return render(request, 'sis/account.html', {
+        'staff_profile': staff_profile,
+        'subjects_with_classes': subjects_with_classes,
+        'my_students': my_students,
     })
