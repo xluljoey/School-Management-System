@@ -29,8 +29,8 @@
                 <span style="position: absolute; right: 18px; top: 50%; transform: translateY(-50%); pointer-events: none; font-size: 10px; color: #666;">▼</span>
             </div>
 
-            {% if request.user.staffprofile.form_class %}
-            <a href="{% url 'class_report' class_id=request.user.staffprofile.form_class.id %}"
+            {% if user_form_class %}
+            <a href="{% url 'class_report' class_id=user_form_class.id %}"
                class="btn-capsule"
                style="border-radius: 50px; background-color: #111; color: #fff;
                       padding: 10px 24px; font-weight: 500; text-decoration: none;
@@ -39,7 +39,7 @@
                View My Form Class
             </a>
 
-            {% if current_class_id == request.user.staffprofile.form_class.id %}
+            {% if current_class_id == user_form_class.id %}
             <a href="javascript:window.print()"
                class="btn-capsule"
                style="border-radius: 50px; background-color: #f4f4f5; color: #111;

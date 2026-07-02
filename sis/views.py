@@ -208,6 +208,11 @@ def class_report_card_view(request, class_id):
     is_form_teacher = staff and staff.form_class == classroom
     has_full_access = request.user.is_superuser or is_form_teacher
 
+    try:
+        user_form_class = request.user.staffprofile.form_class
+    except AttributeError:
+        user_form_class = None
+
     students = Student.objects.filter(enrollments__classroom=classroom).distinct()
 
     report_data = []
@@ -249,6 +254,7 @@ def class_report_card_view(request, class_id):
         'classrooms': classrooms,
         'assigned_classes': classrooms,
         'current_class_id': classroom.id,
+        'user_form_class': user_form_class,
         'has_graded_records': has_graded_records,
         'is_form_teacher': is_form_teacher,
         'has_full_access': has_full_access,
