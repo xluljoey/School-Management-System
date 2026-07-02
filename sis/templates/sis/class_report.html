@@ -98,14 +98,15 @@
         {% endif %}
     </div>
     {% if user_form_class and current_class_id == user_form_class.id %}
-    <div class="d-flex justify-content-end w-100 mt-4 pt-3" style="border-top: 1px solid #f4f4f5;">
+    <div style="position: fixed; bottom: 40px; right: 40px; z-index: 1050;">
         <a href="javascript:window.print()"
-           class="btn-capsule shadow-sm"
+           class="btn-capsule shadow-lg"
            style="border-radius: 50px; background-color: #111; color: #fff;
-                  padding: 12px 28px; font-weight: 500; text-decoration: none;
+                  padding: 14px 28px; font-weight: 500; text-decoration: none;
                   font-size: 14px; display: inline-flex; align-items: center; gap: 8px;
-                  transition: background 0.2s;"
-           onmouseover="this.style.backgroundColor='#222'" onmouseout="this.style.backgroundColor='#111'">
+                  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2); transition: transform 0.2s ease, background-color 0.2s;"
+           onmouseover="this.style.backgroundColor='#222'; this.style.transform='scale(1.03)';"
+           onmouseout="this.style.backgroundColor='#111'; this.style.transform='scale(1)';">
            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                <path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
                <rect x="6" y="14" width="12" height="8"></rect>
