@@ -236,10 +236,13 @@ def class_report_card_view(request, class_id):
         if current_subject_id:
             assessments = assessments.filter(subject_id=current_subject_id)
         grand_total = sum(ast.total_score for ast in assessments)
+        first = assessments.first() if current_subject_id else None
         report_data.append({
             'student': student,
             'assessments': assessments,
             'grand_total': grand_total,
+            'class_score': float(first.class_score) if first else None,
+            'exam_score': float(first.exam_score) if first else None,
         })
 
     report_data = sorted(report_data, key=lambda x: x['grand_total'], reverse=True)
