@@ -74,9 +74,27 @@
         </table>
     </div>
 
-    <div class="d-flex justify-content-between align-items-center" style="margin-top: 24px;">
+    <div style="margin-top: 24px;">
         <a href="{% url 'class_report' class_id=selected_class.id %}" id="cancel-link" style="color: #8F8F8F; font-weight: 500; text-decoration: none; line-height: 38px;">Cancel</a>
-        <button type="submit" style="background-color: #000000; color: #ffffff; border: none; border-radius: 25px; padding: 10px 28px; font-weight: 600; font-size: 0.9rem; cursor: pointer;">Save and Exit</button>
+    </div>
+
+    <div style="position: fixed; bottom: 40px; right: 40px; z-index: 1050;">
+        <button type="submit"
+                class="btn-capsule shadow-lg"
+                style="border-radius: 50px; background-color: #000; color: #fff;
+                       border: none; padding: 14px 28px; font-weight: 500;
+                       font-size: 14px; display: inline-flex; align-items: center; gap: 8px;
+                       box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2); cursor: pointer;
+                       transition: transform 0.2s ease, background-color 0.2s;"
+                onmouseover="this.style.backgroundColor='#111'; this.style.transform='scale(1.03)';"
+                onmouseout="this.style.backgroundColor='#000'; this.style.transform='scale(1)';">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                <polyline points="7 3 7 8 15 8"></polyline>
+            </svg>
+            Save and Exit
+        </button>
     </div>
 </form>
 {% elif selected_class and not students %}
