@@ -50,12 +50,44 @@ document.addEventListener('DOMContentLoaded', function () {
 {% endblock %}
 
 {% block content %}
-<div class="row g-4">
-    <!-- LEFT COLUMN -->
-    <div class="col-lg-8 d-flex flex-column gap-4">
+{% if request.user.is_superuser %}
+<div class="row g-4 mb-4">
+    <div class="col-md-4">
+        <div class="card border-0 text-center overflow-hidden" style="border-radius: 16px;">
+            <div style="background: #FFE89C; padding: 6px 0;">
+                <span class="small fw-semibold text-uppercase" style="color: #000000; letter-spacing: 0.5px; font-size: 0.7rem;">Total Students</span>
+            </div>
+            <div class="py-3">
+                <span style="font-size: 2.8rem; font-weight: 700; color: #000000;">{{ total_students }}</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 text-center overflow-hidden" style="border-radius: 16px;">
+            <div style="background: #C3C4FF; padding: 6px 0;">
+                <span class="small fw-semibold text-uppercase" style="color: #000000; letter-spacing: 0.5px; font-size: 0.7rem;">Teachers</span>
+            </div>
+            <div class="py-3">
+                <span style="font-size: 2.8rem; font-weight: 700; color: #000000;">{{ total_staff }}</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 text-center overflow-hidden" style="border-radius: 16px;">
+            <div style="background: #000000; padding: 6px 0;">
+                <span class="small fw-semibold text-uppercase" style="color: #ffffff; letter-spacing: 0.5px; font-size: 0.7rem;">Active Classes</span>
+            </div>
+            <div class="py-3">
+                <span style="font-size: 2.8rem; font-weight: 700; color: #000000;">{{ active_classes }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
 
-        <!-- Welcome Card -->
-        <div style="background: #ffffff; border-radius: 20px; border: 1px solid rgba(0,0,0,0.05); padding: 32px; display: flex; justify-content: space-between; align-items: center;">
+<div class="row g-4">
+    <div class="col-lg-8 d-flex flex-column gap-4">
+        <div style="background: #ffffff; border-radius: 20px; border: 1px solid rgba(0,0,0,0.05); padding: 32px; display: flex; justify-content: space-between; align-items: center; height: 100%;">
             <div style="max-width: 460px;">
                 <h1 style="font-size: 1.75rem; font-weight: 700; color: #000000; margin: 0 0 12px 0;">
                     Welcome, {{ request.user.username|capfirst }}!
@@ -79,7 +111,6 @@ document.addEventListener('DOMContentLoaded', function () {
             </div>
         </div>
 
-        <!-- Students Ring + Notice Board row -->
         <div class="row g-4">
             <div class="col-md-6">
                 <div class="card shadow-sm border-0">
@@ -123,35 +154,25 @@ document.addEventListener('DOMContentLoaded', function () {
                 </div>
             </div>
         </div>
-</div>
+    </div>
 
-    <!-- RIGHT COLUMN - Summary Cards -->
     <div class="col-lg-4 d-flex flex-column gap-3">
-        <div class="card border-0 text-center overflow-hidden" style="border-radius: 16px;">
-            <div style="background: #FFE89C; padding: 6px 0;">
-                <span class="small fw-semibold text-uppercase" style="color: #000000; letter-spacing: 0.5px; font-size: 0.7rem;">Total Students</span>
-            </div>
-            <div class="py-3">
-                <span style="font-size: 2.8rem; font-weight: 700; color: #000000;">{{ total_students }}</span>
+        <div class="card border-0 overflow-hidden flex-fill d-flex flex-column" style="border-radius: 16px;">
+            <div style="background: #ccfbf1; padding: 20px 24px 16px;">
+                <div style="font-size: 0.75rem; font-weight: 600; color: #0f766e; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Students</div>
+                <div style="font-size: 2.4rem; font-weight: 700; color: #0f766e;">{{ staff_student_count }}</div>
             </div>
         </div>
-
-        <div class="card border-0 text-center overflow-hidden" style="border-radius: 16px;">
-            <div style="background: #C3C4FF; padding: 6px 0;">
-                <span class="small fw-semibold text-uppercase" style="color: #000000; letter-spacing: 0.5px; font-size: 0.7rem;">Teachers</span>
-            </div>
-            <div class="py-3">
-                <span style="font-size: 2.8rem; font-weight: 700; color: #000000;">{{ total_staff }}</span>
+        <div class="card border-0 overflow-hidden flex-fill d-flex flex-column" style="border-radius: 16px;">
+            <div style="background: #fff7ed; padding: 20px 24px 16px;">
+                <div style="font-size: 0.75rem; font-weight: 600; color: #c2410c; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Subjects</div>
+                <div style="font-size: 2.4rem; font-weight: 700; color: #c2410c;">{{ staff_subject_count }}</div>
             </div>
         </div>
-
-        <div class="card border-0 text-center overflow-hidden" style="border-radius: 16px;">
-            <div style="background: #000000; padding: 6px 0;">
-                <span class="small fw-semibold text-uppercase" style="color: #ffffff; letter-spacing: 0.5px; font-size: 0.7rem;">Active Environment</span>
-            </div>
-            <div class="py-3">
-                <div style="font-size: 1rem; font-weight: 600; color: #000000;">{{ current_session|default:"None" }}</div>
-                <div style="font-size: 0.85rem; color: #8F8F8F;">{{ current_term|default:"None" }}</div>
+        <div class="card border-0 overflow-hidden flex-fill d-flex flex-column" style="border-radius: 16px;">
+            <div style="background: #f5f3ff; padding: 20px 24px 16px;">
+                <div style="font-size: 0.75rem; font-weight: 600; color: #6d28d9; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Active Environment</div>
+                <div style="font-size: 1rem; font-weight: 600; color: #6d28d9;">{{ active_environment_string|default:"—" }}</div>
             </div>
         </div>
     </div>

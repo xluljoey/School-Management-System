@@ -33,6 +33,25 @@ def dashboard_view(request):
     boy_pct = int((total_boys / total_students) * 100) if total_students > 0 else 0
     girl_pct = int((total_girls / total_students) * 100) if total_students > 0 else 0
 
+    staff_profile = getattr(request.user, 'staff_profile', None)
+    staff_student_count = 0
+    staff_subject_count = 0
+    active_environment_string = ''
+
+    if staff_profile and not request.user.is_superuser:
+        assigned_class_ids = StaffClassSubject.objects.filter(staff=staff_profile).values_list('classroom_id', flat=True).distinct()
+        if assigned_class_ids:
+            staff_student_count = Student.objects.filter(enrollments__classroom_id__in=assigned_class_ids).distinct().count()
+        staff_subject_count = Subject.objects.filter(assigned_teachers__staff=staff_profile).distinct().count()
+
+    if current_term:
+        term_name = current_term.term_name
+    elif current_session:
+        term_name = 'Term 1'
+    else:
+        term_name = ''
+    active_environment_string = f"{term_name}, {current_session.academic_year}" if current_session and term_name else (str(current_session) if current_session else '')
+
     context = {
         'total_students': total_students,
         'total_staff': total_staff,
@@ -43,6 +62,9 @@ def dashboard_view(request):
         'total_girls': total_girls,
         'boy_pct': boy_pct,
         'girl_pct': girl_pct,
+        'staff_student_count': staff_student_count,
+        'staff_subject_count': staff_subject_count,
+        'active_environment_string': active_environment_string,
     }
     return render(request, 'sis/dashboard.html', context)
 
