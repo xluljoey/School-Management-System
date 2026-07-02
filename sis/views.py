@@ -648,8 +648,12 @@ def compile_grades_view(request):
         selected_class_id = request.POST.get('class_id')
         classroom = get_object_or_404(ClassRoom, pk=selected_class_id)
         students = Student.objects.filter(enrollments__classroom=classroom).distinct()
+        subject_qs = Subject.objects.filter(offered_in_classes__classroom=classroom).distinct()
+        if not request.user.is_superuser and staff:
+            assigned_subject_ids = StaffClassSubject.objects.filter(staff=staff, classroom=classroom).values_list('subject_id', flat=True).distinct()
+            subject_qs = subject_qs.filter(id__in=assigned_subject_ids)
         for student in students:
-            for subject in subjects:
+            for subject in subject_qs:
                 class_score_key = f'cs_{student.id}_{subject.id}'
                 exam_score_key = f'es_{student.id}_{subject.id}'
                 cs = request.POST.get(class_score_key)
@@ -666,13 +670,28 @@ def compile_grades_view(request):
                         }
                     )
         messages.success(request, 'Grades saved successfully!')
-        return redirect('class_report', class_id=selected_class_id)
+        return redirect(request.path + '?class_id=' + str(selected_class_id))
+
+    grades_matrix = []
+    for student in students:
+        cells = []
+        for subject in subjects:
+            assessment = SubjectAssessment.objects.filter(
+                student=student, subject=subject, term=1
+            ).first()
+            cells.append({
+                'subject': subject,
+                'class_score': assessment.class_score if assessment else '',
+                'exam_score': assessment.exam_score if assessment else '',
+            })
+        grades_matrix.append({'student': student, 'cells': cells})
 
     context = {
         'classrooms': classrooms,
         'subjects': subjects,
         'students': students,
         'selected_class': classroom,
+        'grades_matrix': grades_matrix,
     }
     return render(request, 'sis/compile_grades.html', context)
 
