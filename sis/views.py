@@ -209,7 +209,7 @@ def class_report_card_view(request, class_id):
     has_full_access = request.user.is_superuser or is_form_teacher
 
     try:
-        user_form_class = request.user.staffprofile.form_class
+        user_form_class = request.user.staff_profile.form_class
     except AttributeError:
         user_form_class = None
 
@@ -400,10 +400,18 @@ def logout_view(request):
 
 @login_required
 def class_enrollment_portal_view(request):
-    if not _is_admin(request.user):
+    if not _is_staff_or_admin(request.user):
         raise PermissionDenied
 
-    classrooms = ClassRoom.objects.all()
+    staff = getattr(request.user, 'staff_profile', None)
+    if request.user.is_superuser:
+        classrooms = ClassRoom.objects.all()
+    else:
+        # Form teachers can only see their own class
+        if staff and staff.form_class:
+            classrooms = ClassRoom.objects.filter(id=staff.form_class.id)
+        else:
+            classrooms = ClassRoom.objects.none()
     current_session = AcademicSession.objects.filter(is_current=True).first()
     current_term = Term.objects.filter(is_active=True).first() if current_session else None
 
