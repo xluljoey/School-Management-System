@@ -213,6 +213,18 @@ def class_report_card_view(request, class_id):
     except AttributeError:
         user_form_class = None
 
+    current_subject_id = request.GET.get('subject_id')
+    if current_subject_id and not current_subject_id.isdigit():
+        current_subject_id = None
+
+    if request.user.is_superuser:
+        assigned_subjects = Subject.objects.filter(offered_in_classes__classroom=classroom).distinct()
+    elif staff:
+        assigned_ids = StaffClassSubject.objects.filter(staff=staff, classroom=classroom).values_list('subject_id', flat=True).distinct()
+        assigned_subjects = Subject.objects.filter(id__in=assigned_ids) if assigned_ids else Subject.objects.none()
+    else:
+        assigned_subjects = Subject.objects.none()
+
     students = Student.objects.filter(enrollments__classroom=classroom).distinct()
 
     report_data = []
@@ -221,6 +233,8 @@ def class_report_card_view(request, class_id):
         if not has_full_access and staff:
             assigned_subject_ids = StaffClassSubject.objects.filter(staff=staff, classroom=classroom).values_list('subject_id', flat=True).distinct()
             assessments = assessments.filter(subject_id__in=assigned_subject_ids)
+        if current_subject_id:
+            assessments = assessments.filter(subject_id=current_subject_id)
         grand_total = sum(ast.total_score for ast in assessments)
         report_data.append({
             'student': student,
@@ -259,6 +273,8 @@ def class_report_card_view(request, class_id):
         'is_form_teacher': is_form_teacher,
         'has_full_access': has_full_access,
         'verification': verification,
+        'assigned_subjects': assigned_subjects,
+        'current_subject_id': int(current_subject_id) if current_subject_id and current_subject_id.isdigit() else None,
     })
 
 

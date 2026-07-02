@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="card shadow-sm border-0">
-    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center" style="border-bottom: 1px solid #f0f0f0;">
         <div>
             <h5 class="mb-0 fw-bold text-dark">Master Continuous Assessment Summary</h5>
             <small class="text-muted">Class: <strong>{{ classroom.class_name }}</strong>
@@ -13,14 +13,27 @@
             {% endif %}
             </small>
         </div>
-        <div class="d-flex align-items-center gap-3 justify-content-end" style="border-radius: 50px;">
-            <div class="custom-dropdown-wrapper" style="position: relative; display: inline-block;">
+        <div class="d-flex align-items-center gap-3 justify-content-end">
+            <div style="position: relative;">
+                <select name="subject_id" onchange="var base='{% url 'class_report' class_id=classroom.id %}';window.location.href=this.value?base+'?subject_id='+this.value:base"
+                        style="appearance: none; -webkit-appearance: none; -moz-appearance: none;
+                               border-radius: 50px; background-color: #f4f4f5; color: #111;
+                               border: 1px solid #e4e4e7; padding: 10px 40px 10px 24px;
+                               font-size: 14px; font-weight: 500; cursor: pointer; outline: none;">
+                    <option value="">-- Select Subject --</option>
+                    {% for subject in assigned_subjects %}
+                        <option value="{{ subject.id }}" {% if current_subject_id == subject.id %}selected{% endif %}>{{ subject.subject_name }}</option>
+                    {% endfor %}
+                </select>
+                <span style="position: absolute; right: 18px; top: 50%; transform: translateY(-50%); pointer-events: none; font-size: 10px; color: #666;">▼</span>
+            </div>
+
+            <div style="position: relative;">
                 <select name="class_id" onchange="if(this.value)window.location.href='{% url 'class_report' class_id=0 %}'.replace('/0/','/'+this.value+'/')"
                         style="appearance: none; -webkit-appearance: none; -moz-appearance: none;
                                border-radius: 50px; background-color: #f4f4f5; color: #111;
                                border: 1px solid #e4e4e7; padding: 10px 40px 10px 24px;
-                               font-size: 14px; font-weight: 500; cursor: pointer; outline: none;
-                               transition: all 0.2s ease;">
+                               font-size: 14px; font-weight: 500; cursor: pointer; outline: none;">
                     <option value="">-- Select Class --</option>
                     {% for class in assigned_classes %}
                         <option value="{{ class.id }}" {% if current_class_id == class.id %}selected{% endif %}>{{ class.class_name }}</option>
@@ -55,41 +68,45 @@
             <strong>Filtered View:</strong> Showing only subjects you are assigned to teach in this class.
         </div>
         {% endif %}
+
         {% if not has_graded_records %}
         <div class="alert alert-warning m-3" role="alert">
             No student grade records compiled for this class yet.
         </div>
         {% else %}
-        <div class="table-responsive">
-            <table class="table table-hover mb-0 align-middle">
-                <thead class="table-light">
-                    <tr>
-                        <th class="ps-4">Rank</th>
-                        <th>Admission No.</th>
-                        <th>Student Name</th>
-                        <th>Subject Assessments</th>
-                        <th>Grand Total</th>
+        <div class="table-responsive px-0">
+            <table class="table mb-0 align-middle" style="border-collapse: separate; border-spacing: 0;">
+                <thead>
+                    <tr style="border-bottom: 2px solid #e4e4e7;">
+                        <th class="ps-4 py-3 text-muted small fw-semibold text-uppercase" style="letter-spacing: 0.5px; width: 60px;">Rank</th>
+                        <th class="py-3 text-muted small fw-semibold text-uppercase" style="letter-spacing: 0.5px; width: 120px;">Admission No.</th>
+                        <th class="py-3 text-muted small fw-semibold text-uppercase" style="letter-spacing: 0.5px;">Student Name</th>
+                        <th class="py-3 text-muted small fw-semibold text-uppercase" style="letter-spacing: 0.5px;">Subject Assessments</th>
+                        <th class="pe-4 py-3 text-muted small fw-semibold text-uppercase text-end" style="letter-spacing: 0.5px; width: 120px;">Grand Total</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for row in report_data %}
-                    <tr>
-                        <td class="ps-4"><span class="badge bg-success rounded-pill">#{{ row.rank }}</span></td>
-                        <td class="font-monospace text-secondary">{{ row.student.admission_number }}</td>
-                        <td class="fw-bold text-dark">{{ row.student.first_name }} {{ row.student.last_name }}</td>
-                        <td>
+                    <tr style="border-bottom: 1px solid #f0f0f0; transition: background-color 0.15s;" onmouseover="this.style.backgroundColor='#fafafa'" onmouseout="this.style.backgroundColor='transparent'">
+                        <td class="ps-4 py-3"><span class="badge bg-dark rounded-pill px-3 py-1 fw-semibold">#{{ row.rank }}</span></td>
+                        <td class="py-3 font-monospace" style="color: #71717a;">{{ row.student.admission_number }}</td>
+                        <td class="py-3 fw-bold" style="color: #18181b; font-size: 15px;">{{ row.student.first_name }} {{ row.student.last_name }}</td>
+                        <td class="py-3">
                             <div class="d-flex flex-wrap gap-2">
                                 {% for ast in row.assessments %}
-                                <span class="badge bg-light text-dark border p-2">
-                                    <strong>{{ ast.subject.subject_name }}:</strong> 
-                                    {{ ast.total_score }} (Grade {{ ast.grade_and_remark.0 }})
+                                <span class="d-inline-flex align-items-center gap-2 px-3 py-2" style="background-color: #f4f4f5; border-radius: 8px; border: 1px solid #e4e4e7; font-size: 13px;">
+                                    <strong style="color: #18181b;">{{ ast.subject.subject_name }}:</strong>
+                                    <span class="fw-bold" style="color: #18181b; font-size: 14px;">{{ ast.total_score }}</span>
+                                    <span class="text-muted small">({{ ast.grade_and_remark.0 }})</span>
                                 </span>
                                 {% empty %}
-                                <span class="text-muted small">No grades recorded this term</span>
+                                <span class="text-muted small py-1">No grades recorded this term</span>
                                 {% endfor %}
                             </div>
                         </td>
-                        <td class="fw-bold text-primary">{{ row.grand_total|floatformat:1 }}</td>
+                        <td class="pe-4 py-3 text-end">
+                            <span class="fw-bold" style="color: #18181b; font-size: 16px;">{{ row.grand_total|floatformat:1 }}</span>
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -97,23 +114,26 @@
         </div>
         {% endif %}
     </div>
-    {% if user_form_class and current_class_id == user_form_class.id %}
-    <div style="position: fixed; bottom: 40px; right: 40px; z-index: 1050;">
-        <a href="javascript:window.print()"
-           class="btn-capsule shadow-lg"
-           style="border-radius: 50px; background-color: #111; color: #fff;
-                  padding: 14px 28px; font-weight: 500; text-decoration: none;
-                  font-size: 14px; display: inline-flex; align-items: center; gap: 8px;
-                  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2); transition: transform 0.2s ease, background-color 0.2s;"
-           onmouseover="this.style.backgroundColor='#222'; this.style.transform='scale(1.03)';"
-           onmouseout="this.style.backgroundColor='#111'; this.style.transform='scale(1)';">
-           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-               <path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-               <rect x="6" y="14" width="12" height="8"></rect>
-           </svg>
-           Print Report
-        </a>
-    </div>
-    {% endif %}
 </div>
+
+{% if has_graded_records %}
+{% if has_full_access or assigned_subjects %}
+<div style="position: fixed; bottom: 40px; right: 40px; z-index: 1050;">
+    <a href="{% url 'compile_grades' %}?class_id={{ current_class_id }}{% if current_subject_id %}&subject_id={{ current_subject_id }}{% endif %}"
+       class="btn-capsule shadow-lg d-inline-flex align-items-center gap-2"
+       style="border-radius: 50px; background-color: #000; color: #fff;
+              padding: 14px 32px; font-weight: 600; text-decoration: none;
+              font-size: 14px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+              transition: transform 0.2s ease, background-color 0.2s;"
+       onmouseover="this.style.backgroundColor='#222'; this.style.transform='scale(1.03)';"
+       onmouseout="this.style.backgroundColor='#000'; this.style.transform='scale(1)';">
+       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+           <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+           <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+       </svg>
+       Edit
+    </a>
+</div>
+{% endif %}
+{% endif %}
 {% endblock %}
