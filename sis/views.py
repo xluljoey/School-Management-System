@@ -766,8 +766,8 @@ def midterm_summary_view(request):
             row = {
                 'student': student,
                 'records': records,
-                'score': f"{first_record.score:.1f}" if first_record and first_record.score is not None else None,
-                'total': sum(r.score for r in records if r.score is not None),
+                'midterm_score': f"{first_record.midterm_score:.1f}" if first_record and first_record.midterm_score is not None else None,
+                'total': sum(r.midterm_score for r in records if r.midterm_score is not None),
             }
             report_data.append(row)
 
@@ -850,7 +850,7 @@ def compile_midterm_grades_view(request):
                         subject=subject,
                         defaults={
                             'classroom': classroom,
-                            'score': val,
+                            'midterm_score': val,
                             'recorded_by': staff,
                         }
                     )
@@ -873,7 +873,7 @@ def compile_midterm_grades_view(request):
             ).first()
             cells.append({
                 'subject': subject,
-                'score': rec.score if rec else '',
+                'midterm_score': rec.midterm_score if rec else '',
             })
         grades_matrix.append({'student': student, 'cells': cells})
 

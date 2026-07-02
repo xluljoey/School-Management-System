@@ -52,7 +52,7 @@
                     </td>
                     {% for cell in row.cells %}
                     <td style="padding: 6px 8px; text-align: center;">
-                        <input type="number" name="score_{{ row.student.id }}_{{ cell.subject.id }}" step="0.1" min="0" max="100" placeholder="Score" value="{{ cell.score }}" style="width: 72px; height: 38px; border: 1px solid #E4E4E7; border-radius: 8px; text-align: center; font-size: 14px; outline: none; box-sizing: border-box;" onfocus="this.style.borderColor='#000000'" onblur="this.style.borderColor='#E4E4E7'">
+                        <input type="number" name="score_{{ row.student.id }}_{{ cell.subject.id }}" step="0.1" min="0" max="100" placeholder="Score" value="{{ cell.midterm_score }}" style="width: 72px; height: 38px; border: 1px solid #E4E4E7; border-radius: 8px; text-align: center; font-size: 14px; outline: none; box-sizing: border-box;" onfocus="this.style.borderColor='#000000'" onblur="this.style.borderColor='#E4E4E7'">
                     </td>
                     {% endfor %}
                 </tr>

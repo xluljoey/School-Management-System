@@ -338,7 +338,7 @@ class MidTermRecord(models.Model):
     term = models.ForeignKey(Term, on_delete=models.CASCADE)
     classroom = models.ForeignKey(ClassRoom, on_delete=models.CASCADE)
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
-    score = models.DecimalField(max_digits=5, decimal_places=1, null=True, blank=True)
+    midterm_score = models.DecimalField(max_digits=5, decimal_places=1, null=True, blank=True)
     recorded_by = models.ForeignKey(StaffProfile, on_delete=models.SET_NULL, null=True)
     date_recorded = models.DateTimeField(auto_now=True)
 
