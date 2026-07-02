@@ -12,6 +12,7 @@ from .models import (
     Parent, Student, Subject, SubjectAssessment, ClassRoom, Enrollment,
     StaffProfile, AcademicSession, Term, ClassSubject, PromotionCriteria,
     StaffClassSubject, Department, Designation, GradeVerification,
+    MidTermRecord,
 )
 from .forms import (
     ParentForm, StudentRegistrationForm, StaffRegistrationForm, EnrollmentForm,
