@@ -730,6 +730,11 @@ def midterm_summary_view(request):
 
     selected_class_id = request.GET.get('class_id')
     current_subject_id = request.GET.get('subject_id')
+    
+    # Validate class_id parameter
+    if selected_class_id and not selected_class_id.isdigit():
+        selected_class_id = None
+    
     if current_subject_id and not current_subject_id.isdigit():
         current_subject_id = None
 
@@ -747,10 +752,11 @@ def midterm_summary_view(request):
         if request.user.is_superuser:
             assigned_subjects = Subject.objects.filter(staffclasssubject__classroom_id=selected_class_id).distinct()
         elif staff_profile:
-            assigned_subjects = Subject.objects.filter(
-                staffclasssubject__staff=staff_profile,
-                staffclasssubject__classroom_id=selected_class_id
-            ).distinct()
+            assigned_subject_ids = StaffClassSubject.objects.filter(
+                staff=staff_profile,
+                classroom_id=selected_class_id
+            ).values_list('subject_id', flat=True).distinct()
+            assigned_subjects = Subject.objects.filter(id__in=assigned_subject_ids) if assigned_subject_ids else Subject.objects.none()
 
         students = Student.objects.filter(enrollments__classroom=classroom).distinct()
 
@@ -758,13 +764,21 @@ def midterm_summary_view(request):
         current_term = Term.objects.filter(is_active=True).first()
 
         for student in students:
-            records = MidTermRecord.objects.filter(student=student)
+            records = MidTermRecord.objects.filter(student=student, classroom=classroom)
             if current_session:
                 records = records.filter(academic_session=current_session)
             if current_term:
                 records = records.filter(term=current_term)
             if current_subject_id:
                 records = records.filter(subject_id=current_subject_id)
+            
+            # Filter by staff's assigned subjects if not superuser
+            if not request.user.is_superuser and staff_profile:
+                assigned_subject_ids = StaffClassSubject.objects.filter(
+                    staff=staff_profile, 
+                    classroom=classroom
+                ).values_list('subject_id', flat=True).distinct()
+                records = records.filter(subject_id__in=assigned_subject_ids)
 
             first_record = records.first()
             row = {
