@@ -247,6 +247,8 @@ def class_report_card_view(request, class_id):
         'classroom': classroom,
         'report_data': report_data,
         'classrooms': classrooms,
+        'assigned_classes': classrooms,
+        'current_class_id': classroom.id,
         'has_graded_records': has_graded_records,
         'is_form_teacher': is_form_teacher,
         'has_full_access': has_full_access,

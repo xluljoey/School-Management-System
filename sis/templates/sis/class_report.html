@@ -13,44 +13,57 @@
             {% endif %}
             </small>
         </div>
-        <div class="d-flex align-items-center gap-2">
-            <div class="dropdown d-print-none">
-                <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" id="classSelectorDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                    Select Class
-                </button>
-                <ul class="dropdown-menu" aria-labelledby="classSelectorDropdown">
-                    {% for room in classrooms %}
-                    <li><a class="dropdown-item" href="{% url 'class_report' class_id=room.id %}">{{ room.class_name }}</a></li>
+        <div class="d-flex align-items-center gap-3 justify-content-end" style="border-radius: 50px;">
+            <div class="custom-dropdown-wrapper" style="position: relative; display: inline-block;">
+                <select name="class_id" onchange="if(this.value)window.location.href='{% url 'class_report' class_id=0 %}'.replace('/0/','/'+this.value+'/')"
+                        style="appearance: none; -webkit-appearance: none; -moz-appearance: none;
+                               border-radius: 50px; background-color: #f4f4f5; color: #111;
+                               border: 1px solid #e4e4e7; padding: 10px 40px 10px 24px;
+                               font-size: 14px; font-weight: 500; cursor: pointer; outline: none;
+                               transition: all 0.2s ease;">
+                    <option value="">-- Select Class --</option>
+                    {% for class in assigned_classes %}
+                        <option value="{{ class.id }}" {% if current_class_id == class.id %}selected{% endif %}>{{ class.class_name }}</option>
                     {% endfor %}
-                </ul>
+                </select>
+                <span style="position: absolute; right: 18px; top: 50%; transform: translateY(-50%); pointer-events: none; font-size: 10px; color: #666;">▼</span>
             </div>
-            {% if request.user.is_superuser %}
-            <button class="btn btn-sm btn-outline-secondary d-print-none" onclick="window.print()" style="border-radius: 50px;">🖨️ Print Report</button>
-            {% elif request.user.staffprofile.form_class %}
-            <a href="{% url 'master_continuous_assessment' class_id=request.user.staffprofile.form_class.id %}" class="btn" style="border-radius: 50px; background-color: #000; color: #fff; padding: 10px 24px; font-weight: 500; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; font-size: 14px;">
-                View My Form Class
+
+            {% if request.user.staffprofile.form_class %}
+            <a href="{% url 'class_report' class_id=request.user.staffprofile.form_class.id %}"
+               class="btn-capsule"
+               style="border-radius: 50px; background-color: #111; color: #fff;
+                      padding: 10px 24px; font-weight: 500; text-decoration: none;
+                      font-size: 14px; transition: opacity 0.2s;"
+               onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
+               View My Form Class
+            </a>
+
+            {% if current_class_id == request.user.staffprofile.form_class.id %}
+            <a href="javascript:window.print()"
+               class="btn-capsule"
+               style="border-radius: 50px; background-color: #f4f4f5; color: #111;
+                      border: 1px solid #e4e4e7; padding: 10px 24px; font-weight: 500;
+                      text-decoration: none; font-size: 14px; transition: background 0.2s;"
+               onmouseover="this.style.backgroundColor='#e4e4e7'" onmouseout="this.style.backgroundColor='#f4f4f5'">
+               🖨️ Print Report
             </a>
             {% endif %}
-            {% if is_form_teacher and has_graded_records %}
-            <form method="POST" action="{% url 'verify_class_rankings' class_id=classroom.id %}" style="display: inline;">
-                {% csrf_token %}
-                <button type="submit" class="btn btn-sm btn-outline-success d-print-none" {% if verification %}disabled{% endif %}>
-                    {% if verification %}✓ Verified{% else %}✓ Verify Rankings{% endif %}
-                </button>
-            </form>
             {% endif %}
-            <a href="{% url 'compile_grades' %}" style="background-color: #000000; color: #ffffff; border: none; border-radius: 50px; padding: 8px 20px; font-weight: 600; font-size: 0.85rem; text-decoration: none; display: inline-block; cursor: pointer;">+ New Grade Entry</a>
+
+            <a href="{% url 'compile_grades' %}"
+               class="btn-capsule"
+               style="border-radius: 50px; background-color: #000; color: #fff;
+                      padding: 10px 24px; font-weight: 500; text-decoration: none;
+                      font-size: 14px;">
+               + New Grade Entry
+            </a>
         </div>
     </div>
     <div class="card-body p-0">
         {% if not has_full_access %}
         <div class="alert alert-info m-3" role="alert">
             <strong>Filtered View:</strong> Showing only subjects you are assigned to teach in this class.
-        </div>
-        {% endif %}
-        {% if has_full_access and has_graded_records %}
-        <div class="text-end m-3 d-print-none">
-            <button class="btn btn-sm btn-outline-secondary" onclick="window.print()" style="border-radius: 50px;">🖨️ Print Report</button>
         </div>
         {% endif %}
         {% if not has_graded_records %}
