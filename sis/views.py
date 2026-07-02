@@ -206,40 +206,29 @@ def class_report_card_view(request, class_id):
 
     staff = getattr(request.user, 'staff_profile', None)
     is_form_teacher = staff and staff.form_class == classroom
-    is_form_master = staff and classroom.form_master == staff
-
-    if not request.user.is_superuser and not is_form_teacher and not is_form_master:
-        messages.error(request, 'Only the form teacher or form master can view the full class assessment summary.')
-        return redirect('dashboard')
+    has_full_access = request.user.is_superuser or is_form_teacher
 
     students = Student.objects.filter(enrollments__classroom=classroom).distinct()
-    
+
     report_data = []
     for student in students:
         assessments = SubjectAssessment.objects.filter(student=student, term=1)
+        if not has_full_access and staff:
+            assigned_subject_ids = StaffClassSubject.objects.filter(staff=staff, classroom=classroom).values_list('subject_id', flat=True).distinct()
+            assessments = assessments.filter(subject_id__in=assigned_subject_ids)
         grand_total = sum(ast.total_score for ast in assessments)
         report_data.append({
             'student': student,
             'assessments': assessments,
             'grand_total': grand_total,
         })
-        
+
     report_data = sorted(report_data, key=lambda x: x['grand_total'], reverse=True)
 
     for index, row in enumerate(report_data):
         row['rank'] = index + 1
-    
-    if request.user.is_superuser:
-        classrooms = ClassRoom.objects.all()
-    else:
-        staff_class_ids = StaffClassSubject.objects.filter(staff=staff).values_list('classroom_id', flat=True).distinct()
-        form_ids = [classroom.id] if classroom else []
-        if staff and staff.form_class:
-            form_ids.append(staff.form_class.id)
-        if staff and classroom.form_master == staff:
-            form_ids.append(classroom.id)
-        accessible_ids = set(list(staff_class_ids) + form_ids)
-        classrooms = ClassRoom.objects.filter(id__in=accessible_ids) if accessible_ids else ClassRoom.objects.none()
+
+    classrooms = ClassRoom.objects.all()
     has_graded_records = any(row['assessments'].exists() for row in report_data)
 
     current_term = Term.objects.filter(is_active=True).first()
@@ -256,7 +245,7 @@ def class_report_card_view(request, class_id):
         'classrooms': classrooms,
         'has_graded_records': has_graded_records,
         'is_form_teacher': is_form_teacher,
-        'is_form_master': is_form_master,
+        'has_full_access': has_full_access,
         'verification': verification,
     })
 

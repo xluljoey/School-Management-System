@@ -33,15 +33,20 @@
                 </button>
             </form>
             {% endif %}
-            {% if request.user.staffprofile.managed_class.exists %}
-            <a href="{% url 'master_continuous_assessment' class_id=request.user.staffprofile.managed_class.first.id %}" style="background-color: #1a1a2e; color: #ffffff; border: none; border-radius: 25px; padding: 8px 20px; font-weight: 600; font-size: 0.85rem; text-decoration: none; display: inline-block; cursor: pointer;">
-                View {{ request.user.staffprofile.managed_class.first.class_name }} Master Summary
+            {% if request.user.staffprofile.form_class %}
+            <a href="{% url 'master_continuous_assessment' class_id=request.user.staffprofile.form_class.id %}" style="background-color: #1a1a2e; color: #ffffff; border: none; border-radius: 25px; padding: 8px 20px; font-weight: 600; font-size: 0.85rem; text-decoration: none; display: inline-block; cursor: pointer;">
+                View {{ request.user.staffprofile.form_class.class_name }} Master Summary
             </a>
             {% endif %}
             <a href="{% url 'compile_grades' %}" style="background-color: #000000; color: #ffffff; border: none; border-radius: 25px; padding: 8px 20px; font-weight: 600; font-size: 0.85rem; text-decoration: none; display: inline-block; cursor: pointer;">+ New Grade Entry</a>
         </div>
     </div>
     <div class="card-body p-0">
+        {% if not has_full_access %}
+        <div class="alert alert-info m-3" role="alert">
+            <strong>Filtered View:</strong> Showing only subjects you are assigned to teach in this class.
+        </div>
+        {% endif %}
         {% if not has_graded_records %}
         <div class="alert alert-warning m-3" role="alert">
             No student grade records compiled for this class yet.
