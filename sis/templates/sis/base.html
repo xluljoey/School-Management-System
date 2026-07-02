@@ -193,6 +193,7 @@
                     <span>Smansys</span>
                 </div>
                 <nav class="nav-links">
+                    {% if user.is_superuser %}
                     <a href="{% url 'dashboard' %}" class="{% if request.path == '/' or request.path == '/dashboard/' %}active{% endif %}">
                         <i class="bi bi-speedometer2"></i> Dashboard
                     </a>
@@ -205,9 +206,6 @@
                     <a href="{% url 'reports' %}" class="{% if request.path == '/reports/' %}active{% endif %}">
                         <i class="bi bi-bar-chart"></i> Report
                     </a>
-                    <a href="{% url 'promotion_portal' %}" class="{% if request.path == '/enrollment/portal/' %}active{% endif %}">
-                        <i class="bi bi-arrow-up-circle"></i> Promotion Portal
-                    </a>
                     <a href="{% url 'register_student' %}" class="{% if request.path == '/students/register/' %}active{% endif %}">
                         <i class="bi bi-person-plus"></i> Add Student
                     </a>
@@ -217,6 +215,20 @@
                     <a href="{% url 'academic_settings' %}" class="{% if request.path == '/settings/academic-session/' %}active{% endif %}">
                         <i class="bi bi-gear"></i> Academic Settings
                     </a>
+                    {% elif user.is_authenticated %}
+                    <a href="{% url 'dashboard' %}" class="{% if request.path == '/' or request.path == '/dashboard/' %}active{% endif %}">
+                        <i class="bi bi-speedometer2"></i> Dashboard
+                    </a>
+                    <a href="{% url 'student_list' %}" class="{% if request.path == '/students/' %}active{% endif %}">
+                        <i class="bi bi-mortarboard"></i> Students
+                    </a>
+                    <a href="{% url 'reports' %}" class="{% if request.path == '/reports/' %}active{% endif %}">
+                        <i class="bi bi-bar-chart"></i> Report
+                    </a>
+                    <a href="{% url 'promotion_portal' %}" class="{% if request.path == '/enrollment/portal/' %}active{% endif %}">
+                        <i class="bi bi-arrow-up-circle"></i> Promotion Portal
+                    </a>
+                    {% endif %}
                 </nav>
             </div>
             <div class="logout-wrap">

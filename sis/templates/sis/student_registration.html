@@ -21,21 +21,21 @@
                         {% if student_form.errors %}
                             {% for field, errors in student_form.errors.items %}
                                 {% for error in errors %}
-                                    <div>{{ student_form[field].label }}: {{ error }}</div>
+                                    <div>{{ field|title }}: {{ error }}</div>
                                 {% endfor %}
                             {% endfor %}
                         {% endif %}
                         {% if father_form.errors %}
                             {% for field, errors in father_form.errors.items %}
                                 {% for error in errors %}
-                                    <div>Father's {{ father_form[field].label }}: {{ error }}</div>
+                                    <div>Father's {{ field|title }}: {{ error }}</div>
                                 {% endfor %}
                             {% endfor %}
                         {% endif %}
                         {% if mother_form.errors %}
                             {% for field, errors in mother_form.errors.items %}
                                 {% for error in errors %}
-                                    <div>Mother's {{ mother_form[field].label }}: {{ error }}</div>
+                                    <div>Mother's {{ field|title }}: {{ error }}</div>
                                 {% endfor %}
                             {% endfor %}
                         {% endif %}
