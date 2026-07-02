@@ -733,9 +733,11 @@ def midterm_summary_view(request):
     if current_subject_id and not current_subject_id.isdigit():
         current_subject_id = None
 
+    staff_profile = getattr(request.user, 'staff_profile', None)
+
     classroom = None
     students = Student.objects.none()
-    assigned_subjects = Subject.objects.none()
+    assigned_subjects = []
     report_data = []
     has_records = False
 
@@ -743,10 +745,12 @@ def midterm_summary_view(request):
         classroom = get_object_or_404(ClassRoom, pk=selected_class_id)
 
         if request.user.is_superuser:
-            assigned_subjects = Subject.objects.filter(offered_in_classes__classroom=classroom).distinct()
-        elif staff:
-            assigned_ids = StaffClassSubject.objects.filter(staff=staff, classroom=classroom).values_list('subject_id', flat=True).distinct()
-            assigned_subjects = Subject.objects.filter(id__in=assigned_ids) if assigned_ids else Subject.objects.none()
+            assigned_subjects = Subject.objects.filter(staffclasssubject__classroom_id=selected_class_id).distinct()
+        elif staff_profile:
+            assigned_subjects = Subject.objects.filter(
+                staffclasssubject__staff=staff_profile,
+                staffclasssubject__classroom_id=selected_class_id
+            ).distinct()
 
         students = Student.objects.filter(enrollments__classroom=classroom).distinct()
 
