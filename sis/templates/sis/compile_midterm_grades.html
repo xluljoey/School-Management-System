@@ -1,0 +1,128 @@
+{% extends 'sis/base.html' %}
+{% load static %}
+
+{% block title %}Compile Mid-Term Grades{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-1" style="color: #000000;">Compile Mid-Term Grades</h4>
+        <span style="color: #8E8D93; font-size: 0.85rem;">
+            {% if selected_class %}
+                Class: <strong>{{ selected_class.class_name }}</strong>
+            {% else %}
+                Select a class to begin
+            {% endif %}
+        </span>
+    </div>
+    <form method="get" class="d-flex align-items-center gap-2">
+        <select name="class_id" class="form-select" style="width: auto; border-radius: 12px; font-size: 0.9rem;" onchange="this.form.submit()">
+            <option value="">-- Select Class --</option>
+            {% for c in classrooms %}
+            <option value="{{ c.id }}" {% if selected_class and selected_class.id == c.id %}selected{% endif %}>{{ c.class_name }}</option>
+            {% endfor %}
+        </select>
+    </form>
+</div>
+
+{% if selected_class and students %}
+<form method="POST" id="midterm-form">
+    {% csrf_token %}
+    <input type="hidden" name="class_id" value="{{ selected_class.id }}">
+
+    <div style="width: 100%; overflow-x: auto; background: #ffffff; border-radius: 16px; border: 1px solid #E4E4E7; margin-top: 24px;">
+        <table style="width: 100%; border-collapse: collapse; min-width: 800px; font-size: 0.85rem;">
+            <thead>
+                <tr style="background-color: #F8F9FA;">
+                    <th style="padding: 12px 16px; color: #8E8D93; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; text-align: left; border-bottom: 1px solid #E4E4E7;">Student</th>
+                    {% for subject in subjects %}
+                    <th style="padding: 12px 16px; color: #8E8D93; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; text-align: center; border-bottom: 1px solid #E4E4E7;">{{ subject.subject_name }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in grades_matrix %}
+                <tr style="border-bottom: 1px solid #F0F0F0;">
+                    <td style="padding: 10px 16px; display: flex; align-items: center; gap: 10px; min-width: 220px;">
+                        <span style="width: 32px; height: 32px; border-radius: 50%; background-color: #000000; color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.8rem; flex-shrink: 0;">{{ row.student.first_name|first|upper }}</span>
+                        <div>
+                            <div style="font-weight: 600; color: #000000; font-size: 0.85rem; white-space: nowrap;">{{ row.student.first_name }} {{ row.student.last_name }}</div>
+                            <div style="color: #8E8D93; font-size: 0.7rem;">{{ row.student.admission_number }}</div>
+                        </div>
+                    </td>
+                    {% for cell in row.cells %}
+                    <td style="padding: 6px 8px; text-align: center;">
+                        <input type="number" name="score_{{ row.student.id }}_{{ cell.subject.id }}" step="0.1" min="0" max="100" placeholder="Score" value="{{ cell.score }}" style="width: 72px; height: 38px; border: 1px solid #E4E4E7; border-radius: 8px; text-align: center; font-size: 14px; outline: none; box-sizing: border-box;" onfocus="this.style.borderColor='#000000'" onblur="this.style.borderColor='#E4E4E7'">
+                    </td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div style="margin-top: 24px;">
+        <a href="{% url 'midterm_summary' %}{% if selected_class %}?class_id={{ selected_class.id }}{% endif %}" id="cancel-link" style="color: #8F8F8F; font-weight: 500; text-decoration: none; line-height: 38px;">Cancel</a>
+    </div>
+
+    <div style="position: fixed; bottom: 40px; right: 40px; z-index: 1050;">
+        <button type="submit"
+                class="btn-capsule shadow-lg"
+                style="border-radius: 50px; background-color: #000; color: #fff;
+                       border: none; padding: 14px 28px; font-weight: 500;
+                       font-size: 14px; display: inline-flex; align-items: center; gap: 8px;
+                       box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2); cursor: pointer;
+                       transition: transform 0.2s ease, background-color 0.2s;"
+                onmouseover="this.style.backgroundColor='#111'; this.style.transform='scale(1.03)';"
+                onmouseout="this.style.backgroundColor='#000'; this.style.transform='scale(1)';">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                <polyline points="7 3 7 8 15 8"></polyline>
+            </svg>
+            Save Assessment
+        </button>
+    </div>
+</form>
+{% elif selected_class and not students %}
+<div style="text-align: center; padding: 80px 0; color: #8E8D93;">
+    <p>No students enrolled in this class.</p>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    var form = document.getElementById('midterm-form');
+    var cancelLink = document.getElementById('cancel-link');
+    var isFormDirty = false;
+
+    if (form) {
+        form.addEventListener('input', function() {
+            isFormDirty = true;
+        });
+        form.addEventListener('submit', function() {
+            isFormDirty = false;
+        });
+    }
+
+    if (cancelLink) {
+        cancelLink.addEventListener('click', function(e) {
+            if (isFormDirty) {
+                if (!window.confirm('You have unsaved grading changes. Are you sure you want to leave?')) {
+                    e.preventDefault();
+                }
+            }
+        });
+    }
+
+    window.addEventListener('beforeunload', function(e) {
+        if (isFormDirty) {
+            e.preventDefault();
+            e.returnValue = '';
+        }
+    });
+})();
+</script>
+{% endblock %}

@@ -206,6 +206,9 @@
                     <a href="{% url 'reports' %}" class="{% if request.path == '/reports/' %}active{% endif %}">
                         <i class="bi bi-bar-chart"></i> Report
                     </a>
+                    <a href="{% url 'midterm_summary' %}" class="{% if request.resolver_match.view_name == 'midterm_summary' %}active{% endif %}">
+                        <i class="bi bi-bar-chart"></i> Mid Term
+                    </a>
                     <a href="{% url 'register_student' %}" class="{% if request.path == '/students/register/' %}active{% endif %}">
                         <i class="bi bi-person-plus"></i> Add Student
                     </a>
@@ -224,6 +227,9 @@
                     </a>
                     <a href="{% url 'reports' %}" class="{% if request.path == '/reports/' %}active{% endif %}">
                         <i class="bi bi-bar-chart"></i> Report
+                    </a>
+                    <a href="{% url 'midterm_summary' %}" class="{% if request.resolver_match.view_name == 'midterm_summary' %}active{% endif %}">
+                        <i class="bi bi-bar-chart"></i> Mid Term
                     </a>
                     <a href="{% url 'promotion_portal' %}" class="{% if request.path == '/enrollment/portal/' %}active{% endif %}">
                         <i class="bi bi-arrow-up-circle"></i> Promotion Portal

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import ClassRoom, Subject, StaffProfile, Student, SubjectAssignment, AcademicSession, Term, ClassSubject, Parent, Department, Designation, StaffClassSubject
+from .models import ClassRoom, Subject, StaffProfile, Student, SubjectAssignment, AcademicSession, Term, ClassSubject, Parent, Department, Designation, StaffClassSubject, MidTermRecord
 
 
 class StaffClassSubjectInline(admin.TabularInline):
@@ -70,3 +70,4 @@ admin.site.register(Parent)
 admin.site.register(Department)
 admin.site.register(Designation)
 admin.site.register(StaffClassSubject)
+admin.site.register(MidTermRecord)

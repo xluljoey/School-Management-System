@@ -716,6 +716,178 @@ def compile_grades_view(request):
 
 
 @login_required
+def midterm_summary_view(request):
+    if not _is_staff_or_admin(request.user):
+        raise PermissionDenied
+
+    staff = getattr(request.user, 'staff_profile', None)
+    classrooms = ClassRoom.objects.none()
+    if request.user.is_superuser:
+        classrooms = ClassRoom.objects.all()
+    elif staff:
+        assigned_ids = StaffClassSubject.objects.filter(staff=staff).values_list('classroom_id', flat=True).distinct()
+        classrooms = ClassRoom.objects.filter(id__in=assigned_ids)
+
+    selected_class_id = request.GET.get('class_id')
+    current_subject_id = request.GET.get('subject_id')
+    if current_subject_id and not current_subject_id.isdigit():
+        current_subject_id = None
+
+    classroom = None
+    students = Student.objects.none()
+    assigned_subjects = Subject.objects.none()
+    report_data = []
+    has_records = False
+
+    if selected_class_id:
+        classroom = get_object_or_404(ClassRoom, pk=selected_class_id)
+
+        if request.user.is_superuser:
+            assigned_subjects = Subject.objects.filter(offered_in_classes__classroom=classroom).distinct()
+        elif staff:
+            assigned_ids = StaffClassSubject.objects.filter(staff=staff, classroom=classroom).values_list('subject_id', flat=True).distinct()
+            assigned_subjects = Subject.objects.filter(id__in=assigned_ids) if assigned_ids else Subject.objects.none()
+
+        students = Student.objects.filter(enrollments__classroom=classroom).distinct()
+
+        current_session = AcademicSession.objects.filter(is_current=True).first()
+        current_term = Term.objects.filter(is_active=True).first()
+
+        for student in students:
+            records = MidTermRecord.objects.filter(student=student)
+            if current_session:
+                records = records.filter(academic_session=current_session)
+            if current_term:
+                records = records.filter(term=current_term)
+            if current_subject_id:
+                records = records.filter(subject_id=current_subject_id)
+
+            first_record = records.first()
+            row = {
+                'student': student,
+                'records': records,
+                'score': f"{first_record.score:.1f}" if first_record and first_record.score is not None else None,
+                'total': sum(r.score for r in records if r.score is not None),
+            }
+            report_data.append(row)
+
+        has_records = any(row['records'].exists() for row in report_data)
+        report_data = sorted(report_data, key=lambda x: x['total'], reverse=True)
+
+        for idx, row in enumerate(report_data):
+            row['rank'] = idx + 1
+
+    try:
+        user_form_class = request.user.staff_profile.form_class
+    except AttributeError:
+        user_form_class = None
+
+    context = {
+        'classrooms': classrooms,
+        'classroom': classroom,
+        'selected_class_id': selected_class_id,
+        'assigned_subjects': assigned_subjects,
+        'current_subject_id': int(current_subject_id) if current_subject_id and current_subject_id.isdigit() else None,
+        'students': students,
+        'report_data': report_data,
+        'has_records': has_records,
+        'user_form_class': user_form_class,
+    }
+    return render(request, 'sis/midterm_summary.html', context)
+
+
+@login_required
+def compile_midterm_grades_view(request):
+    if not _is_staff_or_admin(request.user):
+        raise PermissionDenied
+
+    staff = getattr(request.user, 'staff_profile', None)
+
+    if request.user.is_superuser:
+        classrooms = ClassRoom.objects.all()
+    else:
+        assigned_ids = StaffClassSubject.objects.filter(staff=staff).values_list('classroom_id', flat=True).distinct()
+        classrooms = ClassRoom.objects.filter(id__in=assigned_ids)
+
+    subjects = Subject.objects.none()
+    selected_class_id = request.GET.get('class_id')
+    students = []
+
+    if selected_class_id:
+        classroom = get_object_or_404(ClassRoom, pk=selected_class_id)
+        students = Student.objects.filter(enrollments__classroom=classroom).distinct()
+
+        subject_qs = Subject.objects.filter(offered_in_classes__classroom=classroom).distinct()
+        if not request.user.is_superuser and staff:
+            assigned_subject_ids = StaffClassSubject.objects.filter(staff=staff, classroom=classroom).values_list('subject_id', flat=True).distinct()
+            subject_qs = subject_qs.filter(id__in=assigned_subject_ids)
+        subjects = subject_qs
+    else:
+        classroom = None
+
+    if request.method == 'POST':
+        class_id = request.POST.get('class_id')
+        classroom = get_object_or_404(ClassRoom, pk=class_id)
+        students = Student.objects.filter(enrollments__classroom=classroom).distinct()
+
+        subject_qs = Subject.objects.filter(offered_in_classes__classroom=classroom).distinct()
+        if not request.user.is_superuser and staff:
+            assigned_subject_ids = StaffClassSubject.objects.filter(staff=staff, classroom=classroom).values_list('subject_id', flat=True).distinct()
+            subject_qs = subject_qs.filter(id__in=assigned_subject_ids)
+
+        current_session = AcademicSession.objects.filter(is_current=True).first()
+        current_term = Term.objects.filter(is_active=True).first()
+
+        for student in students:
+            for subject in subject_qs:
+                score_key = f'score_{student.id}_{subject.id}'
+                val = request.POST.get(score_key)
+                if val:
+                    MidTermRecord.objects.update_or_create(
+                        student=student,
+                        academic_session=current_session,
+                        term=current_term,
+                        subject=subject,
+                        defaults={
+                            'classroom': classroom,
+                            'score': val,
+                            'recorded_by': staff,
+                        }
+                    )
+
+        messages.success(request, 'Mid-term grades saved successfully!')
+        return redirect(request.path + '?class_id=' + str(class_id))
+
+    grades_matrix = []
+    current_session = AcademicSession.objects.filter(is_current=True).first()
+    current_term = Term.objects.filter(is_active=True).first()
+
+    for student in students:
+        cells = []
+        for subject in subjects:
+            rec = MidTermRecord.objects.filter(
+                student=student,
+                academic_session=current_session,
+                term=current_term,
+                subject=subject,
+            ).first()
+            cells.append({
+                'subject': subject,
+                'score': rec.score if rec else '',
+            })
+        grades_matrix.append({'student': student, 'cells': cells})
+
+    context = {
+        'classrooms': classrooms,
+        'subjects': subjects,
+        'students': students,
+        'selected_class': classroom,
+        'grades_matrix': grades_matrix,
+    }
+    return render(request, 'sis/compile_midterm_grades.html', context)
+
+
+@login_required
 def api_class_subjects(request):
     class_id = request.GET.get('class_id')
     if not class_id:

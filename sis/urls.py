@@ -20,6 +20,8 @@ from .views import (
     api_class_subjects,
     verify_class_rankings_view,
     view_account,
+    midterm_summary_view,
+    compile_midterm_grades_view,
 )
 
 urlpatterns = [
@@ -51,4 +53,6 @@ urlpatterns = [
     path('class/<int:class_id>/verify/', verify_class_rankings_view, name='verify_class_rankings'),
     path('master-summary/<int:class_id>/', class_report_card_view, name='master_continuous_assessment'),
     path('account/', view_account, name='view_account'),
+    path('midterm/', midterm_summary_view, name='midterm_summary'),
+    path('midterm/compile/', compile_midterm_grades_view, name='compile_midterm_grades'),
 ]

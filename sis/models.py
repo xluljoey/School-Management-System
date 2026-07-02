@@ -330,3 +330,22 @@ class GradeVerification(models.Model):
 
     def __str__(self):
         return f"{self.classroom.class_name} - Term {self.term} ({self.academic_year}) verified"
+
+
+class MidTermRecord(models.Model):
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='midterm_records')
+    academic_session = models.ForeignKey(AcademicSession, on_delete=models.CASCADE)
+    term = models.ForeignKey(Term, on_delete=models.CASCADE)
+    classroom = models.ForeignKey(ClassRoom, on_delete=models.CASCADE)
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
+    score = models.DecimalField(max_digits=5, decimal_places=1, null=True, blank=True)
+    recorded_by = models.ForeignKey(StaffProfile, on_delete=models.SET_NULL, null=True)
+    date_recorded = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('student', 'academic_session', 'term', 'subject')
+        verbose_name = 'Mid-Term Record'
+        verbose_name_plural = 'Mid-Term Records'
+
+    def __str__(self):
+        return f"{self.student} — {self.subject} ({self.term})"
