@@ -38,17 +38,6 @@
                onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
                View My Form Class
             </a>
-
-            {% if current_class_id == user_form_class.id %}
-            <a href="javascript:window.print()"
-               class="btn-capsule"
-               style="border-radius: 50px; background-color: #f4f4f5; color: #111;
-                      border: 1px solid #e4e4e7; padding: 10px 24px; font-weight: 500;
-                      text-decoration: none; font-size: 14px; transition: background 0.2s;"
-               onmouseover="this.style.backgroundColor='#e4e4e7'" onmouseout="this.style.backgroundColor='#f4f4f5'">
-               🖨️ Print Report
-            </a>
-            {% endif %}
             {% endif %}
 
             <a href="{% url 'compile_grades' %}"
@@ -108,5 +97,22 @@
         </div>
         {% endif %}
     </div>
+    {% if user_form_class and current_class_id == user_form_class.id %}
+    <div class="d-flex justify-content-end w-100 mt-4 pt-3" style="border-top: 1px solid #f4f4f5;">
+        <a href="javascript:window.print()"
+           class="btn-capsule shadow-sm"
+           style="border-radius: 50px; background-color: #111; color: #fff;
+                  padding: 12px 28px; font-weight: 500; text-decoration: none;
+                  font-size: 14px; display: inline-flex; align-items: center; gap: 8px;
+                  transition: background 0.2s;"
+           onmouseover="this.style.backgroundColor='#222'" onmouseout="this.style.backgroundColor='#111'">
+           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+               <path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+               <rect x="6" y="14" width="12" height="8"></rect>
+           </svg>
+           Print Report
+        </a>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}
