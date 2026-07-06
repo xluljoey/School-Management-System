@@ -762,11 +762,9 @@ def midterm_summary_view(request):
 
     selected_class_id = request.GET.get('class_id')
     current_subject_id = request.GET.get('subject_id')
-    
-    # Validate class_id parameter
+
     if selected_class_id and not selected_class_id.isdigit():
         selected_class_id = None
-    
     if current_subject_id and not current_subject_id.isdigit():
         current_subject_id = None
 
@@ -774,7 +772,7 @@ def midterm_summary_view(request):
 
     classroom = None
     students = Student.objects.none()
-    assigned_subjects = []
+    assigned_subjects = Subject.objects.none()
     report_data = []
     has_records = False
 
@@ -782,13 +780,14 @@ def midterm_summary_view(request):
         classroom = get_object_or_404(ClassRoom, pk=selected_class_id)
 
         if request.user.is_superuser:
-            assigned_subjects = Subject.objects.filter(staffclasssubject__classroom_id=selected_class_id).distinct()
+            assigned_subjects = Subject.objects.filter(
+                staffclasssubject__classroom_id=selected_class_id
+            ).distinct()
         elif staff_profile:
-            assigned_subject_ids = StaffClassSubject.objects.filter(
-                staff=staff_profile,
-                classroom_id=selected_class_id
-            ).values_list('subject_id', flat=True).distinct()
-            assigned_subjects = Subject.objects.filter(id__in=assigned_subject_ids) if assigned_subject_ids else Subject.objects.none()
+            assigned_subjects = Subject.objects.filter(
+                staffclasssubject__staff=staff_profile,
+                staffclasssubject__classroom_id=selected_class_id
+            ).distinct()
 
         students = Student.objects.filter(enrollments__classroom=classroom).distinct()
 
@@ -803,27 +802,30 @@ def midterm_summary_view(request):
                 records = records.filter(term=current_term)
             if current_subject_id:
                 records = records.filter(subject_id=current_subject_id)
-            
-            # Filter by staff's assigned subjects if not superuser
-            if not request.user.is_superuser and staff_profile:
-                assigned_subject_ids = StaffClassSubject.objects.filter(
-                    staff=staff_profile, 
-                    classroom=classroom
-                ).values_list('subject_id', flat=True).distinct()
-                records = records.filter(subject_id__in=assigned_subject_ids)
 
             first_record = records.first()
+            midterm_score = (
+                f"{first_record.midterm_score:.1f}"
+                if first_record and first_record.midterm_score is not None
+                else None
+            )
+            total = sum(
+                r.midterm_score for r in records if r.midterm_score is not None
+            )
             row = {
                 'student': student,
-                'records': records,
-                'midterm_score': f"{first_record.midterm_score:.1f}" if first_record and first_record.midterm_score is not None else None,
-                'total': sum(r.midterm_score for r in records if r.midterm_score is not None),
+                'midterm_score': midterm_score,
+                'total': total,
             }
             report_data.append(row)
 
-        has_records = any(row['records'].exists() for row in report_data)
-        report_data = sorted(report_data, key=lambda x: x['total'], reverse=True)
-
+        has_records = bool(
+            report_data and any(
+                row['midterm_score'] is not None or row['total'] > 0
+                for row in report_data
+            )
+        )
+        report_data.sort(key=lambda x: x['total'], reverse=True)
         for idx, row in enumerate(report_data):
             row['rank'] = idx + 1
 
@@ -837,7 +839,11 @@ def midterm_summary_view(request):
         'classroom': classroom,
         'selected_class_id': selected_class_id,
         'assigned_subjects': assigned_subjects,
-        'current_subject_id': int(current_subject_id) if current_subject_id and current_subject_id.isdigit() else None,
+        'current_subject_id': (
+            int(current_subject_id)
+            if current_subject_id and current_subject_id.isdigit()
+            else None
+        ),
         'students': students,
         'report_data': report_data,
         'has_records': has_records,
