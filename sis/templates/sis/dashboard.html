@@ -50,15 +50,11 @@ document.addEventListener('DOMContentLoaded', function () {
 {% endblock %}
 
 {% block content %}
-<div class="row g-4 m-0 w-100">
+<div class="row g-4 m-0 w-100 align-items-start">
 
-    <!-- ========================================================
-         GLOBAL LEFT WORKSPACE: 8 Columns wide on desktop
-         ======================================================== -->
-    <div class="col-lg-8 col-12 d-flex flex-column gap-4 p-0">
+    <div class="col-lg-7 col-12 d-flex flex-column gap-4 p-0">
 
-        <!-- 1. GREETING CARD -->
-        <div class="card border-0 position-relative" style="background: #ffffff; border-radius: 16px; padding: 32px; min-height: 200px; border: 1px solid #e4e4e7 !important;">
+        <div class="card border-0" style="background: #ffffff; border-radius: 16px; padding: 32px; min-height: 248px; border: 1px solid #e4e4e7 !important;">
             <div style="display: flex; justify-content: space-between; align-items: center; height: 100%;">
                 <div style="max-width: 460px;">
                     <h1 style="font-size: 1.75rem; font-weight: 700; color: #000000; margin: 0 0 12px 0;">
@@ -84,8 +80,7 @@ document.addEventListener('DOMContentLoaded', function () {
             </div>
         </div>
 
-        <!-- 2. LOWER CONTENT ROW (Students chart / Notice Board) -->
-        <div class="row g-4 m-0 w-100">
+        <div class="row g-4 m-0 w-100 p-0">
             <div class="col-md-6">
                 <div class="card shadow-sm border-0">
                     <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
@@ -131,84 +126,84 @@ document.addEventListener('DOMContentLoaded', function () {
 
     </div>
 
-    <!-- ========================================================
-         GLOBAL RIGHT WORKSPACE: 4 Columns wide on desktop
-         ======================================================== -->
-    <div class="col-lg-4 col-12 d-flex flex-column gap-4 p-0">
+    <div class="col-lg-5 col-12 p-0">
+        <div class="d-flex align-items-start gap-3 w-100">
 
-        {% if request.user.is_superuser %}
-        <!-- 1. COMPACT METRICS GRID -->
-        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; width: 100%;">
-            <div style="background-color: #ffffff; border: 1px solid #e4e4e7; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; min-height: 120px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
+            <div class="d-flex flex-column gap-3" style="width: 185px; flex-shrink: 0;">
+
+                <div class="card border-0" style="background: #ffffff; border-radius: 16px; padding: 16px; min-height: 108px; border: 1px solid #e4e4e7 !important;">
+                    <div style="display: flex; flex-direction: column; justify-content: space-between; height: 100%;">
+                        <div>
+                            <div style="font-size: 11px; font-weight: 600; color: #71717a; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">Students</div>
+                            <div style="font-size: 24px; font-weight: 700; color: #111111; line-height: 1.2;">
+                                {% if request.user.is_superuser %}{{ total_students|default:"0" }}{% else %}{{ staff_student_count }}{% endif %}
+                            </div>
+                        </div>
+                        <div style="font-size: 11px; color: #10b981; margin-top: 8px; font-weight: 500;">Active Enrolled</div>
+                    </div>
+                </div>
+
+                <div class="card border-0" style="background: #ffffff; border-radius: 16px; padding: 16px; min-height: 108px; border: 1px solid #e4e4e7 !important;">
+                    <div style="display: flex; flex-direction: column; justify-content: space-between; height: 100%;">
+                        <div>
+                            <div style="font-size: 11px; font-weight: 600; color: #71717a; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">{% if request.user.is_superuser %}Staff{% else %}Subjects{% endif %}</div>
+                            <div style="font-size: 24px; font-weight: 700; color: #111111; line-height: 1.2;">
+                                {% if request.user.is_superuser %}{{ total_staff|default:"0" }}{% else %}{{ staff_subject_count }}{% endif %}
+                            </div>
+                        </div>
+                        <div style="font-size: 11px; color: #71717a; margin-top: 8px; font-weight: 500;">{% if request.user.is_superuser %}Academic &amp; Admin{% else %}Active Subjects{% endif %}</div>
+                    </div>
+                </div>
+
+                <div class="card border-0" style="background: #ffffff; border-radius: 16px; padding: 16px; min-height: 108px; border: 1px solid #e4e4e7 !important;">
+                    <div style="display: flex; flex-direction: column; justify-content: space-between; height: 100%;">
+                        <div>
+                            <div style="font-size: 11px; font-weight: 600; color: #71717a; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">{% if request.user.is_superuser %}Classes{% else %}Environment{% endif %}</div>
+                            <div style="font-size: 24px; font-weight: 700; color: #111111; line-height: 1.2;">
+                                {% if request.user.is_superuser %}{{ assigned_classes.count|default:"0" }}{% else %}{{ active_environment_string|default:"—" }}{% endif %}
+                            </div>
+                        </div>
+                        <div style="font-size: 11px; color: #71717a; margin-top: 8px; font-weight: 500;">{% if request.user.is_superuser %}Active Classes{% else %}Current Term{% endif %}</div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="card border-0 flex-grow-1" style="background: #ffffff; border-radius: 16px; padding: 24px; min-height: 346px; border: 1px solid #e4e4e7 !important;">
+                {% if request.user.is_superuser %}
                 <div>
-                    <div style="font-size: 13px; font-weight: 500; color: #71717a; text-transform: uppercase; letter-spacing: 0.05em;">Total Students</div>
-                    <div style="font-size: 32px; font-weight: 700; color: #111111; margin-top: 8px; line-height: 1;">{{ total_students|default:"0" }}</div>
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h3 style="font-size: 16px; font-weight: 600; color: #111; margin: 0;">July 2026</h3>
+                        <div style="color: #71717a; cursor: pointer; font-size: 14px; display: flex; gap: 12px; font-weight: 600;">
+                            <span>‹</span> <span>›</span>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 12px; font-weight: 500; color: #71717a; margin-bottom: 12px;">
+                        <div>S</div><div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; gap: 8px; font-size: 13px; font-weight: 500; color: #111; align-items: center;">
+                        <div style="color: #e4e4e7;">28</div><div style="color: #e4e4e7;">29</div><div style="color: #e4e4e7;">30</div><div>1</div><div>2</div><div>3</div><div>4</div>
+                        <div>5</div>
+                        <div style="background: #000; color: #fff; border-radius: 50%; width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; margin: 0 auto; font-size: 12px;">6</div>
+                        <div>7</div><div>8</div><div>9</div><div>10</div><div>11</div>
+                        <div>12</div><div>13</div><div>14</div><div>15</div><div>16</div><div>17</div><div>18</div>
+                        <div>19</div><div>20</div><div>21</div><div>22</div><div>23</div><div>24</div><div>25</div>
+                        <div>26</div><div>27</div><div>28</div><div>29</div><div>30</div><div>31</div><div style="color: #e4e4e7;">1</div>
+                    </div>
                 </div>
-                <div style="font-size: 12px; color: #10b981; margin-top: 12px; font-weight: 500;">Active Enrolled</div>
-            </div>
-
-            <div style="background-color: #ffffff; border: 1px solid #e4e4e7; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; min-height: 120px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
-                <div>
-                    <div style="font-size: 13px; font-weight: 500; color: #71717a; text-transform: uppercase; letter-spacing: 0.05em;">Total Staff</div>
-                    <div style="font-size: 32px; font-weight: 700; color: #111111; margin-top: 8px; line-height: 1;">{{ total_staff|default:"0" }}</div>
+                {% else %}
+                <div class="d-flex align-items-center justify-content-center h-100 text-center" style="color: #71717a; font-size: 14px;">
+                    <div>
+                        <div style="font-size: 2rem; font-weight: 700; color: #111; margin-bottom: 4px;">{{ staff_student_count }}</div>
+                        <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Students under your care</div>
+                    </div>
                 </div>
-                <div style="font-size: 12px; color: #71717a; margin-top: 12px; font-weight: 500;">Academic &amp; Admin</div>
+                {% endif %}
             </div>
 
-            <div style="background-color: #ffffff; border: 1px solid #e4e4e7; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; min-height: 120px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
-                <div>
-                    <div style="font-size: 13px; font-weight: 500; color: #71717a; text-transform: uppercase; letter-spacing: 0.05em;">Assigned Classes</div>
-                    <div style="font-size: 32px; font-weight: 700; color: #111111; margin-top: 8px; line-height: 1;">{{ assigned_classes.count|default:"0" }}</div>
-                </div>
-                <div style="font-size: 12px; color: #71717a; margin-top: 12px; font-weight: 500;">Active Classes</div>
-            </div>
         </div>
-
-        <!-- 2. CALENDAR CARD -->
-        <div class="card border-0 shadow-sm" style="background: #ffffff; border-radius: 16px; padding: 24px; border: 1px solid #e4e4e7 !important;">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h3 style="font-size: 16px; font-weight: 600; color: #111; margin: 0;">July 2026</h3>
-                <div style="color: #71717a; cursor: pointer; font-size: 14px; display: flex; gap: 12px; font-weight: 600;">
-                    <span>‹</span> <span>›</span>
-                </div>
-            </div>
-
-            <div style="display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 12px; font-weight: 500; color: #71717a; margin-bottom: 12px;">
-                <div>S</div><div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div>
-            </div>
-
-            <div style="display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; gap: 8px; font-size: 13px; font-weight: 500; color: #111; align-items: center;">
-                <div style="color: #e4e4e7;">28</div><div style="color: #e4e4e7;">29</div><div style="color: #e4e4e7;">30</div><div>1</div><div>2</div><div>3</div><div>4</div>
-                <div>5</div>
-                <div style="background: #000; color: #fff; border-radius: 50%; width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; margin: 0 auto; font-size: 12px;">6</div>
-                <div>7</div><div>8</div><div>9</div><div>10</div><div>11</div>
-                <div>12</div><div>13</div><div>14</div><div>15</div><div>16</div><div>17</div><div>18</div>
-                <div>19</div><div>20</div><div>21</div><div>22</div><div>23</div><div>24</div><div>25</div>
-                <div>26</div><div>27</div><div>28</div><div>29</div><div>30</div><div>31</div><div style="color: #e4e4e7;">1</div>
-            </div>
-        </div>
-        {% endif %}
-
-        <!-- 3. ADDITIONAL SIDE VIEWS -->
-        <div class="card border-0 overflow-hidden flex-fill d-flex flex-column" style="border-radius: 16px;">
-            <div style="background: #ccfbf1; padding: 20px 24px 16px;">
-                <div style="font-size: 0.75rem; font-weight: 600; color: #0f766e; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Students</div>
-                <div style="font-size: 2.4rem; font-weight: 700; color: #0f766e;">{{ staff_student_count }}</div>
-            </div>
-        </div>
-        <div class="card border-0 overflow-hidden flex-fill d-flex flex-column" style="border-radius: 16px;">
-            <div style="background: #fff7ed; padding: 20px 24px 16px;">
-                <div style="font-size: 0.75rem; font-weight: 600; color: #c2410c; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Subjects</div>
-                <div style="font-size: 2.4rem; font-weight: 700; color: #c2410c;">{{ staff_subject_count }}</div>
-            </div>
-        </div>
-        <div class="card border-0 overflow-hidden flex-fill d-flex flex-column" style="border-radius: 16px;">
-            <div style="background: #f5f3ff; padding: 20px 24px 16px;">
-                <div style="font-size: 0.75rem; font-weight: 600; color: #6d28d9; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Active Environment</div>
-                <div style="font-size: 1rem; font-weight: 600; color: #6d28d9;">{{ active_environment_string|default:"—" }}</div>
-            </div>
-        </div>
-
     </div>
 
 </div>
