@@ -4,6 +4,42 @@
 {% block title %}Dashboard — School Management System{% endblock %}
 
 {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var studentsCtx = document.getElementById('studentsChart').getContext('2d');
+  new Chart(studentsCtx, {
+    type: 'doughnut',
+    data: {
+      datasets: [
+        {
+          data: [{{ total_boys }}, {{ total_girls }}],
+          backgroundColor: ['#111111', '#f4f4f5'],
+          borderWidth: 0,
+          weight: 1.5,
+          cutout: '85%'
+        },
+        {
+          data: [{{ total_girls }}, {{ total_boys }}],
+          backgroundColor: ['#71717a', '#f4f4f5'],
+          borderWidth: 0,
+          weight: 1.0,
+          cutout: '80%'
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { enabled: true }
+      },
+      stroke: { curve: 'smooth' }
+    }
+  });
+});
+</script>
 {% endblock %}
 
 {% block content %}
@@ -49,7 +85,8 @@
 
                     <div style="flex-grow: 1; display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 0;">
 
-                        <div style="width: 150px; height: 150px; position: relative; flex-shrink: 0;">
+                        <div style="width: 140px; height: 140px; position: relative; flex-shrink: 0; display: flex; align-items: center; justify-content: center;">
+                            <canvas id="studentsChart" style="max-width: 100%; max-height: 100%;"></canvas>
                         </div>
 
                         <div style="display: flex; flex-direction: column; gap: 12px; flex-grow: 1;">
