@@ -10,30 +10,12 @@ document.addEventListener('DOMContentLoaded', function () {
   var boyPct = {{ boy_pct }};
   var girlPct = {{ girl_pct }};
 
-  new Chart(document.getElementById('boysChart'), {
+  new Chart(document.getElementById('studentChart'), {
     type: 'doughnut',
     data: {
       datasets: [{
-        data: [boyPct, 100 - boyPct],
-        backgroundColor: ['#C3C4FF', '#ededed'],
-        borderWidth: 0,
-      }]
-    },
-    options: {
-      cutout: '82%',
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { tooltip: { enabled: false }, legend: { display: false } },
-      animation: { duration: 1000, easing: 'easeOutQuart' }
-    }
-  });
-
-  new Chart(document.getElementById('girlsChart'), {
-    type: 'doughnut',
-    data: {
-      datasets: [{
-        data: [girlPct, 100 - girlPct],
-        backgroundColor: ['#FFE89C', '#ededed'],
+        data: [boyPct, girlPct],
+        backgroundColor: ['#C3C4FF', '#FFE89C'],
         borderWidth: 0,
       }]
     },
@@ -82,33 +64,35 @@ document.addEventListener('DOMContentLoaded', function () {
 
         <div class="row g-4 m-0 w-100 p-0">
             <div class="col-md-6">
-                <div class="card shadow-sm border-0">
-                    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-                        <h6 class="mb-0 fw-bold" style="color: #000000;">Students</h6>
-                        <span style="color: #000000; font-weight: 700; letter-spacing: 2px;">&hellip;</span>
+                <div class="card border-0" style="width: 415px; height: 280px; background: #ffffff; border-radius: 16px; padding: 24px; border: 1px solid #e4e4e7 !important; box-sizing: border-box; display: flex; flex-direction: column;">
+                    <div class="d-flex justify-content-between align-items-center mb-3" style="width: 100%;">
+                        <h3 style="font-size: 16px; font-weight: 600; color: #111; margin: 0;">Students</h3>
+                        <span style="font-size: 12px; color: #71717a; font-weight: 500;">View All ›</span>
                     </div>
-                    <div class="card-body" style="height: 159px;">
-                        <div class="d-flex justify-content-around align-items-center h-100" style="gap: 38px;">
-                            <div class="position-relative" style="width: 90px; height: 90px;">
-                                <canvas id="boysChart" width="90" height="90"></canvas>
-                                <div class="position-absolute top-50 start-50 translate-middle text-center">
-                                    <div class="fw-bold" style="font-size: 1.1rem;">{{ boy_pct }}%</div>
-                                    <small style="font-size: 0.6rem; color: #8F8F8F;">Boys</small>
-                                </div>
-                            </div>
-                            <div class="position-relative" style="width: 90px; height: 90px;">
-                                <canvas id="girlsChart" width="90" height="90"></canvas>
-                                <div class="position-absolute top-50 start-50 translate-middle text-center">
-                                    <div class="fw-bold" style="font-size: 1.1rem;">{{ girl_pct }}%</div>
-                                    <small style="font-size: 0.6rem; color: #8F8F8F;">Girls</small>
-                                </div>
+                    <div class="chart-content-wrapper" style="width: 356px; height: 159px; display: flex; align-items: center; justify-content: space-between; margin-top: auto; margin-bottom: auto; gap: 16px;">
+                        <div class="chart-canvas-container" style="width: 150px; height: 150px; position: relative; flex-shrink: 0;">
+                            <canvas id="studentChart"></canvas>
+                            <div class="position-absolute top-50 start-50 translate-middle text-center">
+                                <div class="fw-bold" style="font-size: 1.1rem;">{{ total_students|default:"0" }}</div>
+                                <small style="font-size: 0.6rem; color: #8F8F8F;">Enrolled</small>
                             </div>
                         </div>
-                    </div>
-                    <div class="card-footer bg-white border-top-0 pt-0 pb-3 text-center small text-muted">
-                        <span style="color: #C3C4FF;">&#8226;</span> {{ total_boys }} (boys)
-                        &nbsp;&nbsp;&nbsp;
-                        <span style="color: #FFE89C;">&#8226;</span> {{ total_girls }} (girls)
+                        <div class="chart-legends-stack" style="display: flex; flex-direction: column; gap: 10px; flex-grow: 1;">
+                            <div class="d-flex align-items-center justify-content-between" style="font-size: 13px; color: #111; font-weight: 500;">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span style="width: 8px; height: 8px; border-radius: 50%; background: #C3C4FF; display: inline-block;"></span>
+                                    Boys
+                                </div>
+                                <span>{{ total_boys }}</span>
+                            </div>
+                            <div class="d-flex align-items-center justify-content-between" style="font-size: 13px; color: #111; font-weight: 500;">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span style="width: 8px; height: 8px; border-radius: 50%; background: #FFE89C; display: inline-block;"></span>
+                                    Girls
+                                </div>
+                                <span>{{ total_girls }}</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
