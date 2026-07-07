@@ -317,6 +317,7 @@ def class_report_card_view(request, class_id):
 def register_staff_view(request):
     departments = Department.objects.all()
     designations = Designation.objects.all()
+    all_classrooms = ClassRoom.objects.all()
 
     if request.method == 'POST':
         form = StaffRegistrationForm(request.POST, request.FILES)
@@ -361,16 +362,21 @@ def register_staff_view(request):
             staff_profile.save()
             form.save_m2m()
 
-            # Create StaffClassSubject records from dynamic grid selections
-            selected_subjects = request.POST.getlist('assigned_subjects')
-            classroom = staff_profile.form_class
-            if classroom and selected_subjects:
-                for subject_id in selected_subjects:
-                    StaffClassSubject.objects.get_or_create(
-                        staff=staff_profile,
-                        classroom=classroom,
-                        subject_id=subject_id
-                    )
+            # Parse assignments_json and bulk-create StaffClassSubject records
+            assignments_raw = request.POST.get('assignments_json', '')
+            if assignments_raw:
+                try:
+                    import json
+                    assignments = json.loads(assignments_raw)
+                    for class_id_str, subject_ids in assignments.items():
+                        for subj_id in subject_ids:
+                            StaffClassSubject.objects.get_or_create(
+                                staff=staff_profile,
+                                classroom_id=int(class_id_str),
+                                subject_id=int(subj_id)
+                            )
+                except (json.JSONDecodeError, ValueError):
+                    pass
 
             messages.success(request, f'Staff member registered successfully. Username: {username}, Password: {password}')
             return redirect('staff_list')
@@ -381,6 +387,7 @@ def register_staff_view(request):
         'form': form,
         'departments': departments,
         'designations': designations,
+        'all_classrooms': all_classrooms,
     })
 
 

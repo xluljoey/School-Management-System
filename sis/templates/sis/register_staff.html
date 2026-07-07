@@ -129,17 +129,39 @@
 
                             <!-- Section 3: School Assignment Roles -->
                             <h6 class="fw-bold mb-3" style="font-size: 0.9rem; color: #000000;">3. School Assignment Roles</h6>
-                            <div class="row g-3 mb-4">
+
+                            <div class="form-group mb-4">
+                                <label class="fw-bold text-muted mb-2" style="font-size: 13px;">ASSIGN WORKSPACE CLASSES &amp; SUBJECTS</label>
+
+                                <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
+                                    <div style="position: relative; width: 220px;">
+                                        <select id="class-picker-dropdown" class="form-select" style="border-radius: 50px; background-color: #f4f4f5; border: 1px solid #e4e4e7; padding: 10px 24px; font-size: 14px; font-weight: 500;">
+                                            <option value="">+ Add Class...</option>
+                                            {% for classroom in all_classrooms %}
+                                                <option value="{{ classroom.id }}">{{ classroom.class_name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+
+                                    <div id="active-class-pills-container" class="d-flex flex-wrap gap-2">
+                                    </div>
+                                </div>
+
+                                <div class="card border-0 p-3" style="background: #fafafa; border-radius: 12px; border: 1px solid #e4e4e7 !important;">
+                                    <span id="subject-grid-title" class="fw-semibold text-dark small mb-3 d-block">Select a class pill above to assign corresponding subjects.</span>
+
+                                    <div id="teacher-subjects-checkbox-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; width: 100%;">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <input type="hidden" name="assignments_json" id="assignments_json_input" value="">
+
+                            <div class="row g-3 mb-4" style="display: none;">
                                 <div class="col-md-6">
                                     <label class="form-label fw-semibold text-secondary" style="font-size: 0.85rem;">{{ form.form_class.label }}</label>
                                     {{ form.form_class }}
                                 </div>
-                            </div>
-
-                            <div class="form-group mb-4">
-                                <label class="fw-bold text-muted mb-2" style="font-size: 13px;">ASSIGNED SUBJECTS</label>
-                                <p id="subject-placeholder-text" class="text-muted small">Please select a Form Class first to load corresponding subjects.</p>
-                                <div id="dynamic-subjects-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; width: 100%;"></div>
                             </div>
 
                             <!-- Action Buttons -->
@@ -173,69 +195,173 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    var formClassSelect = document.getElementById('id_form_class');
-    var subjectsGrid = document.getElementById('dynamic-subjects-grid');
-    var placeholderText = document.getElementById('subject-placeholder-text');
+    var assignmentsState = {};
+    var currentlySelectedClassId = null;
 
-    if (formClassSelect && subjectsGrid) {
-        formClassSelect.addEventListener('change', function() {
-            var classId = this.value;
+    var dropdown = document.getElementById('class-picker-dropdown');
+    var pillsContainer = document.getElementById('active-class-pills-container');
+    var subjectsGrid = document.getElementById('teacher-subjects-checkbox-grid');
+    var gridTitle = document.getElementById('subject-grid-title');
+    var hiddenInput = document.getElementById('assignments_json_input');
+
+    function syncHiddenInput() {
+        hiddenInput.value = JSON.stringify(assignmentsState);
+    }
+
+    function getClassName(classId) {
+        var opt = dropdown.querySelector('option[value="' + classId + '"]');
+        return opt ? opt.textContent : classId;
+    }
+
+    function selectPill(classId) {
+        currentlySelectedClassId = classId;
+
+        var allPills = pillsContainer.querySelectorAll('.class-pill');
+        allPills.forEach(function(p) {
+            var pid = p.getAttribute('data-class-id');
+            if (pid === classId) {
+                p.style.background = '#111';
+                p.style.color = '#fff';
+                p.style.borderColor = '#111';
+            } else {
+                p.style.background = '#f4f4f5';
+                p.style.color = '#111';
+                p.style.borderColor = '#e4e4e7';
+            }
+        });
+
+        loadSubjectsForClass(classId);
+    }
+
+    function removePill(classId) {
+        delete assignmentsState[classId];
+
+        var pill = document.getElementById('pill-' + classId);
+        if (pill) pill.remove();
+
+        if (currentlySelectedClassId === classId) {
+            currentlySelectedClassId = null;
             subjectsGrid.innerHTML = '';
+            gridTitle.style.display = 'block';
+        }
 
-            if (!classId) {
-                placeholderText.style.display = 'block';
-                return;
+        syncHiddenInput();
+    }
+
+    function createClassPill(classId) {
+        if (document.getElementById('pill-' + classId)) return;
+
+        var pill = document.createElement('span');
+        pill.id = 'pill-' + classId;
+        pill.className = 'class-pill';
+        pill.setAttribute('data-class-id', classId);
+        pill.style.cssText = 'display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 50px; font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid #e4e4e7; background: #f4f4f5; color: #111; transition: all 0.15s;';
+
+        var nameSpan = document.createElement('span');
+        nameSpan.textContent = getClassName(classId);
+
+        var closeBtn = document.createElement('span');
+        closeBtn.textContent = '\u00D7';
+        closeBtn.style.cssText = 'font-size: 16px; line-height: 1; cursor: pointer; opacity: 0.6; margin-left: 2px;';
+        closeBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            removePill(classId);
+        });
+
+        pill.appendChild(nameSpan);
+        pill.appendChild(closeBtn);
+
+        pill.addEventListener('click', function() {
+            selectPill(classId);
+        });
+
+        pillsContainer.appendChild(pill);
+    }
+
+    function loadSubjectsForClass(classId) {
+        subjectsGrid.innerHTML = '';
+        gridTitle.style.display = 'none';
+
+        fetch('/api/class-subjects/?class_id=' + classId)
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.subjects.length === 0) {
+                    subjectsGrid.innerHTML = '<span class="text-muted small">No subjects mapped to this class.</span>';
+                    return;
+                }
+
+                var assignedIds = assignmentsState[classId] || [];
+
+                data.subjects.forEach(function(subject) {
+                    var card = document.createElement('div');
+                    var isChecked = assignedIds.indexOf(subject.id) !== -1;
+
+                    if (subject.is_assigned) {
+                        card.style.cssText = 'opacity: 0.45; pointer-events: none; border: 1px solid #e4e4e7; border-radius: 10px; padding: 12px; background: #fafafa; display: flex; align-items: center; gap: 10px;';
+                        card.innerHTML = '<input type="checkbox" disabled class="form-check-input" style="margin: 0;"> <span style="font-size: 13px; color: #111;">' + subject.name + ' <small style="color: #71717a;">(Assigned to ' + subject.assigned_teacher_name + ')</small></span>';
+                    } else {
+                        card.style.cssText = 'border: 1px solid ' + (isChecked ? '#111' : '#e4e4e7') + '; border-radius: 10px; padding: 12px; background: ' + (isChecked ? '#f8f8f8' : '#ffffff') + '; display: flex; align-items: center; gap: 10px; cursor: pointer; transition: border-color 0.2s, background 0.2s;';
+
+                        (function() {
+                            var checkbox = document.createElement('input');
+                            checkbox.type = 'checkbox';
+                            checkbox.className = 'form-check-input';
+                            checkbox.value = subject.id;
+                            checkbox.style.cssText = 'margin: 0; cursor: pointer;';
+                            checkbox.checked = isChecked;
+                            checkbox.id = 'subj-' + classId + '-' + subject.id;
+
+                            var label = document.createElement('label');
+                            label.htmlFor = checkbox.id;
+                            label.style.cssText = 'font-size: 13px; color: #111; cursor: pointer; margin: 0; flex-grow: 1;';
+                            label.textContent = subject.name;
+
+                            function toggleState() {
+                                var arr = assignmentsState[classId];
+                                if (checkbox.checked) {
+                                    if (arr.indexOf(subject.id) === -1) arr.push(subject.id);
+                                } else {
+                                    var idx = arr.indexOf(subject.id);
+                                    if (idx !== -1) arr.splice(idx, 1);
+                                }
+                                card.style.borderColor = checkbox.checked ? '#111' : '#e4e4e7';
+                                card.style.background = checkbox.checked ? '#f8f8f8' : '#ffffff';
+                                syncHiddenInput();
+                            }
+
+                            card.appendChild(checkbox);
+                            card.appendChild(label);
+
+                            card.addEventListener('click', function(e) {
+                                if (e.target !== checkbox) {
+                                    checkbox.checked = !checkbox.checked;
+                                    toggleState();
+                                }
+                            });
+
+                            checkbox.addEventListener('change', toggleState);
+                        })();
+                    }
+
+                    subjectsGrid.appendChild(card);
+                });
+            });
+    }
+
+    if (dropdown) {
+        dropdown.addEventListener('change', function() {
+            var classId = this.value;
+            if (!classId) return;
+
+            if (!(classId in assignmentsState)) {
+                assignmentsState[classId] = [];
             }
 
-            placeholderText.style.display = 'none';
+            createClassPill(classId);
+            selectPill(classId);
+            syncHiddenInput();
 
-            fetch('/api/class-subjects/?class_id=' + classId)
-                .then(function(response) { return response.json(); })
-                .then(function(data) {
-                    data.subjects.forEach(function(subject) {
-                        var card = document.createElement('div');
-
-                        if (subject.is_assigned) {
-                            card.style.cssText = 'opacity: 0.45; pointer-events: none; border: 1px solid #e4e4e7; border-radius: 10px; padding: 12px; background: #fafafa; display: flex; align-items: center; gap: 10px;';
-                            card.innerHTML = '<input type="checkbox" disabled class="form-check-input" style="margin: 0;"> <span style="font-size: 13px; color: #111;">' + subject.name + ' <small style="color: #71717a;">(Assigned to ' + subject.assigned_teacher_name + ')</small></span>';
-                        } else {
-                            card.style.cssText = 'border: 1px solid #e4e4e7; border-radius: 10px; padding: 12px; background: #ffffff; display: flex; align-items: center; gap: 10px; cursor: pointer; transition: border-color 0.2s, background 0.2s;';
-
-                            (function() {
-                                var checkbox = document.createElement('input');
-                                checkbox.type = 'checkbox';
-                                checkbox.className = 'form-check-input';
-                                checkbox.value = subject.id;
-                                checkbox.name = 'assigned_subjects';
-                                checkbox.style.cssText = 'margin: 0; cursor: pointer;';
-                                checkbox.id = 'subject-' + subject.id;
-
-                                var label = document.createElement('label');
-                                label.htmlFor = 'subject-' + subject.id;
-                                label.style.cssText = 'font-size: 13px; color: #111; cursor: pointer; margin: 0; flex-grow: 1;';
-                                label.textContent = subject.name;
-
-                                card.appendChild(checkbox);
-                                card.appendChild(label);
-
-                                card.addEventListener('click', function(e) {
-                                    if (e.target !== checkbox) {
-                                        checkbox.checked = !checkbox.checked;
-                                    }
-                                    card.style.borderColor = checkbox.checked ? '#111' : '#e4e4e7';
-                                    card.style.background = checkbox.checked ? '#f8f8f8' : '#ffffff';
-                                });
-
-                                checkbox.addEventListener('change', function() {
-                                    card.style.borderColor = this.checked ? '#111' : '#e4e4e7';
-                                    card.style.background = this.checked ? '#f8f8f8' : '#ffffff';
-                                });
-                            })();
-                        }
-
-                        subjectsGrid.appendChild(card);
-                    });
-                });
+            this.value = '';
         });
     }
 });
