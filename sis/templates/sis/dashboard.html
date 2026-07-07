@@ -4,31 +4,6 @@
 {% block title %}Dashboard — School Management System{% endblock %}
 
 {% block extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-  var boyPct = {{ boy_pct }};
-  var girlPct = {{ girl_pct }};
-
-  new Chart(document.getElementById('studentChart'), {
-    type: 'doughnut',
-    data: {
-      datasets: [{
-        data: [boyPct, girlPct],
-        backgroundColor: ['#C3C4FF', '#FFE89C'],
-        borderWidth: 0,
-      }]
-    },
-    options: {
-      cutout: '82%',
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { tooltip: { enabled: false }, legend: { display: false } },
-      animation: { duration: 1000, easing: 'easeOutQuart' }
-    }
-  });
-});
-</script>
 {% endblock %}
 
 {% block content %}
@@ -63,49 +38,63 @@ document.addEventListener('DOMContentLoaded', function () {
         </div>
 
         <div class="row g-4 m-0 w-100 p-0">
-            <div class="col-md-6">
-                <div class="card border-0" style="width: 415px; height: 280px; background: #ffffff; border-radius: 16px; padding: 24px; border: 1px solid #e4e4e7 !important; box-sizing: border-box; display: flex; flex-direction: column;">
-                    <div class="d-flex justify-content-between align-items-center mb-3" style="width: 100%;">
+
+            <div class="col-xl-6 col-lg-12 p-0 pe-xl-2">
+                <div class="card border-0 d-flex flex-column" style="height: 280px; background: #ffffff; border-radius: 16px; padding: 24px; border: 1px solid #e4e4e7 !important; box-sizing: border-box;">
+
+                    <div class="d-flex justify-content-between align-items-center mb-3">
                         <h3 style="font-size: 16px; font-weight: 600; color: #111; margin: 0;">Students</h3>
-                        <span style="font-size: 12px; color: #71717a; font-weight: 500;">View All ›</span>
+                        <span style="font-size: 13px; color: #71717a; font-weight: 500; cursor: pointer;">View All ›</span>
                     </div>
-                    <div class="chart-content-wrapper" style="width: 356px; height: 159px; display: flex; align-items: center; justify-content: space-between; margin-top: auto; margin-bottom: auto; gap: 16px;">
-                        <div class="chart-canvas-container" style="width: 150px; height: 150px; position: relative; flex-shrink: 0;">
-                            <canvas id="studentChart"></canvas>
-                            <div class="position-absolute top-50 start-50 translate-middle text-center">
-                                <div class="fw-bold" style="font-size: 1.1rem;">{{ total_students|default:"0" }}</div>
-                                <small style="font-size: 0.6rem; color: #8F8F8F;">Enrolled</small>
-                            </div>
+
+                    <div style="flex-grow: 1; display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 0;">
+
+                        <div style="width: 150px; height: 150px; position: relative; flex-shrink: 0;">
                         </div>
-                        <div class="chart-legends-stack" style="display: flex; flex-direction: column; gap: 10px; flex-grow: 1;">
+
+                        <div style="display: flex; flex-direction: column; gap: 12px; flex-grow: 1;">
                             <div class="d-flex align-items-center justify-content-between" style="font-size: 13px; color: #111; font-weight: 500;">
                                 <div class="d-flex align-items-center gap-2">
-                                    <span style="width: 8px; height: 8px; border-radius: 50%; background: #C3C4FF; display: inline-block;"></span>
-                                    Boys
+                                    <span style="width: 8px; height: 8px; border-radius: 50%; background-color: #111; display: inline-block;"></span>
+                                    <span>Boys</span>
                                 </div>
-                                <span>{{ total_boys }}</span>
+                                <span style="color: #71717a; font-weight: 600;">{{ total_boys }}</span>
                             </div>
                             <div class="d-flex align-items-center justify-content-between" style="font-size: 13px; color: #111; font-weight: 500;">
                                 <div class="d-flex align-items-center gap-2">
-                                    <span style="width: 8px; height: 8px; border-radius: 50%; background: #FFE89C; display: inline-block;"></span>
-                                    Girls
+                                    <span style="width: 8px; height: 8px; border-radius: 50%; background-color: #a1a1aa; display: inline-block;"></span>
+                                    <span>Girls</span>
                                 </div>
-                                <span>{{ total_girls }}</span>
+                                <span style="color: #71717a; font-weight: 600;">{{ total_girls }}</span>
                             </div>
                         </div>
+
                     </div>
                 </div>
             </div>
-            <div class="col-md-6">
-                <div class="card shadow-sm border-0 h-100">
-                    <div class="card-header bg-white py-3">
-                        <h6 class="mb-0 fw-bold" style="color: #000000;">Notice Board</h6>
+
+            <div class="col-xl-6 col-lg-12 p-0 ps-xl-2">
+                <div class="card border-0 d-flex flex-column" style="height: 280px; background: #ffffff; border-radius: 16px; padding: 24px; border: 1px solid #e4e4e7 !important; box-sizing: border-box;">
+
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h3 style="font-size: 16px; font-weight: 600; color: #111; margin: 0;">Notice Board</h3>
+                        <span style="font-size: 13px; color: #71717a; font-weight: 500; cursor: pointer;">View All ›</span>
                     </div>
-                    <div class="card-body d-flex align-items-center justify-content-center" style="height: 159px;">
-                        <p class="text-muted small text-center mb-0">Announcements &amp; updates will appear here.</p>
+
+                    <div style="flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; padding-right: 4px;" class="custom-dashboard-scroll">
+
+                        <div class="d-flex flex-column gap-1 pb-2" style="border-bottom: 1px solid #f4f4f5;">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span style="font-size: 13px; font-weight: 600; color: #111;">Staff General Meeting</span>
+                                <span style="font-size: 11px; color: #a1a1aa;">Today</span>
+                            </div>
+                            <p style="font-size: 12px; color: #71717a; margin: 0; line-height: 1.5;">Briefing on upcoming Continuous Assessment collection criteria guidelines.</p>
+                        </div>
+
                     </div>
                 </div>
             </div>
+
         </div>
 
     </div>
