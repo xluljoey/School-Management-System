@@ -11,31 +11,29 @@ document.addEventListener('DOMContentLoaded', function () {
   new Chart(studentsCtx, {
     type: 'doughnut',
     data: {
-      datasets: [
-        {
-          data: [{{ total_boys }}, {{ total_girls }}],
-          backgroundColor: ['#111111', '#f4f4f5'],
-          borderWidth: 0,
-          weight: 1.5,
-          cutout: '85%'
-        },
-        {
-          data: [{{ total_girls }}, {{ total_boys }}],
-          backgroundColor: ['#71717a', '#f4f4f5'],
-          borderWidth: 0,
-          weight: 1.0,
-          cutout: '80%'
-        }
-      ]
+      labels: ['Boys', 'Girls'],
+      datasets: [{
+        data: [{{ total_boys }}, {{ total_girls }}],
+        backgroundColor: ['#111111', '#e4e4e7'],
+        borderWidth: 4,
+        borderColor: '#ffffff',
+        borderRadius: 10,
+        spacing: 2
+      }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      cutout: '80%',
       plugins: {
         legend: { display: false },
-        tooltip: { enabled: true }
-      },
-      stroke: { curve: 'smooth' }
+        tooltip: {
+          enabled: true,
+          backgroundColor: '#111111',
+          padding: 10,
+          cornerRadius: 8
+        }
+      }
     }
   });
 });
