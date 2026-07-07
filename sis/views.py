@@ -361,6 +361,17 @@ def register_staff_view(request):
             staff_profile.save()
             form.save_m2m()
 
+            # Create StaffClassSubject records from dynamic grid selections
+            selected_subjects = request.POST.getlist('assigned_subjects')
+            classroom = staff_profile.form_class
+            if classroom and selected_subjects:
+                for subject_id in selected_subjects:
+                    StaffClassSubject.objects.get_or_create(
+                        staff=staff_profile,
+                        classroom=classroom,
+                        subject_id=subject_id
+                    )
+
             messages.success(request, f'Staff member registered successfully. Username: {username}, Password: {password}')
             return redirect('staff_list')
     else:
@@ -949,10 +960,22 @@ def api_class_subjects(request):
     if not class_id:
         return JsonResponse({'subjects': []})
     mappings = ClassSubject.objects.filter(classroom_id=class_id).select_related('subject')
-    subjects_list = [
-        {'id': m.subject.id, 'name': m.subject.subject_name}
-        for m in mappings
-    ]
+    subjects_list = []
+    for m in mappings:
+        existing = StaffClassSubject.objects.filter(
+            classroom_id=class_id,
+            subject=m.subject
+        ).select_related('staff__user').first()
+        is_assigned = existing is not None
+        assigned_teacher_name = None
+        if is_assigned:
+            assigned_teacher_name = existing.staff.user.get_full_name() if existing.staff.user else existing.staff.full_name
+        subjects_list.append({
+            'id': m.subject.id,
+            'name': m.subject.subject_name,
+            'is_assigned': is_assigned,
+            'assigned_teacher_name': assigned_teacher_name,
+        })
     return JsonResponse({'subjects': subjects_list})
 
 
