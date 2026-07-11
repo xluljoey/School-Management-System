@@ -19,7 +19,7 @@
                 <img src="{{ staff_member.profile_picture.url }}" alt="{{ staff_member.first_name }} {{ staff_member.last_name }}" class="img-fluid rounded-circle" style="width: 150px; height: 150px; object-fit: cover;">
                 {% else %}
                 <div class="bg-light rounded-circle d-flex align-items-center justify-content-center" style="width: 150px; height: 150px;">
-                    <span class="display-4 text-muted">{{ staff_member.first_name|slice:":1" }}</span>
+                    <span class="display-4 text-muted">{{ staff_member.first_name|slice:":1"|default:"?" }}</span>
                 </div>
                 {% endif %}
             </div>
@@ -32,7 +32,7 @@
                     </div>
                     <div class="col-sm-8">
                         <h6 class="text-muted small">Full Name</h6>
-                        <p class="fw-medium">{{ staff_member.title }} {{ staff_member.first_name }} {{ staff_member.other_names }} {{ staff_member.last_name }}</p>
+                        <p class="fw-medium">{{ staff_member.title }} {{ staff_member.first_name|default:"" }} {{ staff_member.other_names|default:"" }} {{ staff_member.last_name|default:"" }}</p>
                     </div>
                 </div>
                 
