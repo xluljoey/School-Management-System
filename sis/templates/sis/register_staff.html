@@ -4,6 +4,12 @@
 {% block title %}Register Staff{% endblock %}
 
 {% block content %}
+<style>
+    .btn:hover {
+        opacity: 0.9;
+        transform: translateY(-0.5px);
+    }
+</style>
 <div class="row justify-content-center">
     <div class="col-lg-11">
         <div class="card shadow-sm border-0">
@@ -173,9 +179,20 @@
                             </div>
 
                             <!-- Action Buttons -->
-                            <div class="d-flex justify-content-end gap-3 mt-4">
-                                <a href="{% url 'staff_list' %}" style="color: #8F8F8F; font-weight: 500; text-decoration: none; line-height: 38px;">Cancel</a>
-                                <button type="submit" style="background-color: #000000; color: #ffffff; border: none; border-radius: 25px; padding: 10px 28px; font-weight: 600; font-size: 0.9rem; cursor: pointer;">Save changes</button>
+                            <div class="d-flex justify-content-end align-items-center gap-3 mt-5 pt-4" style="border-top: 1px solid #e4e4e7;">
+
+                                <a href="javascript:history.back();"
+                                   class="btn d-inline-flex align-items-center justify-content-center"
+                                   style="border-radius: 50px; background-color: #f4f4f5; border: 1px solid #e4e4e7; color: #71717a; font-size: 14px; font-weight: 600; padding: 12px 28px; transition: all 0.2s ease; text-decoration: none;">
+                                   Cancel
+                                </a>
+
+                                <button type="submit"
+                                        class="btn btn-dark d-inline-flex align-items-center justify-content-center"
+                                        style="border-radius: 50px; background-color: #111111; border: 1px solid #111111; color: #ffffff; font-size: 14px; font-weight: 600; padding: 12px 28px; transition: all 0.2s ease;">
+                                    Save changes
+                                </button>
+
                             </div>
                         </div>
                     </div>
