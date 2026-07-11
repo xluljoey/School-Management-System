@@ -53,6 +53,7 @@
             </a>
             {% endif %}
 
+            {% if can_modify_grades %}
             <a href="{% url 'compile_grades' %}"
                class="btn-capsule"
                style="border-radius: 50px; background-color: #000; color: #fff;
@@ -60,6 +61,7 @@
                       font-size: 14px;">
                + New Grade Entry
             </a>
+            {% endif %}
         </div>
     </div>
     <div class="card-body p-0">
@@ -130,8 +132,7 @@
     </div>
 </div>
 
-{% if has_graded_records %}
-{% if has_full_access or assigned_subjects %}
+{% if has_graded_records and can_modify_grades %}
 <div style="position: fixed; bottom: 40px; right: 40px; z-index: 1050;">
     <a href="{% url 'compile_grades' %}?class_id={{ current_class_id }}{% if current_subject_id %}&subject_id={{ current_subject_id }}{% endif %}"
        class="btn-capsule shadow-lg d-inline-flex align-items-center gap-2"
@@ -148,6 +149,5 @@
        Edit
     </a>
 </div>
-{% endif %}
 {% endif %}
 {% endblock %}

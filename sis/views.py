@@ -308,6 +308,18 @@ def class_report_card_view(request, class_id):
         classrooms = ClassRoom.objects.filter(id__in=assigned_ids) if assigned_ids else ClassRoom.objects.none()
     has_graded_records = any(row['assessments'].exists() for row in report_data)
 
+    # Determine if the current user can modify grades for this class/subject
+    can_modify_grades = has_full_access
+    if not can_modify_grades and staff:
+        if current_subject_id and current_subject_id.isdigit():
+            can_modify_grades = StaffClassSubject.objects.filter(
+                staff=staff,
+                classroom=classroom,
+                subject_id=current_subject_id
+            ).exists()
+        else:
+            can_modify_grades = assigned_subjects.exists()
+
     current_term = Term.objects.filter(is_active=True).first()
     term_number = int(current_term.term_name.split()[-1]) if current_term else 1
     year_label = current_term.session.academic_year if current_term and current_term.session else "2025/2026"
@@ -329,6 +341,7 @@ def class_report_card_view(request, class_id):
         'verification': verification,
         'assigned_subjects': assigned_subjects,
         'current_subject_id': int(current_subject_id) if current_subject_id and current_subject_id.isdigit() else None,
+        'can_modify_grades': can_modify_grades,
     })
 
 
