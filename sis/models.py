@@ -1,4 +1,6 @@
 from datetime import date
+import os
+import uuid
 
 from django.db import models
 from django.contrib.auth.models import User
@@ -35,6 +37,13 @@ class Designation(models.Model):
 
     def __str__(self):
         return self.name
+
+
+def get_staff_photo_path(instance, filename):
+    ext = filename.split('.')[-1]
+    unique_name = instance.staff_id if hasattr(instance, 'staff_id') and instance.staff_id else uuid.uuid4().hex[:10]
+    clean_filename = f"{unique_name}.{ext}"
+    return os.path.join('uploads/profile_pics/', clean_filename)
 
 
 class StaffProfile(models.Model):
@@ -75,7 +84,7 @@ class StaffProfile(models.Model):
     certificate = models.CharField(max_length=150, default='')
     name_of_institution_completed = models.CharField(max_length=255, default='')
     year_completed = models.IntegerField(default=2000)
-    profile_picture = models.ImageField(upload_to='staff/profiles/', blank=True, null=True)
+    profile_picture = models.ImageField(upload_to=get_staff_photo_path, max_length=100, blank=True, null=True)
     address = models.TextField(blank=True, null=True, verbose_name="Residential Address")
 
     form_class = models.OneToOneField('ClassRoom', on_delete=models.SET_NULL, null=True, blank=True, related_name='form_teacher')
