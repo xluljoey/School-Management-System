@@ -4,86 +4,63 @@
 {% block title %}Academic Session Configuration{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-  <div class="col-md-6">
-    <div class="card shadow-sm border-0">
-      <div class="card-header bg-dark text-white py-3">
-        <h5 class="mb-0 fw-bold">Academic Environment Settings</h5>
-      </div>
-      <div class="card-body">
-        <form method="POST">
-          {% csrf_token %}
-
-          <div class="mb-3">
-            <label for="academic_session" class="form-label fw-semibold">Academic Session</label>
-            <select name="academic_session" id="academic_session" class="form-select">
-              <option value="">-- Select Session --</option>
-              {% for s in sessions %}
-              <option value="{{ s.id }}" {% if current_session and current_session.id == s.id %}selected{% endif %}>
-                {{ s.academic_year }}
-              </option>
-              {% empty %}
-              <option value="" disabled>No sessions created yet</option>
-              {% endfor %}
-            </select>
-            <div class="form-text">Setting a session marks it as the current active year and deactivates all others.</div>
-          </div>
-
-          <div class="mb-4">
-            <label for="term" class="form-label fw-semibold">Active Term</label>
-            <select name="term" id="term" class="form-select">
-              <option value="">-- Select Term --</option>
-              {% for t in terms %}
-              <option value="{{ t.id }}" {% if current_term and current_term.id == t.id %}selected{% endif %}>
-                {{ t.term_name }} ({{ t.session.academic_year }})
-              </option>
-              {% empty %}
-              <option value="" disabled>No terms created yet</option>
-              {% endfor %}
-            </select>
-            <div class="form-text">Setting a term marks it as the active grading period and deactivates all others.</div>
-          </div>
-
-          <div class="d-grid">
-            <button type="submit" class="btn btn-success px-4">Set Active Environment</button>
-          </div>
-        </form>
-      </div>
-      <div class="card-footer bg-white py-3 d-flex justify-content-between">
-        <a href="{% url 'class_enrollment_portal' %}" class="btn btn-outline-secondary btn-sm">Back to Promotion Portal</a>
-        <span class="text-muted small align-self-center">
-          Current: <strong>{{ current_session|default:"None" }}</strong> / <strong>{{ current_term|default:"None" }}</strong>
-        </span>
-      </div>
+<div class="d-flex align-items-center justify-content-between mb-4 border-bottom pb-3" style="border-color: #f4f4f5 !important;">
+    <div>
+        <h4 class="fw-bold text-dark mb-1" style="font-size: 22px; letter-spacing: -0.5px;">Academic Environment Settings</h4>
+        <p class="text-muted mb-0" style="font-size: 13px;">Manage current active sessions, terms, and database tracking contexts.</p>
     </div>
-
-    <div class="card shadow-sm border-0 mt-3">
-      <div class="card-header bg-white py-3" data-bs-toggle="collapse" data-bs-target="#createSessionCollapse" role="button" style="cursor: pointer;">
-        <h6 class="mb-0 fw-bold text-secondary">➕ Create New Academic Session</h6>
-      </div>
-      <div class="collapse" id="createSessionCollapse">
-        <div class="card-body">
-          <form method="POST">
-            {% csrf_token %}
-            <div class="mb-3">
-              <label for="new_academic_year" class="form-label fw-semibold">Academic Year</label>
-              <input type="text" name="new_academic_year" id="new_academic_year"
-                     class="form-control" placeholder="e.g., 2026/2027" required>
-            </div>
-            <div class="mb-3">
-              <label for="new_term_name" class="form-label fw-semibold">Starting Term</label>
-              <select name="new_term_name" id="new_term_name" class="form-select" required>
-                <option value="">-- Select Term --</option>
-                <option value="Term 1">Term 1</option>
-                <option value="Term 2">Term 2</option>
-                <option value="Term 3">Term 3</option>
-              </select>
-            </div>
-            <button type="submit" name="create_new_session" class="btn btn-outline-primary">Create & Activate</button>
-          </form>
-        </div>
-      </div>
-    </div>
-  </div>
+    <a href="{% url 'promotion_portal' %}" class="btn btn-light rounded-pill px-4 py-2 d-flex align-items-center gap-2" style="font-size: 14px; border: 1px solid #e4e4e7; font-weight: 500;">
+        <i class="bi bi-arrow-left-short fs-5"></i> Back to Promotion Portal
+    </a>
 </div>
+
+<div class="card border-0 p-4" style="border-radius: 16px; background-color: #ffffff; min-height: calc(100vh - 140px); box-shadow: 0 1px 3px rgba(0,0,0,0.02); margin-bottom: 24px; display: flex; flex-direction: column;">
+    <form method="POST" action="">
+        {% csrf_token %}
+
+        <div class="mb-4">
+            <label for="academic_session" class="form-label fw-semibold text-dark mb-1" style="font-size: 14px;">Academic Session</label>
+            <select name="academic_session" id="academic_session" class="form-select">
+                <option value="">-- Select Session --</option>
+                {% for s in sessions %}
+                <option value="{{ s.id }}" {% if current_session and current_session.id == s.id %}selected{% endif %}>
+                    {{ s.academic_year }}
+                </option>
+                {% empty %}
+                <option value="" disabled>No sessions created yet</option>
+                {% endfor %}
+            </select>
+            <div class="form-text text-muted" style="font-size: 12px;">Setting a session marks it as the current active year and deactivates all others.</div>
+        </div>
+
+        <div class="mb-4">
+            <label for="term" class="form-label fw-semibold text-dark mb-1" style="font-size: 14px;">Active Term</label>
+            <select name="term" id="term" class="form-select">
+                <option value="">-- Select Term --</option>
+                {% for t in terms %}
+                <option value="{{ t.id }}" {% if current_term and current_term.id == t.id %}selected{% endif %}>
+                    {{ t.term_name }} ({{ t.session.academic_year }})
+                </option>
+                {% empty %}
+                <option value="" disabled>No terms created yet</option>
+                {% endfor %}
+            </select>
+            <div class="form-text text-muted" style="font-size: 12px;">Setting a term marks it as the active grading period and deactivates all others.</div>
+        </div>
+
+        <button type="submit" class="btn btn-success rounded-pill px-4 py-2 fw-semibold" style="background-color: #10b981; border: none; font-size: 14px;">
+            Set Active Environment
+        </button>
+    </form>
+
+    <div class="mt-auto pt-4 border-top text-muted" style="font-size: 13px; border-color: #f4f4f5 !important;">
+        <span class="me-2">●</span> Current Status: <strong class="text-dark">{{ current_session|default:"None" }}</strong> / <strong class="text-dark">{{ current_term|default:"None" }}</strong>
+    </div>
+</div>
+
+<a href="#" class="btn btn-primary rounded-pill shadow-lg d-flex align-items-center gap-2 px-4 py-3 position-fixed" 
+   style="bottom: 32px; right: 32px; z-index: 1050; font-weight: 600; font-size: 14px; background-color: #2563eb; border: none; box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3) !important;">
+    <i class="bi bi-plus-lg"></i>
+    <span>Create New Academic Session</span>
+</a>
 {% endblock %}
