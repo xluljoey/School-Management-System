@@ -289,6 +289,14 @@
                 </div>
                 <div class="profile-dropdown-container" style="position: relative;">
                     <div class="header-profile-pill d-flex align-items-center" style="gap: 10px; margin-left: 20px; cursor: pointer;" onclick="toggleProfileCard()">
+                        <div class="text-end d-none d-md-block">
+                            <div class="fw-bold text-dark lh-sm" style="font-size: 14px;">
+                                {% if request.user.first_name %}{{ request.user.first_name }} {{ request.user.last_name }}{% else %}{{ request.user.username }}{% endif %}
+                            </div>
+                            <div class="text-muted" style="font-size: 11px; margin-top: -2px;">
+                                ID: {{ request.user.username }}
+                            </div>
+                        </div>
                         {% if staff_profile and staff_profile.profile_picture %}
                         <img src="{{ staff_profile.profile_picture.url }}" alt="Avatar" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover;">
                         {% else %}
@@ -296,7 +304,6 @@
                             {{ request.user.username|first|upper }}
                         </span>
                         {% endif %}
-                        <span style="font-size: 0.9rem; font-weight: 600; color: #1A1A1A;">{{ request.user.username }}</span>
                     </div>
                     <div id="profileQuickCard" style="display: none; position: absolute; right: 0; top: 50px; background: #fff; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); width: 260px; padding: 20px; z-index: 1000; color: #111;">
                         <div style="text-align: center; margin-bottom: 15px;">
