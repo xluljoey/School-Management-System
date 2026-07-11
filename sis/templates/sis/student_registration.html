@@ -71,6 +71,10 @@
                                     {{ student_form.last_name }}
                                 </div>
                                 <div class="col-md-6">
+                                    <label class="form-label fw-semibold text-secondary" style="font-size: 0.85rem;">Other Names (optional)</label>
+                                    {{ student_form.other_names }}
+                                </div>
+                                <div class="col-md-6">
                                     <label class="form-label fw-semibold text-secondary" style="font-size: 0.85rem;">Admission Number</label>
                                     {{ student_form.admission_number }}
                                     {% if student_form.admission_number.errors %}

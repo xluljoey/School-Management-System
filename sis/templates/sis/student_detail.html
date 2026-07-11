@@ -1,7 +1,7 @@
 {% extends 'sis/base.html' %}
 {% load static %}
 
-{% block title %}{{ student.first_name }} {{ student.last_name }} - Student Details{% endblock %}
+{% block title %}{{ student.first_name }} {{ student.other_names }} {{ student.last_name }} - Student Details{% endblock %}
 
 {% block content %}
 <div class="card shadow-sm border-0">
@@ -17,7 +17,7 @@
         <div class="row mb-4">
             <div class="col-md-3 text-center mb-3 mb-md-0">
                 {% if student.profile_picture %}
-                <img src="{{ student.profile_picture.url }}" alt="{{ student.first_name }}" class="img-fluid rounded-circle" style="width: 150px; height: 150px; object-fit: cover;">
+                <img src="{{ student.profile_picture.url }}" alt="{{ student.first_name }} {{ student.other_names }} {{ student.last_name }}" class="img-fluid rounded-circle" style="width: 150px; height: 150px; object-fit: cover;">
                 {% else %}
                 <div class="bg-light rounded-circle d-flex align-items-center justify-content-center" style="width: 150px; height: 150px;">
                     <span class="display-4 text-muted">{{ student.first_name|first|upper }}</span>
@@ -29,7 +29,7 @@
                 <div class="row mb-3">
                     <div class="col-sm-4">
                         <h6 class="text-muted small">Full Name</h6>
-                        <p class="fw-semibold mb-0">{{ student.first_name }} {{ student.last_name }}</p>
+                        <p class="fw-semibold mb-0">{{ student.first_name }} {{ student.other_names }} {{ student.last_name }}</p>
                     </div>
                     <div class="col-sm-4">
                         <h6 class="text-muted small">Gender</h6>

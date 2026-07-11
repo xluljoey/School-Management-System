@@ -421,7 +421,7 @@ def enroll_student_view(request, student_id):
             enrollment.save()
             student.classroom = enrollment.classroom
             student.save(update_fields=['classroom'])
-            messages.success(request, f"Student {student.first_name} {student.last_name} successfully enrolled in {enrollment.classroom}!")
+            messages.success(request, f"Student {student.first_name} {student.other_names} {student.last_name} successfully enrolled in {enrollment.classroom}!")
             return redirect('student_list')
     else:
         form = EnrollmentForm(session=current_session)

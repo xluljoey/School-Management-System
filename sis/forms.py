@@ -23,11 +23,12 @@ class ParentForm(forms.ModelForm):
 class StudentRegistrationForm(forms.ModelForm):
     class Meta:
         model = Student
-        fields = ['admission_number', 'first_name', 'last_name', 'dob', 'gender', 'status', 'living_with', 'previous_school_attended', 'profile_picture']
+        fields = ['admission_number', 'first_name', 'last_name', 'other_names', 'dob', 'gender', 'status', 'living_with', 'previous_school_attended', 'profile_picture']
         widgets = {
             'admission_number': forms.TextInput(attrs={'id': 'id_admission_number', 'class': 'form-control', 'placeholder': 'e.g., 0202420168'}),
             'first_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'First Name'}),
             'last_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Last Name'}),
+            'other_names': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Other Names (optional)'}),
             'dob': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'gender': forms.Select(choices=Student.GENDER_CHOICES, attrs={'class': 'form-select'}),
             'status': forms.Select(choices=Student.STATUS_CHOICES, attrs={'class': 'form-select'}),
@@ -120,7 +121,7 @@ class StaffRegistrationForm(forms.ModelForm):
     class Meta:
         model = StaffProfile
         fields = [
-            'title', 'first_name', 'last_name', 'staff_id', 'gender', 'dob',
+            'title', 'first_name', 'last_name', 'other_names', 'staff_id', 'gender', 'dob',
             'ssnit_id', 'email', 'employment_type', 'date_of_appointment',
             'year_of_last_promotion', 'qualification', 'certificate',
             'name_of_institution_completed', 'year_completed', 'profile_picture',
@@ -130,6 +131,7 @@ class StaffRegistrationForm(forms.ModelForm):
             'title': forms.Select(attrs={'class': 'form-select'}),
             'first_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'First Name'}),
             'last_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Last Name'}),
+            'other_names': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Other Names (optional)'}),
             'staff_id': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Staff ID'}),
             'gender': forms.Select(attrs={'class': 'form-select'}),
             'dob': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
