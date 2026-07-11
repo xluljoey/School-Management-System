@@ -10,7 +10,15 @@
             <h5 class="mb-0 fw-bold" style="color: #000000;">Student Details</h5>
             <p class="mb-0 text-muted small">{{ student.admission_number }}</p>
         </div>
-        <a href="{% url 'student_list' %}" class="btn btn-sm btn-outline-secondary">← Back to Students</a>
+        <a href="{% url 'student_list' %}"
+           class="btn d-inline-flex align-items-center justify-content-center gap-2"
+           style="border-radius: 50px; background-color: #f4f4f5; border: 1px solid #e4e4e7; color: #71717a; font-size: 13px; font-weight: 600; padding: 10px 20px; transition: all 0.2s ease; text-decoration: none;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="19" y1="12" x2="5" y2="12"></line>
+                <polyline points="12 19 5 12 12 5"></polyline>
+            </svg>
+            Back to Students
+        </a>
     </div>
 
     <div class="card-body">
