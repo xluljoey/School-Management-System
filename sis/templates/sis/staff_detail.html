@@ -18,8 +18,8 @@
                 {% if staff_member.profile_picture %}
                 <img src="{{ staff_member.profile_picture.url }}" alt="{{ staff_member.first_name }} {{ staff_member.last_name }}" class="img-fluid rounded-circle" style="width: 150px; height: 150px; object-fit: cover;">
                 {% else %}
-                <div class="bg-light rounded-circle d-flex align-items-center justify-content-center" style="width: 150px; height: 150px;">
-                    <span class="display-4 text-muted">{{ staff_member.first_name|slice:":1"|default:"?" }}</span>
+                <div style="width: 150px; height: 150px; border-radius: 50%; background-color: #000000; display: flex; align-items: center; justify-content: center;">
+                    <span style="color: #ffffff; font-size: 4rem; font-weight: 700;">{{ staff_member.first_name|first|upper|default:"?" }}</span>
                 </div>
                 {% endif %}
             </div>
