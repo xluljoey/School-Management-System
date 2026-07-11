@@ -402,7 +402,7 @@ def register_staff_view(request):
 
 @login_required
 def staff_list_view(request):
-    staff_members = StaffProfile.objects.all()
+    staff_members = StaffProfile.objects.select_related('user').all()
     return render(request, 'sis/staff_list.html', {'staff_members': staff_members})
 
 
