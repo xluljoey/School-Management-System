@@ -7,15 +7,21 @@
 <div class="d-flex align-items-center justify-content-between mb-4 border-bottom pb-3" style="border-color: #f4f4f5 !important;">
     <div>
         <h4 class="fw-bold text-dark mb-1" style="font-size: 22px; letter-spacing: -0.5px;">Academic Environment Settings</h4>
-        <p class="text-muted mb-0" style="font-size: 13px;">Manage current active sessions, terms, and database tracking contexts.</p>
+        <div class="d-flex align-items-center gap-2 text-muted" style="font-size: 13px;">
+            <span>Manage active sessions and database tracking contexts.</span>
+            <span style="color: #e4e4e7;">|</span>
+            <span class="d-flex align-items-center gap-1 bg-light px-2 py-0.5 rounded text-dark fw-medium" style="font-size: 12px; border: 1px solid #e4e4e7;">
+                <span class="text-success me-1" style="font-size: 8px;">●</span> Active: {{ current_session|default:"None" }} – {{ current_term|default:"None" }}
+            </span>
+        </div>
     </div>
     <a href="{% url 'promotion_portal' %}" class="btn btn-light rounded-pill px-4 py-2 d-flex align-items-center gap-2" style="font-size: 14px; border: 1px solid #e4e4e7; font-weight: 500;">
         <i class="bi bi-arrow-left-short fs-5"></i> Back to Promotion Portal
     </a>
 </div>
 
-<div class="card border-0 p-4" style="border-radius: 16px; background-color: #ffffff; min-height: calc(100vh - 140px); box-shadow: 0 1px 3px rgba(0,0,0,0.02); margin-bottom: 24px; display: flex; flex-direction: column;">
-    <form method="POST" action="">
+<div class="card border-0 p-4" style="border-radius: 16px; background-color: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.02); margin-bottom: 24px;">
+    <form method="POST" action="" style="max-width: 600px;">
         {% csrf_token %}
 
         <div class="mb-4">
@@ -52,15 +58,11 @@
             Set Active Environment
         </button>
     </form>
-
-    <div class="mt-auto pt-4 border-top text-muted" style="font-size: 13px; border-color: #f4f4f5 !important;">
-        <span class="me-2">●</span> Current Status: <strong class="text-dark">{{ current_session|default:"None" }}</strong> / <strong class="text-dark">{{ current_term|default:"None" }}</strong>
-    </div>
 </div>
 
-<a href="#" class="btn btn-primary rounded-pill shadow-lg d-flex align-items-center gap-2 px-4 py-3 position-fixed" 
-   style="bottom: 32px; right: 32px; z-index: 1050; font-weight: 600; font-size: 14px; background-color: #2563eb; border: none; box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3) !important;">
-    <i class="bi bi-plus-lg"></i>
-    <span>Create New Academic Session</span>
+<a href="#" class="btn btn-dark rounded-pill shadow-lg d-flex align-items-center gap-2 px-4 py-3 position-fixed" 
+   style="bottom: 32px; right: 32px; z-index: 1050; font-weight: 500; font-size: 14px; background-color: #121214; border: 1px solid #2a2a2e; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3) !important;">
+    <i class="bi bi-plus-lg text-white-50"></i>
+    <span class="text-white">Create New Academic Session</span>
 </a>
 {% endblock %}
