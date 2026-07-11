@@ -413,6 +413,87 @@ def staff_detail_view(request, staff_id):
 
 
 @login_required
+def staff_edit_view(request, staff_id):
+    import json
+    staff_member = get_object_or_404(StaffProfile, pk=staff_id)
+    departments = Department.objects.all()
+    designations = Designation.objects.all()
+    all_classrooms = ClassRoom.objects.all()
+
+    # Build existing assignments for the JS picker
+    existing_assignments = {}
+    for scs in staff_member.assigned_classes_subjects.select_related('classroom', 'subject').all():
+        class_id = str(scs.classroom_id)
+        if class_id not in existing_assignments:
+            existing_assignments[class_id] = []
+        existing_assignments[class_id].append(str(scs.subject_id))
+
+    if request.method == 'POST':
+        form = StaffRegistrationForm(request.POST, request.FILES, instance=staff_member)
+        if form.is_valid():
+            staff_profile = form.save(commit=False)
+
+            dept_name = form.cleaned_data.get('department')
+            if dept_name:
+                dept, _ = Department.objects.get_or_create(name=dept_name)
+                staff_profile.department = dept
+            else:
+                staff_profile.department = None
+
+            desig_name = form.cleaned_data.get('designation')
+            if desig_name:
+                desig, _ = Designation.objects.get_or_create(name=desig_name)
+                staff_profile.designation = desig
+            else:
+                staff_profile.designation = None
+
+            user = staff_profile.user
+            if user:
+                user.first_name = staff_profile.first_name
+                user.last_name = staff_profile.last_name
+                user.email = staff_profile.email
+                user.save()
+
+            staff_profile.save()
+            form.save_m2m()
+
+            # Replace all ClassSubject assignments
+            staff_profile.assigned_classes_subjects.all().delete()
+            assignments_raw = request.POST.get('assignments_json', '')
+            if assignments_raw:
+                try:
+                    assignments = json.loads(assignments_raw)
+                    for class_id_str, subject_ids in assignments.items():
+                        for subj_id in subject_ids:
+                            StaffClassSubject.objects.get_or_create(
+                                staff=staff_profile,
+                                classroom_id=int(class_id_str),
+                                subject_id=int(subj_id)
+                            )
+                except (json.JSONDecodeError, ValueError):
+                    pass
+
+            messages.success(request, 'Staff member updated successfully.')
+            return redirect('staff_detail', staff_id=staff_profile.id)
+    else:
+        form = StaffRegistrationForm(instance=staff_member)
+        if staff_member.department:
+            form.fields['department'].initial = staff_member.department.name
+        if staff_member.designation:
+            form.fields['designation'].initial = staff_member.designation.name
+
+    return render(request, 'sis/register_staff.html', {
+        'form': form,
+        'departments': departments,
+        'designations': designations,
+        'all_classrooms': all_classrooms,
+        'is_edit': True,
+        'edit_staff': staff_member,
+        'existing_assignments_json': json.dumps(existing_assignments),
+    })
+
+
+@login_required
 def enroll_student_view(request, student_id):
     student = Student.objects.filter(pk=student_id).first()
     if not student:
