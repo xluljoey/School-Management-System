@@ -90,6 +90,13 @@ class StaffProfile(models.Model):
             return self.full_name.strip()[0].upper()
         return ""
 
+    @property
+    def years_of_experience(self):
+        if self.date_of_appointment:
+            delta = date.today() - self.date_of_appointment
+            return delta.days // 365
+        return None
+
     def __str__(self):
         return f"{self.title} {self.first_name} {self.last_name} {self.other_names or ''} ({self.staff_id})"
 
