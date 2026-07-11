@@ -36,7 +36,7 @@
                 {{ student.first_name }} {{ student.other_names }} {{ student.last_name }}
             </h3>
             <span class="badge bg-light text-dark px-3 py-2 rounded-pill border" style="font-size: 12px; font-weight: 500;">
-                Class: {{ student.current_class|default:"--" }}
+                Class: {{ student.classroom|default:"--" }}
             </span>
         </div>
     </div>
@@ -68,7 +68,7 @@
                 </div>
                 <div>
                     <label style="font-size: 11px; font-weight: 600; color: #a1a1aa; text-transform: uppercase;">Current Class</label>
-                    <p style="font-size: 14px; font-weight: 500; color: #111; margin: 4px 0 0;">{{ student.current_class|default:"--" }}</p>
+                    <p style="font-size: 14px; font-weight: 500; color: #111; margin: 4px 0 0;">{{ student.classroom|default:"--" }}</p>
                 </div>
                 <div>
                     <label style="font-size: 11px; font-weight: 600; color: #a1a1aa; text-transform: uppercase;">Date of Admission</label>
