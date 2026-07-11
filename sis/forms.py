@@ -124,7 +124,7 @@ class StaffRegistrationForm(forms.ModelForm):
             'title', 'first_name', 'last_name', 'other_names', 'staff_id', 'gender', 'dob',
             'ssnit_id', 'phone_number', 'email', 'employment_type', 'date_of_appointment',
             'year_of_last_promotion', 'qualification', 'certificate',
-            'name_of_institution_completed', 'year_completed', 'residential_address', 'profile_picture',
+            'name_of_institution_completed', 'year_completed', 'address', 'profile_picture',
             'form_class', 'subject_areas',
         ]
         widgets = {
@@ -143,7 +143,7 @@ class StaffRegistrationForm(forms.ModelForm):
             'year_of_last_promotion': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Year of Last Promotion'}),
             'name_of_institution_completed': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Institution Completed'}),
             'year_completed': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Year Completed'}),
-            'residential_address': forms.Textarea(attrs={
+            'address': forms.Textarea(attrs={
                 'class': 'form-control',
                 'placeholder': 'Enter complete residential address...',
                 'rows': 2,

@@ -76,7 +76,7 @@ class StaffProfile(models.Model):
     name_of_institution_completed = models.CharField(max_length=255, default='')
     year_completed = models.IntegerField(default=2000)
     profile_picture = models.ImageField(upload_to='staff/profiles/', blank=True, null=True)
-    residential_address = models.TextField(blank=True, null=True, verbose_name="Residential Address")
+    address = models.TextField(blank=True, null=True, verbose_name="Residential Address")
 
     form_class = models.OneToOneField('ClassRoom', on_delete=models.SET_NULL, null=True, blank=True, related_name='form_teacher')
     subject_areas = models.ManyToManyField('Subject', related_name='teachers', help_text="Select all subjects this staff member is assigned to teach.")
@@ -91,14 +91,6 @@ class StaffProfile(models.Model):
         if hasattr(self, 'full_name') and self.full_name:
             return self.full_name.strip()[0].upper()
         return ""
-
-    @property
-    def address(self):
-        return self.residential_address
-
-    @address.setter
-    def address(self, value):
-        self.residential_address = value
 
     @property
     def years_of_experience(self):
