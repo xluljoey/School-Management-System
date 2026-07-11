@@ -118,6 +118,10 @@ class StaffRegistrationForm(forms.ModelForm):
         })
     )
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['subject_areas'].required = False
+
     class Meta:
         model = StaffProfile
         fields = [
@@ -128,26 +132,26 @@ class StaffRegistrationForm(forms.ModelForm):
             'form_class', 'subject_areas',
         ]
         widgets = {
-            'title': forms.Select(attrs={'class': 'form-select'}),
-            'first_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'First Name'}),
-            'last_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Last Name'}),
-            'other_names': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Other Names (optional)'}),
-            'staff_id': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Staff ID'}),
-            'gender': forms.Select(attrs={'class': 'form-select'}),
-            'dob': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'ssnit_id': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'SSNIT ID'}),
-            'phone_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., +233 XX XXX XXXX'}),
-            'email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'Email Address'}),
+            'title': forms.Select(attrs={'class': 'form-select basic-info-field', 'style': 'max-width: 130px;'}),
+            'first_name': forms.TextInput(attrs={'class': 'form-control basic-info-field', 'placeholder': 'First Name'}),
+            'last_name': forms.TextInput(attrs={'class': 'form-control basic-info-field', 'placeholder': 'Last Name'}),
+            'other_names': forms.TextInput(attrs={'class': 'form-control basic-info-field', 'placeholder': 'Other Names (optional)'}),
+            'staff_id': forms.TextInput(attrs={'class': 'form-control basic-info-field', 'placeholder': 'Staff ID'}),
+            'gender': forms.Select(attrs={'class': 'form-select basic-info-field'}),
+            'dob': forms.DateInput(attrs={'class': 'form-control basic-info-field', 'type': 'date'}),
+            'ssnit_id': forms.TextInput(attrs={'class': 'form-control basic-info-field', 'placeholder': 'SSNIT ID'}),
+            'phone_number': forms.TextInput(attrs={'class': 'form-control basic-info-field', 'placeholder': 'e.g., +233 XX XXX XXXX'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control basic-info-field', 'placeholder': 'Email Address'}),
             'employment_type': forms.Select(attrs={'class': 'form-select'}),
             'date_of_appointment': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'year_of_last_promotion': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Year of Last Promotion'}),
             'name_of_institution_completed': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Institution Completed'}),
             'year_completed': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Year Completed'}),
             'address': forms.Textarea(attrs={
-                'class': 'form-control',
+                'class': 'form-control basic-info-field',
                 'placeholder': 'Enter complete residential address...',
                 'rows': 2,
-                'style': 'border-radius: 8px; border: 1px solid #e4e4e7; padding: 10px 14px; font-size: 14px; resize: none;'
+                'style': 'border-radius: 8px; border: 1px solid #e4e4e7; padding: 10px 14px; font-size: 14px; resize: none; min-height: 92px;'
             }),
             'profile_picture': forms.ClearableFileInput(attrs={'id': 'id_profile_picture', 'class': 'form-control', 'style': 'display: none;', 'accept': 'image/*'}),
             'form_class': forms.Select(attrs={'class': 'form-select'}),

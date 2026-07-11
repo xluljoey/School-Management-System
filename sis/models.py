@@ -79,7 +79,7 @@ class StaffProfile(models.Model):
     address = models.TextField(blank=True, null=True, verbose_name="Residential Address")
 
     form_class = models.OneToOneField('ClassRoom', on_delete=models.SET_NULL, null=True, blank=True, related_name='form_teacher')
-    subject_areas = models.ManyToManyField('Subject', related_name='teachers', help_text="Select all subjects this staff member is assigned to teach.")
+    subject_areas = models.ManyToManyField('Subject', blank=True, related_name='teachers', help_text="Select all subjects this staff member is assigned to teach.")
 
     @property
     def avatar_initial(self):
