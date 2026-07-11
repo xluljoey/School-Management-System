@@ -1,9 +1,10 @@
 {% extends 'sis/base.html' %}
+{% load static %}
 
 {% block title %} Class Terminal Master Sheet {% endblock %}
 
 {% block content %}
-<div class="card shadow-sm border-0">
+<div class="card border-0" style="border-radius: 16px; background-color: #ffffff; flex: 1 1 auto; min-height: 100%; margin-top: 20px; margin-bottom: 24px; display: flex; flex-direction: column; justify-content: flex-start; align-items: stretch; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
     <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center" style="border-bottom: 1px solid #f0f0f0;">
         <div>
             <h5 class="mb-0 fw-bold text-dark">Master Continuous Assessment Summary</h5>
@@ -20,7 +21,7 @@
                                border-radius: 50px; background-color: #f4f4f5; color: #111;
                                border: 1px solid #e4e4e7; padding: 10px 40px 10px 24px;
                                font-size: 14px; font-weight: 500; cursor: pointer; outline: none;">
-                    <option value="">-- Select Subject --</option>
+                    <option value="">Select Subject</option>
                     {% for subject in assigned_subjects %}
                         <option value="{{ subject.id }}" {% if current_subject_id == subject.id %}selected{% endif %}>{{ subject.subject_name }}</option>
                     {% endfor %}
@@ -34,7 +35,7 @@
                                border-radius: 50px; background-color: #f4f4f5; color: #111;
                                border: 1px solid #e4e4e7; padding: 10px 40px 10px 24px;
                                font-size: 14px; font-weight: 500; cursor: pointer; outline: none;">
-                    <option value="">-- Select Class --</option>
+                    <option value="">Select Class</option>
                     {% for class in assigned_classes %}
                         <option value="{{ class.id }}" {% if current_class_id == class.id %}selected{% endif %}>{{ class.class_name }}</option>
                     {% endfor %}
@@ -72,8 +73,14 @@
         {% endif %}
 
         {% if not has_graded_records %}
-        <div class="alert alert-warning m-3" role="alert">
-            No student grade records compiled for this class yet.
+        <div class="d-flex flex-column align-items-center justify-content-center text-center py-5 my-auto" style="min-height: 450px; padding: 0 24px;">
+            <div class="mb-4" style="width: min(84vw, 680px); max-width: 680px; opacity: 0.75; transition: all 0.3s ease;">
+                <img src="{% static 'sis/images/Social strategy-pana 1.svg' %}" class="img-fluid w-100" alt="No records compiled" style="display: block;">
+            </div>
+            <h5 class="fw-semibold mb-2" style="font-size: 25px; letter-spacing: -0.3px; color: #a8b5cf;">
+                No student grade records compiled for this class yet
+            </h5>
+            
         </div>
         {% else %}
         <div class="table-responsive px-0">

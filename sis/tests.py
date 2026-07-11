@@ -51,6 +51,16 @@ class StudentRegistrationTests(TestCase):
         self.assertEqual(f"{staff.first_name} {staff.last_name}", "Kwame Boateng")
         self.assertIn(subject, staff.subject_areas.all())
 
+    def test_staff_avatar_initial_uses_name_when_no_picture(self):
+        staff = StaffProfile.objects.create(
+            first_name="Ada",
+            last_name="Lovelace",
+            staff_id="STAFF-002",
+            email="ada@example.com",
+        )
+
+        self.assertEqual(staff.avatar_initial, "A")
+
     def test_student_list_renders_with_classrooms(self):
         classroom1 = ClassRoom.objects.create(class_name="JHS 1")
         classroom2 = ClassRoom.objects.create(class_name="JHS 2")
@@ -295,7 +305,7 @@ class StudentRegistrationTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("classrooms", response.context)
         self.assertFalse(response.context["has_graded_records"])
-        self.assertContains(response, "No student grade records compiled for this class yet.")
+        self.assertContains(response, "No student grade records compiled for this class yet")
 
     def test_class_report_with_grades_displays_table(self):
         classroom = ClassRoom.objects.create(class_name="Class Graded")
@@ -322,4 +332,4 @@ class StudentRegistrationTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.context["has_graded_records"])
         self.assertContains(response, "Evelyn Standings")
-        self.assertNotContains(response, "No student grade records compiled for this class yet.")
+        self.assertNotContains(response, "No student grade records compiled for this class yet")

@@ -4,15 +4,24 @@
 {% block title %}Class Enrollment & Promotion Portal{% endblock %}
 
 {% block content %}
-<div class="card shadow-sm border-0">
-  <div class="card-header bg-dark text-white py-3">
-    <h5 class="mb-0 fw-bold">Class Enrollment & Promotion Portal</h5>
-    <small class="text-light-50">
-      Session: <strong>{{ current_session|default:"None set" }}</strong>
-      | Term: <strong>{{ current_term|default:"None set" }}</strong>
-    </small>
+<div class="card border-0" style="border-radius: 16px; background-color: #ffffff; min-height: calc(100vh - 140px); margin-bottom: 24px; display: flex; flex-direction: column; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
+  <div class="d-flex align-items-center justify-content-between mb-4 border-bottom pb-3" style="border-color: #f4f4f5 !important;">
+    <div>
+        <h4 class="fw-bold text-dark mb-1" style="font-size: 22px; letter-spacing: -0.5px;">
+            Class Enrollment & Promotion Portal
+        </h4>
+        <div class="d-flex gap-3 align-items-center text-muted" style="font-size: 13px;">
+            <span class="d-flex align-items-center gap-1">
+                <strong class="text-secondary fw-semibold">Session:</strong> {{ current_session|default:"None set" }}
+            </span>
+            <span style="color: #e4e4e7;">|</span>
+            <span class="d-flex align-items-center gap-1">
+                <strong class="text-secondary fw-semibold">Term:</strong> {{ current_term|default:"None set" }}
+            </span>
+        </div>
+    </div>
   </div>
-  <div class="card-body">
+  <div class="card-body d-flex flex-column">
 
     {% if not current_session or not current_term %}
     <div class="alert alert-warning d-flex align-items-center">
@@ -25,8 +34,9 @@
     <form method="GET" class="row g-3 align-items-end mb-3" id="filterForm">
       <div class="col-md-4">
         <label for="source_class_id" class="form-label fw-semibold small">Current Class (Source)</label>
-        <select name="source_class_id" id="source_class_id" class="form-select" onchange="this.form.submit()">
-          <option value="">-- Select Class --</option>
+        <select name="source_class_id" id="source_class_id" class="form-select" onchange="this.form.submit()"
+                style="border-radius: 50px; border: 1px solid #e4e4e7; padding: 10px 24px; font-size: 14px; color: #4b5563; background-color: #ffffff; box-shadow: 0 1px 2px rgba(0,0,0,0.02); height: 44px;">
+          <option value="">Select Class</option>
           {% for c in classrooms %}
           <option value="{{ c.id }}" {% if source_class and source_class.id == c.id %}selected{% endif %}>
             {{ c.class_name }}
@@ -36,8 +46,9 @@
       </div>
       <div class="col-md-4">
         <label for="next_class_id" class="form-label fw-semibold small">Next Class (Target)</label>
-        <select name="next_class_id" id="next_class_id" class="form-select" form="promoteForm">
-          <option value="">-- Select Target --</option>
+        <select name="next_class_id" id="next_class_id" class="form-select" form="promoteForm"
+                style="border-radius: 50px; border: 1px solid #e4e4e7; padding: 10px 24px; font-size: 14px; color: #4b5563; background-color: #ffffff; box-shadow: 0 1px 2px rgba(0,0,0,0.02); height: 44px;">
+          <option value="">Select Target</option>
           {% for c in classrooms %}
           <option value="{{ c.id }}">{{ c.class_name }}</option>
           {% endfor %}
@@ -47,7 +58,8 @@
         <label for="search_query" class="form-label fw-semibold small">Live Search</label>
         <input type="text" name="search_query" id="search_query" class="form-control"
                placeholder="Search by Name or Admission No."
-               value="{{ search_query }}" oninput="this.form.submit()">
+               value="{{ search_query }}" oninput="this.form.submit()"
+               style="border-radius: 50px; border: 1px solid #e4e4e7; padding: 10px 24px; font-size: 14px; background-color: #ffffff; box-shadow: 0 1px 2px rgba(0,0,0,0.02); height: 44px;">
       </div>
     </form>
 
@@ -67,47 +79,57 @@
 
       <div class="table-responsive">
         <table class="table table-hover align-middle mb-0" id="cohortTable">
-          <thead class="table-light">
-            <tr>
-              <th style="width: 40px;">
-                <input type="checkbox" id="selectAllEligible"
-                       title="Select All Eligible Students">
-              </th>
-              <th>Admission No.</th>
-              <th>Full Name</th>
+          <thead>
+            <tr class="text-uppercase text-muted fw-semibold small" style="border-bottom: 1px solid #f4f4f5;">
+              <th style="width: 40px;"><input type="checkbox" class="form-check-input" id="selectAll"></th>
+              <th style="width: 80px;">#</th>
+              <th>Student</th>
               <th>Aggregate Score</th>
-              <th>Eligibility</th>
-              <th>Subjects Offered</th>
+              <th class="text-end">Eligibility</th>
             </tr>
           </thead>
           <tbody>
-            {% for row in students_data %}
-            <tr>
+            {% for item in students_data %}
+            <tr style="border-bottom: 1px solid #f4f4f5; vertical-align: middle;">
               <td>
-                <input type="checkbox" name="selected_students" value="{{ row.student.id }}"
-                       class="student-checkbox {% if row.eligible %}eligible{% endif %}">
+                <input type="checkbox" name="selected_students" value="{{ item.student.id }}" class="form-check-input">
               </td>
-              <td class="font-monospace text-secondary">{{ row.student.admission_number }}</td>
-              <td class="fw-medium">{{ row.student.first_name }} {{ row.student.last_name }}</td>
-              <td>{{ row.grand_total|floatformat:2 }}</td>
               <td>
-                {% if row.eligible %}
-                <span class="badge bg-success">Eligible</span>
+                {% if forloop.counter == 1 %}
+                <span class="badge rounded-pill fw-bold" style="padding: 6px 14px; font-size: 13px; background-color: #e0f2fe; color: #0369a1;">#1</span>
+                {% elif forloop.counter == 2 %}
+                <span class="badge rounded-pill fw-bold" style="padding: 6px 14px; font-size: 13px; background-color: #fef3c7; color: #b45309;">#2</span>
+                {% elif forloop.counter == 3 %}
+                <span class="badge rounded-pill fw-bold" style="padding: 6px 14px; font-size: 13px; background-color: #f3e8ff; color: #6b21a8;">#3</span>
                 {% else %}
-                <span class="badge bg-danger">Not Eligible</span>
+                <span class="badge rounded-pill fw-bold text-secondary" style="padding: 6px 14px; font-size: 13px; background-color: #f4f4f5; border: 1px solid #e4e4e7;">#{{ forloop.counter }}</span>
                 {% endif %}
               </td>
               <td>
-                {% if row.subjects %}
-                <small>{{ row.subjects|join:", " }}</small>
+                <div class="d-flex align-items-center gap-3">
+                  <div class="d-flex align-items-center justify-content-center fw-bold text-white rounded-circle bg-dark" style="width: 36px; height: 36px; font-size: 14px;">
+                    {{ item.student.first_name|slice:":1" }}{{ item.student.last_name|slice:":1" }}
+                  </div>
+                  <div>
+                    <div class="fw-semibold text-dark mb-0">{{ item.student.get_full_name }}</div>
+                    <div class="small text-muted" style="font-size: 12px;">{{ item.student.admission_number }}</div>
+                  </div>
+                </div>
+              </td>
+              <td class="fw-medium text-secondary">
+                {{ item.grand_total|default:"0.00" }}
+              </td>
+              <td class="text-end">
+                {% if item.eligible %}
+                  <span class="badge rounded-pill bg-success-subtle text-success fw-semibold px-3 py-2">Eligible</span>
                 {% else %}
-                <span class="text-muted small">No subjects configured</span>
+                  <span class="badge rounded-pill bg-danger-subtle text-danger fw-semibold px-3 py-2">Not Eligible</span>
                 {% endif %}
               </td>
             </tr>
             {% empty %}
             <tr>
-              <td colspan="6" class="text-center py-4 text-muted">
+              <td colspan="5" class="text-center py-4 text-muted">
                 {% if source_class %}
                   No students found in this class.
                 {% else %}
@@ -120,14 +142,28 @@
         </table>
       </div>
 
-      {% if students_data %}
-      <div class="card-footer bg-white py-3 d-flex justify-content-end border-top-0 px-0">
-        <button type="submit" class="btn btn-success px-5" id="enrollBtn">
+      <div style="position: fixed; bottom: 32px; right: 32px; z-index: 1050;">
+        <button type="submit" class="btn btn-dark d-flex align-items-center justify-content-center gap-2"
+                style="border-radius: 50px; background-color: #111111; border: none; color: #ffffff; font-size: 14px; font-weight: 600; padding: 14px 28px; box-shadow: 0 4px 14px rgba(0,0,0,0.16); transition: all 0.2s ease-in-out;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
           Enroll Selected Students
         </button>
       </div>
-      {% endif %}
     </form>
+    {% else %}
+    <div class="d-flex flex-column align-items-center justify-content-center text-center py-5 flex-grow-1" style="min-height: 400px;">
+      <div class="mb-4" style="max-width: 440px; opacity: 0.5; transition: all 0.3s ease;">
+        <img src="{% static 'sis/images/Cohort analysis-rafiki 1.svg' %}" class="img-fluid" alt="No promotion data matching">
+      </div>
+      <h5 class="fw-semibold text-dark mb-2" style="font-size: 20px; letter-spacing: -0.3px;">
+        Select class parameters to run promotion tracking
+      </h5>
+      <p class="text-muted mx-auto" style="max-width: 440px; font-size: 14px; line-height: 1.6;">
+        Choose a source class block and target grade level from the configurations above to load current class cohorts, cross-check assessment metrics, and execute batch student enrollment promotions.
+      </p>
+    </div>
     {% endif %}
 
   </div>
@@ -137,14 +173,12 @@
 {% block extra_js %}
 <script>
 (function() {
-  var masterCheck = document.getElementById('selectAllEligible');
+  var masterCheck = document.getElementById('selectAll');
   if (masterCheck) {
     masterCheck.addEventListener('change', function() {
-      var checkboxes = document.querySelectorAll('.student-checkbox');
+      var checkboxes = document.querySelectorAll('input[name="selected_students"]');
       for (var i = 0; i < checkboxes.length; i++) {
-        if (checkboxes[i].classList.contains('eligible')) {
-          checkboxes[i].checked = this.checked;
-        }
+        checkboxes[i].checked = this.checked;
       }
     });
   }
@@ -158,7 +192,7 @@
         nextHidden.value = nextSelect.value;
       }
 
-      var checked = this.querySelectorAll('.student-checkbox:checked');
+      var checked = this.querySelectorAll('input[name="selected_students"]:checked');
       if (checked.length === 0) {
         e.preventDefault();
         alert('Please select at least one student to enroll.');

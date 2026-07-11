@@ -188,6 +188,11 @@ class Student(models.Model):
 
     def __str__(self):
         return f"{self.first_name} {self.last_name} ({self.admission_number})"
+
+    @property
+    def get_full_name(self):
+        parts = [p for p in [self.first_name, self.other_names, self.last_name] if p]
+        return " ".join(parts)
     
 
 

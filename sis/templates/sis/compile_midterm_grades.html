@@ -10,8 +10,6 @@
         <span style="color: #8E8D93; font-size: 0.85rem;">
             {% if selected_class %}
                 Class: <strong>{{ selected_class.class_name }}</strong>
-            {% else %}
-                Select a class to begin
             {% endif %}
         </span>
     </div>
@@ -22,7 +20,7 @@
                            border-radius: 50px; background-color: #f4f4f5; color: #111;
                            border: 1px solid #e4e4e7; padding: 10px 40px 10px 24px;
                            font-size: 14px; font-weight: 500; cursor: pointer; outline: none;">
-                <option value="">-- Select Class --</option>
+                <option value="">Select Class</option>
                 {% for c in classrooms %}
                 <option value="{{ c.id }}" {% if selected_class and selected_class.id == c.id %}selected{% endif %}>{{ c.class_name }}</option>
                 {% endfor %}
@@ -31,6 +29,25 @@
         </div>
     </form>
 </div>
+
+{% if not selected_class %}
+<div class="card border-0" style="border-radius: 16px; background-color: #ffffff; min-height: calc(100vh - 140px); margin-bottom: 24px; display: flex; flex-direction: column; justify-content: center; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
+    
+    <div class="d-flex flex-column align-items-center justify-content-center text-center py-5" style="min-height: 400px;">
+        
+        <div class="mb-4" style="max-width: 440px; opacity: 0.5; transition: all 0.3s ease;">
+            <img src="{% static 'sis/images/Group 8323.svg' %}" class="img-fluid" alt="Select class tier to compile mid-term metrics">
+        </div>
+
+        <h5 class="fw-semibold text-dark mb-2" style="font-size: 20px; letter-spacing: -0.3px;">
+            Select a class to compile mid-term grades
+        </h5>
+        <p class="text-muted mx-auto" style="max-width: 440px; font-size: 14px; line-height: 1.6;">
+            Choose a target class tier from the drop-down menu on the right to pull raw performance statistics, aggregate progress reports, and organize continuous assessment structures for the current term block.
+        </p>
+    </div>
+</div>
+{% endif %}
 
 {% if selected_class and students %}
 <form method="POST" id="midterm-form">

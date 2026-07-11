@@ -32,7 +32,7 @@
                         {% if member.profile_picture %}
                         <img src="{{ member.profile_picture.url }}" alt="" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;">
                         {% else %}
-                        <span style="width: 40px; height: 40px; border-radius: 50%; background-color: #000000; color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1rem; flex-shrink: 0;">{{ member.first_name|first|upper|default_if_none:""|default:"?" }}</span>
+                        <span style="width: 40px; height: 40px; border-radius: 50%; background-color: #000000; color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1rem; flex-shrink: 0;">{{ member.avatar_initial }}</span>
                         {% endif %}
                         <div>
                             <div style="font-weight: 600; color: #000000; font-size: 0.9rem;">{{ member.title }} {{ member.first_name|default:"" }} {{ member.other_names|default:"" }} {{ member.last_name|default:""|default_if_none:"" }}</div>

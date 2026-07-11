@@ -654,6 +654,8 @@ def class_enrollment_portal_view(request):
                 'subjects': class_subject_names,
             })
 
+        students_data.sort(key=lambda x: x['grand_total'], reverse=True)
+
     if request.method == 'POST':
         selected_ids = request.POST.getlist('selected_students')
         next_class_id = request.POST.get('next_class_id')

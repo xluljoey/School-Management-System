@@ -9,6 +9,31 @@
         opacity: 0.9;
         transform: translateY(-0.5px);
     }
+
+    .basic-info-field {
+        border-radius: 10px;
+        border: 1px solid #e4e4e7;
+        padding: 10px 14px;
+        font-size: 14px;
+        height: 42px;
+    }
+
+    .basic-info-field:focus {
+        border-color: #111111;
+        box-shadow: 0 0 0 0.2rem rgba(17, 17, 17, 0.08);
+    }
+
+    .required-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+    }
+
+    .required-asterisk {
+        color: #dc3545;
+        font-weight: 700;
+        line-height: 1;
+    }
 </style>
 <div class="row justify-content-center">
     <div class="col-lg-11">
@@ -53,54 +78,54 @@
                             <h6 class="fw-bold mb-3" style="font-size: 0.9rem; color: #000000;">1. Basic Information</h6>
                             <div class="row g-3 mb-4">
                                 <div class="col-md-2">
-                                    <label class="form-label fw-semibold text-secondary" style="font-size: 0.85rem;">{{ form.title.label }}</label>
+                                    <label class="form-label fw-semibold text-secondary required-label" style="font-size: 0.85rem;">{{ form.title.label }}{% if form.title.field.required %}<span class="required-asterisk">*</span>{% endif %}</label>
                                     {{ form.title }}
                                 </div>
                                 <div class="col-md-3">
-                                    <label class="form-label fw-semibold text-secondary" style="font-size: 0.85rem;">{{ form.first_name.label }}</label>
+                                    <label class="form-label fw-semibold text-secondary required-label" style="font-size: 0.85rem;">{{ form.first_name.label }}{% if form.first_name.field.required %}<span class="required-asterisk">*</span>{% endif %}</label>
                                     {{ form.first_name }}
                                 </div>
-                                <div class="col-md-4">
-                                    <label class="form-label fw-semibold text-secondary" style="font-size: 0.85rem;">{{ form.last_name.label }}</label>
+                                <div class="col-md-3">
+                                    <label class="form-label fw-semibold text-secondary required-label" style="font-size: 0.85rem;">{{ form.last_name.label }}{% if form.last_name.field.required %}<span class="required-asterisk">*</span>{% endif %}</label>
                                     {{ form.last_name }}
                                 </div>
-                                <div class="col-md-3">
-                                    <label class="form-label fw-semibold text-secondary" style="font-size: 0.85rem;">{{ form.other_names.label }}</label>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold text-secondary required-label" style="font-size: 0.85rem;">{{ form.other_names.label }}{% if form.other_names.field.required %}<span class="required-asterisk">*</span>{% endif %}</label>
                                     {{ form.other_names }}
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label fw-semibold text-secondary" style="font-size: 0.85rem;">{{ form.staff_id.label }}</label>
-                                    {{ form.staff_id }}
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label fw-semibold text-secondary" style="font-size: 0.85rem;">{{ form.gender.label }}</label>
-                                    {{ form.gender }}
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label fw-semibold text-secondary" style="font-size: 0.85rem;">{{ form.dob.label }}</label>
-                                    {{ form.dob }}
                                 </div>
                             </div>
 
                             <div class="row g-3 mb-3">
-                                <div class="col-md-6">
-                                    <label class="form-label text-muted fw-semibold small mb-1">Phone Number</label>
-                                    <input type="tel" name="phone_number" id="id_phone_number" class="form-control" placeholder="e.g., +233 XX XXX XXXX" style="border-radius: 8px; border: 1px solid #e4e4e7; padding: 10px 14px; font-size: 14px;" value="{{ form.phone_number.value|default:'' }}">
+                                <div class="col-md-3">
+                                    <label class="form-label fw-semibold text-secondary required-label" style="font-size: 0.85rem;">{{ form.staff_id.label }}{% if form.staff_id.field.required %}<span class="required-asterisk">*</span>{% endif %}</label>
+                                    {{ form.staff_id }}
                                 </div>
-                                <div class="col-md-6">
-                                    <label class="form-label text-muted fw-semibold small mb-1">Email (Optional)</label>
-                                    <input type="email" name="email" id="id_email" class="form-control" placeholder="Email Address" style="border-radius: 8px; border: 1px solid #e4e4e7; padding: 10px 14px; font-size: 14px;" value="{{ form.email.value|default:'' }}">
+                                <div class="col-md-3">
+                                    <label class="form-label fw-semibold text-secondary required-label" style="font-size: 0.85rem;">{{ form.gender.label }}{% if form.gender.field.required %}<span class="required-asterisk">*</span>{% endif %}</label>
+                                    {{ form.gender }}
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label fw-semibold text-secondary required-label" style="font-size: 0.85rem;">{{ form.dob.label }}{% if form.dob.field.required %}<span class="required-asterisk">*</span>{% endif %}</label>
+                                    {{ form.dob }}
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label text-muted fw-semibold small mb-1">Phone Number</label>
+                                    <input type="tel" name="phone_number" id="id_phone_number" class="form-control basic-info-field" placeholder="e.g., +233 XX XXX XXXX" value="{{ form.phone_number.value|default:'' }}">
                                 </div>
                             </div>
 
-                            <div class="row g-3 mb-4">
-                                <div class="col-md-6">
-                                    <label class="form-label fw-semibold text-secondary" style="font-size: 0.85rem;">{{ form.ssnit_id.label }}</label>
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-4">
+                                    <label class="form-label text-muted fw-semibold small mb-1 required-label">Email{% if form.email.field.required %}<span class="required-asterisk">*</span>{% endif %}</label>
+                                    <input type="email" name="email" id="id_email" class="form-control basic-info-field" placeholder="Email Address" value="{{ form.email.value|default:'' }}">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold text-secondary required-label" style="font-size: 0.85rem;">{{ form.ssnit_id.label }}{% if form.ssnit_id.field.required %}<span class="required-asterisk">*</span>{% endif %}</label>
                                     {{ form.ssnit_id }}
                                 </div>
                             </div>
 
-                            <div class="row g-3 mb-4">
+                            <div class="row g-3 mb-3">
                                 <div class="col-12">
                                     <label class="form-label text-muted fw-semibold small mb-1">Residential Address</label>
                                     {{ form.address }}
@@ -111,7 +136,7 @@
                             <h6 class="fw-bold mb-3" style="font-size: 0.9rem; color: #000000;">2. Employment &amp; Academic History</h6>
                             <div class="row g-3 mb-4">
                                 <div class="col-md-4">
-                                    <label class="form-label fw-semibold text-secondary" style="font-size: 0.85rem;">Designation</label>
+                                    <label class="form-label fw-semibold text-secondary required-label" style="font-size: 0.85rem;">Designation{% if form.designation.field.required %}<span class="required-asterisk">*</span>{% endif %}</label>
                                     {{ form.designation }}
                                     <datalist id="designations-list">
                                         {% for desig in designations %}
@@ -120,7 +145,7 @@
                                     </datalist>
                                 </div>
                                 <div class="col-md-4">
-                                    <label class="form-label fw-semibold text-secondary" style="font-size: 0.85rem;">Department</label>
+                                    <label class="form-label fw-semibold text-secondary required-label" style="font-size: 0.85rem;">Department{% if form.department.field.required %}<span class="required-asterisk">*</span>{% endif %}</label>
                                     {{ form.department }}
                                     <datalist id="departments-list">
                                         {% for dept in departments %}
@@ -129,31 +154,31 @@
                                     </datalist>
                                 </div>
                                 <div class="col-md-4">
-                                    <label class="form-label fw-semibold text-secondary" style="font-size: 0.85rem;">{{ form.employment_type.label }}</label>
+                                    <label class="form-label fw-semibold text-secondary required-label" style="font-size: 0.85rem;">{{ form.employment_type.label }}{% if form.employment_type.field.required %}<span class="required-asterisk">*</span>{% endif %}</label>
                                     {{ form.employment_type }}
                                 </div>
                                 <div class="col-md-4">
-                                    <label class="form-label fw-semibold text-secondary" style="font-size: 0.85rem;">{{ form.date_of_appointment.label }}</label>
+                                    <label class="form-label fw-semibold text-secondary required-label" style="font-size: 0.85rem;">{{ form.date_of_appointment.label }}{% if form.date_of_appointment.field.required %}<span class="required-asterisk">*</span>{% endif %}</label>
                                     {{ form.date_of_appointment }}
                                 </div>
                                 <div class="col-md-4">
-                                    <label class="form-label fw-semibold text-secondary" style="font-size: 0.85rem;">{{ form.year_of_last_promotion.label }}</label>
+                                    <label class="form-label fw-semibold text-secondary required-label" style="font-size: 0.85rem;">{{ form.year_of_last_promotion.label }}{% if form.year_of_last_promotion.field.required %}<span class="required-asterisk">*</span>{% endif %}</label>
                                     {{ form.year_of_last_promotion }}
                                 </div>
                                 <div class="col-md-4">
-                                    <label class="form-label fw-semibold text-secondary" style="font-size: 0.85rem;">{{ form.qualification.label }}</label>
+                                    <label class="form-label fw-semibold text-secondary required-label" style="font-size: 0.85rem;">{{ form.qualification.label }}{% if form.qualification.field.required %}<span class="required-asterisk">*</span>{% endif %}</label>
                                     {{ form.qualification }}
                                 </div>
                                 <div class="col-md-4">
-                                    <label class="form-label fw-semibold text-secondary" style="font-size: 0.85rem;">{{ form.certificate.label }}</label>
+                                    <label class="form-label fw-semibold text-secondary required-label" style="font-size: 0.85rem;">{{ form.certificate.label }}{% if form.certificate.field.required %}<span class="required-asterisk">*</span>{% endif %}</label>
                                     {{ form.certificate }}
                                 </div>
                                 <div class="col-md-4">
-                                    <label class="form-label fw-semibold text-secondary" style="font-size: 0.85rem;">{{ form.name_of_institution_completed.label }}</label>
+                                    <label class="form-label fw-semibold text-secondary required-label" style="font-size: 0.85rem;">{{ form.name_of_institution_completed.label }}{% if form.name_of_institution_completed.field.required %}<span class="required-asterisk">*</span>{% endif %}</label>
                                     {{ form.name_of_institution_completed }}
                                 </div>
                                 <div class="col-md-4">
-                                    <label class="form-label fw-semibold text-secondary" style="font-size: 0.85rem;">{{ form.year_completed.label }}</label>
+                                    <label class="form-label fw-semibold text-secondary required-label" style="font-size: 0.85rem;">{{ form.year_completed.label }}{% if form.year_completed.field.required %}<span class="required-asterisk">*</span>{% endif %}</label>
                                     {{ form.year_completed }}
                                 </div>
                             </div>

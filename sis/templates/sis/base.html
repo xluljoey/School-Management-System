@@ -12,7 +12,7 @@
             height: 100%;
             margin: 0;
             padding: 0;
-            background-color: #f8fafc;
+            background-color: #f8f9fa;
         }
         .sidebar {
             width: 284px;
@@ -110,7 +110,7 @@
             margin-left: 316px;
             min-height: 100vh;
             padding: 24px 32px;
-            background-color: #f8fafc;
+            background-color: #f8f9fa;
             overflow-y: auto;
             scrollbar-gutter: stable;
             display: flex;
@@ -316,7 +316,7 @@
         </header>
 
         <!-- DYNAMIC INNER PAGE CONTENT -->
-        <main class="page-content-canvas" style="flex-grow: 1; padding: 0 40px 40px 40px;">
+        <main class="page-content-canvas" style="flex: 1 1 auto; display: flex; flex-direction: column; min-height: calc(100vh - 120px); padding: 0 40px 40px 40px;">
 {% endif %}
 
             {% if messages %}
