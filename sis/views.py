@@ -93,6 +93,25 @@ def student_detail_view(request, student_id):
     student = get_object_or_404(Student, pk=student_id)
     return render(request, 'sis/student_detail.html', {'student': student})
 
+
+@login_required
+def student_edit_view(request, student_id):
+    student = get_object_or_404(Student, pk=student_id)
+    if request.method == 'POST':
+        student_form = StudentRegistrationForm(request.POST, request.FILES, instance=student)
+        if student_form.is_valid():
+            student_form.save()
+            messages.success(request, 'Student updated successfully.')
+            return redirect('student_detail', student_id=student.id)
+    else:
+        student_form = StudentRegistrationForm(instance=student)
+    return render(request, 'sis/student_registration.html', {
+        'student_form': student_form,
+        'is_edit': True,
+        'edit_student': student,
+    })
+
+
 @login_required
 def student_registration_view(request):
     if request.method == 'POST':
