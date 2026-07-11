@@ -799,12 +799,12 @@ def midterm_summary_view(request):
 
         if request.user.is_superuser:
             assigned_subjects = Subject.objects.filter(
-                staffclasssubject__classroom_id=selected_class_id
+                assigned_teachers__classroom_id=selected_class_id
             ).distinct()
         elif staff_profile:
             assigned_subjects = Subject.objects.filter(
-                staffclasssubject__staff=staff_profile,
-                staffclasssubject__classroom_id=selected_class_id
+                assigned_teachers__staff=staff_profile,
+                assigned_teachers__classroom_id=selected_class_id
             ).distinct()
 
         students = Student.objects.filter(enrollments__classroom=classroom).distinct()
