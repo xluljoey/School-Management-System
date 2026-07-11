@@ -46,15 +46,19 @@
                             <!-- Section 1: Basic Information -->
                             <h6 class="fw-bold mb-3" style="font-size: 0.9rem; color: #000000;">1. Basic Information</h6>
                             <div class="row g-3 mb-4">
-                                <div class="col-md-4">
+                                <div class="col-md-2">
                                     <label class="form-label fw-semibold text-secondary" style="font-size: 0.85rem;">{{ form.title.label }}</label>
                                     {{ form.title }}
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-3">
                                     <label class="form-label fw-semibold text-secondary" style="font-size: 0.85rem;">{{ form.first_name.label }}</label>
                                     {{ form.first_name }}
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-3">
+                                    <label class="form-label fw-semibold text-secondary" style="font-size: 0.85rem;">{{ form.other_names.label }}</label>
+                                    {{ form.other_names }}
+                                </div>
+                                <div class="col-md-4">
                                     <label class="form-label fw-semibold text-secondary" style="font-size: 0.85rem;">{{ form.last_name.label }}</label>
                                     {{ form.last_name }}
                                 </div>
@@ -152,7 +156,7 @@
                                 </div>
 
                                 <div class="card border-0 p-3" style="background: #fafafa; border-radius: 12px; border: 1px solid #e4e4e7 !important;">
-                                    <span id="subject-grid-title" class="fw-semibold text-dark small mb-3 d-block">Select a class pill above to assign corresponding subjects.</span>
+                                    <span id="subject-grid-title" class="fw-semibold text-dark small mb-3 d-block">Select a class from the dropdown above to assign corresponding subjects.</span>
 
                                     <div id="teacher-subjects-checkbox-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; width: 100%;">
                                     </div>
