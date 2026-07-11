@@ -9,7 +9,7 @@
             <h5 class="mb-0 fw-bold text-dark">Master Continuous Assessment Summary</h5>
             <small class="text-muted">Class: <strong>{{ classroom.class_name }}</strong>
             {% if verification %}
-                <span class="badge bg-success ms-2">Verified by {{ verification.verified_by.full_name }}</span>
+                <span class="badge bg-success ms-2">Verified by {{ verification.verified_by.first_name }} {{ verification.verified_by.last_name }}</span>
             {% endif %}
             </small>
         </div>

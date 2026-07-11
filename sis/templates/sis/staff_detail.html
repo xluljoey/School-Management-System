@@ -1,6 +1,6 @@
 {% extends 'sis/base.html' %}
 
-{% block title %}{{ staff_member.full_name }} - Staff Details{% endblock %}
+{% block title %}{{ staff_member.first_name }} {{ staff_member.last_name }} - Staff Details{% endblock %}
 
 {% block content %}
 <div class="card shadow-sm border-0">
@@ -16,10 +16,10 @@
         <div class="row mb-4">
             <div class="col-md-3 text-center mb-3 mb-md-0">
                 {% if staff_member.profile_picture %}
-                <img src="{{ staff_member.profile_picture.url }}" alt="{{ staff_member.full_name }}" class="img-fluid rounded-circle" style="width: 150px; height: 150px; object-fit: cover;">
+                <img src="{{ staff_member.profile_picture.url }}" alt="{{ staff_member.first_name }} {{ staff_member.last_name }}" class="img-fluid rounded-circle" style="width: 150px; height: 150px; object-fit: cover;">
                 {% else %}
                 <div class="bg-light rounded-circle d-flex align-items-center justify-content-center" style="width: 150px; height: 150px;">
-                    <span class="display-4 text-muted">{{ staff_member.full_name|slice:":1" }}</span>
+                    <span class="display-4 text-muted">{{ staff_member.first_name|slice:":1" }}</span>
                 </div>
                 {% endif %}
             </div>
@@ -32,7 +32,7 @@
                     </div>
                     <div class="col-sm-8">
                         <h6 class="text-muted small">Full Name</h6>
-                        <p class="fw-medium">{{ staff_member.title }} {{ staff_member.full_name }}</p>
+                        <p class="fw-medium">{{ staff_member.title }} {{ staff_member.first_name }} {{ staff_member.last_name }}</p>
                     </div>
                 </div>
                 

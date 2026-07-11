@@ -345,8 +345,8 @@ def register_staff_view(request):
             user, created = User.objects.get_or_create(
                 username=username,
                 defaults={
-                    'first_name': staff_profile.full_name.split()[0] if staff_profile.full_name else '',
-                    'last_name': ' '.join(staff_profile.full_name.split()[1:]) if staff_profile.full_name else '',
+                    'first_name': staff_profile.first_name,
+                    'last_name': staff_profile.last_name,
                     'email': staff_profile.email,
                     'is_staff': True,
                 }
@@ -666,7 +666,7 @@ def global_search_view(request):
     )[:5]
 
     staff = StaffProfile.objects.filter(
-        Q(full_name__icontains=q) | Q(staff_id__icontains=q)
+        Q(first_name__icontains=q) | Q(last_name__icontains=q) | Q(staff_id__icontains=q)
     )[:5]
 
     results = []
@@ -680,7 +680,7 @@ def global_search_view(request):
     for st in staff:
         results.append({
             'id': st.id,
-            'name': f"{st.full_name} ({st.staff_id})",
+            'name': f"{st.first_name} {st.last_name} ({st.staff_id})",
             'type': 'Staff',
             'url': reverse('staff_detail', args=[st.id]),
         })
@@ -976,7 +976,7 @@ def api_class_subjects(request):
         is_assigned = existing is not None
         assigned_teacher_name = None
         if is_assigned:
-            assigned_teacher_name = existing.staff.user.get_full_name() if existing.staff.user else existing.staff.full_name
+            assigned_teacher_name = existing.staff.user.get_full_name() if existing.staff.user else f"{existing.staff.first_name} {existing.staff.last_name}"
         subjects_list.append({
             'id': m.subject.id,
             'name': m.subject.subject_name,

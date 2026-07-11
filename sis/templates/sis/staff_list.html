@@ -29,9 +29,9 @@
             <tr style="cursor: pointer; transition: background 0.15s;" onclick="window.location='{% url 'staff_detail' member.id %}';">
                 <td style="padding: 14px 16px; border-bottom: 1px solid #f5f5f5;">
                     <div style="display: flex; align-items: center; gap: 12px;">
-                        <span style="width: 40px; height: 40px; border-radius: 50%; background-color: #000000; color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1rem; flex-shrink: 0;">{{ member.full_name|first|upper }}</span>
+                        <span style="width: 40px; height: 40px; border-radius: 50%; background-color: #000000; color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1rem; flex-shrink: 0;">{{ member.first_name|first|upper }}</span>
                         <div>
-                            <div style="font-weight: 600; color: #000000; font-size: 0.9rem;">{{ member.title }} {{ member.full_name }}</div>
+                            <div style="font-weight: 600; color: #000000; font-size: 0.9rem;">{{ member.title }} {{ member.first_name }} {{ member.last_name }}</div>
                             <div style="color: #8E8D93; font-size: 0.8rem;">{{ member.staff_id }}</div>
                         </div>
                     </div>

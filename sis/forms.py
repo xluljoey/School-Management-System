@@ -120,7 +120,7 @@ class StaffRegistrationForm(forms.ModelForm):
     class Meta:
         model = StaffProfile
         fields = [
-            'title', 'full_name', 'staff_id', 'gender', 'dob',
+            'title', 'first_name', 'last_name', 'staff_id', 'gender', 'dob',
             'ssnit_id', 'email', 'employment_type', 'date_of_appointment',
             'year_of_last_promotion', 'qualification', 'certificate',
             'name_of_institution_completed', 'year_completed', 'profile_picture',
@@ -128,7 +128,8 @@ class StaffRegistrationForm(forms.ModelForm):
         ]
         widgets = {
             'title': forms.Select(attrs={'class': 'form-select'}),
-            'full_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Full Name'}),
+            'first_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'First Name'}),
+            'last_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Last Name'}),
             'staff_id': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Staff ID'}),
             'gender': forms.Select(attrs={'class': 'form-select'}),
             'dob': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),

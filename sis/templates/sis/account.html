@@ -25,7 +25,7 @@
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 14px;">
             <div><strong>Username:</strong> {{ user.username }}</div>
             <div><strong>Email:</strong> {{ staff_profile.email|default:user.email|default:"—" }}</div>
-            <div><strong>Full Name:</strong> {{ staff_profile.full_name|default:user.get_full_name|default:"—" }}</div>
+            <div><strong>Full Name:</strong> {{ staff_profile.first_name|default:"", staff_profile.last_name|default:""|join:" "|default:user.get_full_name|default:"—" }}</div>
             <div><strong>Gender:</strong> {{ staff_profile.gender|default:"—" }}</div>
             <div><strong>Staff ID:</strong> {{ staff_profile.staff_id|default:"—" }}</div>
             <div><strong>Designation:</strong> {{ staff_profile.designation.name|default:"—" }}</div>

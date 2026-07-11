@@ -29,7 +29,8 @@ class StudentRegistrationTests(TestCase):
         subject = Subject.objects.create(subject_name="ICT")
         response = self.client.post(reverse("register_staff"), {
             "title": "Mr.",
-            "full_name": "Kwame Boateng",
+            "first_name": "Kwame",
+            "last_name": "Boateng",
             "staff_id": "STAFF-001",
             "gender": "Male",
             "dob": "1985-01-01",
@@ -47,7 +48,7 @@ class StudentRegistrationTests(TestCase):
         })
         self.assertEqual(response.status_code, 302)
         staff = StaffProfile.objects.get(staff_id="STAFF-001")
-        self.assertEqual(staff.full_name, "Kwame Boateng")
+        self.assertEqual(f"{staff.first_name} {staff.last_name}", "Kwame Boateng")
         self.assertIn(subject, staff.subject_areas.all())
 
     def test_student_list_renders_with_classrooms(self):
