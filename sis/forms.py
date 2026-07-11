@@ -122,7 +122,7 @@ class StaffRegistrationForm(forms.ModelForm):
         model = StaffProfile
         fields = [
             'title', 'first_name', 'last_name', 'other_names', 'staff_id', 'gender', 'dob',
-            'ssnit_id', 'email', 'employment_type', 'date_of_appointment',
+            'ssnit_id', 'phone_number', 'email', 'employment_type', 'date_of_appointment',
             'year_of_last_promotion', 'qualification', 'certificate',
             'name_of_institution_completed', 'year_completed', 'profile_picture',
             'form_class', 'subject_areas',
@@ -136,6 +136,7 @@ class StaffRegistrationForm(forms.ModelForm):
             'gender': forms.Select(attrs={'class': 'form-select'}),
             'dob': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'ssnit_id': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'SSNIT ID'}),
+            'phone_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., +233 XX XXX XXXX'}),
             'email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'Email Address'}),
             'employment_type': forms.Select(attrs={'class': 'form-select'}),
             'date_of_appointment': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),

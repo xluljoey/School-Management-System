@@ -65,6 +65,7 @@ class StaffProfile(models.Model):
     dob = models.DateField(verbose_name="Date of Birth", default=date.today)
     designation = models.ForeignKey(Designation, on_delete=models.SET_NULL, null=True, blank=True)
     ssnit_id = models.CharField(max_length=50, blank=True, null=True, verbose_name="SSNIT ID")
+    phone_number = models.CharField(max_length=15, blank=True, null=True, verbose_name="Phone Number")
     email = models.EmailField(unique=True)
     employment_type = models.CharField(max_length=50, choices=EMPLOYMENT_CHOICES, default='Permanent')
     date_of_appointment = models.DateField(default=date.today)

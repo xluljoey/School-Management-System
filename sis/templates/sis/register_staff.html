@@ -80,11 +80,21 @@
                                     <label class="form-label fw-semibold text-secondary" style="font-size: 0.85rem;">{{ form.dob.label }}</label>
                                     {{ form.dob }}
                                 </div>
-                                <div class="col-md-4">
-                                    <label class="form-label fw-semibold text-secondary" style="font-size: 0.85rem;">{{ form.email.label }}</label>
-                                    {{ form.email }}
+                            </div>
+
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label text-muted fw-semibold small mb-1">Phone Number</label>
+                                    <input type="tel" name="phone_number" id="id_phone_number" class="form-control" placeholder="e.g., +233 XX XXX XXXX" style="border-radius: 8px; border: 1px solid #e4e4e7; padding: 10px 14px; font-size: 14px;" value="{{ form.phone_number.value|default:'' }}">
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-md-6">
+                                    <label class="form-label text-muted fw-semibold small mb-1">Email (Optional)</label>
+                                    <input type="email" name="email" id="id_email" class="form-control" placeholder="Email Address" style="border-radius: 8px; border: 1px solid #e4e4e7; padding: 10px 14px; font-size: 14px;" value="{{ form.email.value|default:'' }}">
+                                </div>
+                            </div>
+
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-6">
                                     <label class="form-label fw-semibold text-secondary" style="font-size: 0.85rem;">{{ form.ssnit_id.label }}</label>
                                     {{ form.ssnit_id }}
                                 </div>
