@@ -337,6 +337,15 @@ def register_staff_view(request):
                 desig, _ = Designation.objects.get_or_create(name=desig_name)
                 staff_profile.designation = desig
 
+            # Parse full_name into first/last/other if the individual fields weren't
+            # populated directly by the form (the form still carries `full_name`).
+            full = getattr(staff_profile, 'full_name', '') or ''
+            if full and not staff_profile.first_name:
+                parts = full.strip().split(None, 2)
+                staff_profile.first_name = parts[0] if len(parts) > 0 else ''
+                staff_profile.last_name = parts[-1] if len(parts) > 1 else ''
+                staff_profile.other_names = ' '.join(parts[1:-1]) if len(parts) > 2 else ''
+
             # Create a corresponding user account using staff_id as username
             username = staff_profile.staff_id
             password = 'staff123'  # Default password

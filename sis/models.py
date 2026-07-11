@@ -55,7 +55,10 @@ class StaffProfile(models.Model):
     ]
 
     title = models.CharField(max_length=20, choices=TITLE_CHOICES, default='Mr.')
-    full_name = models.CharField(max_length=255, default='')
+    first_name = models.CharField(max_length=100, default='')
+    last_name = models.CharField(max_length=100, default='')
+    other_names = models.CharField(max_length=100, blank=True, null=True, default='')
+    #full_name = models.CharField(max_length=255, default='')
     staff_id = models.CharField(max_length=50, unique=True, default='')
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='staff_profile', null=True, blank=True)
     gender = models.CharField(max_length=10, choices=GENDER_CHOICES, default='Male')
@@ -76,9 +79,20 @@ class StaffProfile(models.Model):
     form_class = models.OneToOneField('ClassRoom', on_delete=models.SET_NULL, null=True, blank=True, related_name='form_teacher')
     subject_areas = models.ManyToManyField('Subject', related_name='teachers', help_text="Select all subjects this staff member is assigned to teach.")
 
+    @property
+    def avatar_initial(self):
+        for name_part in [self.first_name, self.other_names, self.last_name]:
+            if name_part:
+                return str(name_part).strip()[0].upper()
+        if self.user and self.user.first_name:
+            return self.user.first_name[0].upper()
+        if hasattr(self, 'full_name') and self.full_name:
+            return self.full_name.strip()[0].upper()
+        return ""
+
     def __str__(self):
-        return f"{self.title} {self.full_name}"
-    
+        return f"{self.title} {self.first_name} {self.last_name} {self.other_names or ''} ({self.staff_id})"
+
 class Parent(models.Model):
     name = models.CharField(max_length=255, blank=True, null=True)
     occupation = models.CharField(max_length=150, blank=True, null=True)
@@ -122,6 +136,7 @@ class Student(models.Model):
     admission_number = models.CharField(max_length=50, unique=True)
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
+    other_names = models.CharField(max_length=100, blank=True, null=True, default='')
     dob = models.DateField(verbose_name='Date of Birth')
     date_of_admission = models.DateField(default=date.today)
     gender = models.CharField(max_length=10, choices=GENDER_CHOICES)
