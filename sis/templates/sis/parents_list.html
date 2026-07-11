@@ -1,0 +1,68 @@
+{% extends 'sis/base.html' %}
+{% load static %}
+
+{% block title %}Parent Directory{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-1" style="color: #000000;">All Parents</h4>
+        <span style="color: #8E8D93; font-size: 0.85rem;">{{ parents|length }} parent{{ parents|length|pluralize }} total</span>
+    </div>
+</div>
+
+<div class="table-responsive">
+    <table class="table table-hover align-middle" style="border-collapse: separate; border-spacing: 0;">
+        <thead>
+            <tr style="color: #8E8D93; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+                <th style="padding: 12px 16px; border-bottom: 1px solid #f0f0f0;">Parent</th>
+                <th style="padding: 12px 16px; border-bottom: 1px solid #f0f0f0;">Contact</th>
+                <th style="padding: 12px 16px; border-bottom: 1px solid #f0f0f0;">Occupation</th>
+                <th style="padding: 12px 16px; border-bottom: 1px solid #f0f0f0;">Children</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for parent in parents %}
+            <tr style="border-bottom: 1px solid #f5f5f5;">
+                <td style="padding: 14px 16px;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <span style="width: 36px; height: 36px; border-radius: 50%; background-color: #000000; color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem; flex-shrink: 0;">{{ parent.name|first|upper }}</span>
+                        <div>
+                            <div style="font-weight: 600; color: #000000; font-size: 0.9rem;">{{ parent.name }}</div>
+                            {% if parent.email %}
+                            <div style="color: #8E8D93; font-size: 0.8rem;">{{ parent.email }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </td>
+                <td style="padding: 14px 16px; border-bottom: 1px solid #f5f5f5; color: #1A1A1A; font-size: 0.9rem;">
+                    {% if parent.telephone_number %}
+                    <div style="font-size: 0.9rem;">{{ parent.telephone_number }}</div>
+                    {% else %}
+                    <span style="color: #8E8D93; font-size: 0.85rem;">&mdash;</span>
+                    {% endif %}
+                </td>
+                <td style="padding: 14px 16px; border-bottom: 1px solid #f5f5f5; color: #1A1A1A; font-size: 0.9rem;">
+                    {{ parent.occupation|default:"&mdash;" }}
+                </td>
+                <td style="padding: 14px 16px; border-bottom: 1px solid #f5f5f5;">
+                    {% with father_count=parent.father_of.count mother_count=parent.mother_of.count %}
+                    {% if father_count or mother_count %}
+                    <span style="background-color: #E8F5E9; color: #2E7D32; border-radius: 12px; padding: 4px 12px; font-weight: 500; font-size: 0.8rem; display: inline-block;">
+                        {{ father_count|add:mother_count }} student{{ father_count|add:mother_count|pluralize }}
+                    </span>
+                    {% else %}
+                    <span style="color: #8E8D93; font-size: 0.85rem;">&mdash;</span>
+                    {% endif %}
+                    {% endwith %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4" class="text-center py-5" style="color: #8E8D93;">No parents registered yet.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

@@ -1193,3 +1193,24 @@ def view_account(request):
         'subjects_with_classes': subjects_with_classes,
         'my_students': my_students,
     })
+
+
+@login_required
+def parents_list(request):
+    user = request.user
+
+    if user.is_superuser:
+        parents = Parent.objects.all().order_by('name')
+    elif hasattr(user, 'staff_profile'):
+        staff = user.staff_profile
+        classroom_ids = StaffClassSubject.objects.filter(
+            staff=staff
+        ).values_list('classroom_id', flat=True).distinct()
+        parents = Parent.objects.filter(
+            Q(father_of__classroom_id__in=classroom_ids) |
+            Q(mother_of__classroom_id__in=classroom_ids)
+        ).distinct().order_by('name')
+    else:
+        parents = Parent.objects.none()
+
+    return render(request, 'sis/parents_list.html', {'parents': parents})

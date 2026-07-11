@@ -203,6 +203,9 @@
                     <a href="{% url 'student_list' %}" class="{% if request.path == '/students/' %}active{% endif %}">
                         <i class="bi bi-mortarboard"></i> Students
                     </a>
+                    <a href="{% url 'parents_list' %}" class="{% if request.resolver_match.url_name == 'parents_list' %}active{% endif %}">
+                        <i class="bi bi-people-fill"></i> Parents
+                    </a>
                     <a href="{% url 'reports' %}" class="{% if request.path == '/reports/' %}active{% endif %}">
                         <i class="bi bi-bar-chart"></i> Report
                     </a>
@@ -224,6 +227,9 @@
                     </a>
                     <a href="{% url 'student_list' %}" class="{% if request.path == '/students/' %}active{% endif %}">
                         <i class="bi bi-mortarboard"></i> Students
+                    </a>
+                    <a href="{% url 'parents_list' %}" class="{% if request.resolver_match.url_name == 'parents_list' %}active{% endif %}">
+                        <i class="bi bi-people-fill"></i> Parents
                     </a>
                     <a href="{% url 'reports' %}" class="{% if request.path == '/reports/' %}active{% endif %}">
                         <i class="bi bi-bar-chart"></i> Report
