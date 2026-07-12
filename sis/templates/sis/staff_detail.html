@@ -85,18 +85,23 @@
                     <label style="font-size: 11px; font-weight: 600; color: #a1a1aa; text-transform: uppercase;">Years of Experience</label>
                     <p style="font-size: 14px; font-weight: 500; color: #111; margin: 4px 0 0;">{{ staff_member.years_of_experience|default:"--" }}</p>
                 </div>
-                {% if staff_member.form_class %}
                 <div>
-                    <label style="font-size: 11px; font-weight: 600; color: #a1a1aa; text-transform: uppercase;">Form Class</label>
-                    <p style="font-size: 14px; font-weight: 500; color: #111; margin: 4px 0 0;">{{ staff_member.form_class.class_name }}</p>
+                    <div class="text-muted text-uppercase fw-semibold" style="font-size: 11px;">Form Class</div>
+                    <div class="d-flex align-items-center gap-2 mt-1">
+                        <span class="text-dark fw-medium" id="currentFormClassDisplay">{{ staff_member.form_class.class_name|default:"None" }}</span>
+                        {% if request.user.is_superuser or request.user.is_staff %}
+                        <button type="button" class="btn btn-sm btn-light border rounded-pill px-2 py-0 d-flex align-items-center gap-1 text-primary fw-medium" style="font-size: 11px;" data-bs-toggle="modal" data-bs-target="#assignClassModal">
+                            <i class="bi bi-pencil"></i> Assign Form Class
+                        </button>
+                        {% endif %}
+                    </div>
                 </div>
-                {% endif %}
             </div>
         </div>
     </div>
 </div>
 
-{% if request.user.is_staff or request.user.is_superuser %}
+{% if request.user.is_superuser or request.user.is_staff %}
     <div style="position: fixed; bottom: 32px; right: 32px; z-index: 1050;">
         <a href="{% url 'staff_edit' staff_member.id %}"
            class="btn btn-dark d-flex align-items-center justify-content-center gap-2"
@@ -106,4 +111,102 @@
         </a>
     </div>
 {% endif %}
+
+<!-- Assign Form Class Modal -->
+<div class="modal fade" id="assignClassModal" data-bs-backdrop="static" tabindex="-1" aria-labelledby="assignClassModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+            <div class="modal-header border-bottom pb-2">
+                <h5 class="modal-title fw-bold text-dark" id="assignClassModalLabel" style="font-size: 18px; letter-spacing: -0.3px;">Assign Form Class</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body py-4">
+                <div id="selectionPhase">
+                    <label class="form-label fw-semibold text-dark mb-1" style="font-size: 14px;">Select Target Class</label>
+                    <select class="form-select rounded-3" id="classSelectField" style="font-size: 14px;">
+                        <option value="" selected disabled>Choose a class...</option>
+                        {% for class_obj in all_classes %}
+                            <option value="{{ class_obj.id }}" data-current-teacher="{{ class_obj.form_teacher.first_name|default:'' }} {{ class_obj.form_teacher.last_name|default:'' }}">
+                                {{ class_obj.class_name }}{% if class_obj.form_teacher %} (Assigned to {{ class_obj.form_teacher.first_name }} {{ class_obj.form_teacher.last_name }}){% endif %}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    <div class="mt-4 d-flex justify-content-end gap-2">
+                        <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal" style="font-size: 14px;">Cancel</button>
+                        <button type="button" class="btn btn-dark rounded-pill px-4" id="submitSelectionBtn" style="font-size: 14px; background-color: #121214;">Assign</button>
+                    </div>
+                </div>
+
+                <div id="warningPhase" class="d-none">
+                    <div class="alert alert-warning border-0 p-3 rounded-3 d-flex gap-2" style="background-color: #fef3c7; color: #92400e;">
+                        <i class="bi bi-exclamation-triangle-fill fs-5 mt-0.5"></i>
+                        <div>
+                            <h6 class="fw-bold mb-1" style="font-size: 14px;">Class Assignment Conflict</h6>
+                            <p class="mb-0" style="font-size: 13px; line-height: 1.5;">
+                                <span id="conflictClassName" class="fw-bold"></span> is already assigned to <span id="conflictTeacherName" class="fw-bold"></span>. Do you want to replace them as the current form class teacher?
+                            </p>
+                        </div>
+                    </div>
+                    <div class="mt-4 d-flex justify-content-end gap-2">
+                        <button type="button" class="btn btn-light rounded-pill px-4" id="cancelWarningBtn" style="font-size: 14px;">Cancel</button>
+                        <button type="button" class="btn btn-warning rounded-pill px-4 text-dark fw-semibold" id="confirmWarningBtn" style="font-size: 14px;">Confirm & Replace</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const classSelect = document.getElementById('classSelectField');
+    const submitBtn = document.getElementById('submitSelectionBtn');
+    const selectionPhase = document.getElementById('selectionPhase');
+    const warningPhase = document.getElementById('warningPhase');
+    const cancelWarning = document.getElementById('cancelWarningBtn');
+    const confirmWarning = document.getElementById('confirmWarningBtn');
+
+    cancelWarning.addEventListener('click', function() {
+        warningPhase.classList.add('d-none');
+        selectionPhase.classList.remove('d-none');
+    });
+
+    submitBtn.addEventListener('click', function() {
+        const selectedOption = classSelect.options[classSelect.selectedIndex];
+        const currentTeacher = selectedOption.getAttribute('data-current-teacher').trim();
+
+        if (!classSelect.value) return;
+
+        if (currentTeacher) {
+            document.getElementById('conflictClassName').innerText = selectedOption.text.split('(')[0].trim();
+            document.getElementById('conflictTeacherName').innerText = currentTeacher;
+            selectionPhase.classList.add('d-none');
+            warningPhase.classList.remove('d-none');
+        } else {
+            executeAssignment(classSelect.value);
+        }
+    });
+
+    confirmWarning.addEventListener('click', function() {
+        executeAssignment(classSelect.value);
+    });
+
+    function executeAssignment(classId) {
+        fetch("{% url 'assign_form_class' staff_member.id %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ class_id: classId })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                window.location.reload();
+            }
+        });
+    }
+});
+</script>
 {% endblock %}

@@ -8,6 +8,8 @@ from django.core.exceptions import PermissionDenied
 from django.db.models import Q
 from django.http import JsonResponse
 from django.urls import reverse
+from django.views.decorators.http import require_POST
+import json
 from .models import (
     Parent, Student, Subject, SubjectAssessment, ClassRoom, Enrollment,
     StaffProfile, AcademicSession, Term, ClassSubject, PromotionCriteria,
@@ -447,7 +449,37 @@ def staff_list_view(request):
 @login_required
 def staff_detail_view(request, staff_id):
     staff_member = get_object_or_404(StaffProfile, pk=staff_id)
-    return render(request, 'sis/staff_detail.html', {'staff_member': staff_member})
+    all_classes = ClassRoom.objects.all()
+    return render(request, 'sis/staff_detail.html', {
+        'staff_member': staff_member,
+        'all_classes': all_classes,
+    })
+
+
+@login_required
+@require_POST
+def assign_form_class(request, staff_id):
+    if not (request.user.is_superuser or request.user.is_staff):
+        return JsonResponse({'success': False, 'error': 'Unauthorized'}, status=403)
+
+    data = json.loads(request.body)
+    class_id = data.get('class_id')
+
+    target_staff = get_object_or_404(StaffProfile, pk=staff_id)
+    target_class = get_object_or_404(ClassRoom, pk=class_id)
+
+    try:
+        old_teacher = target_class.form_teacher
+        if old_teacher:
+            old_teacher.form_class = None
+            old_teacher.save()
+    except StaffProfile.DoesNotExist:
+        pass
+
+    target_staff.form_class = target_class
+    target_staff.save()
+
+    return JsonResponse({'success': True})
 
 
 @login_required

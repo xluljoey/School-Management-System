@@ -27,6 +27,7 @@ from .views import (
     parents_list,
     parent_detail_view,
     parent_edit_view,
+    assign_form_class,
 )
 
 urlpatterns = [
@@ -46,6 +47,7 @@ urlpatterns = [
     path('staff/register/', register_staff_view, name='register_staff'),
     path('staff/list/', staff_list_view, name='staff_list'),
     path('staff/<int:staff_id>/', staff_detail_view, name='staff_detail'),
+    path('staff/<int:staff_id>/assign-form-class/', assign_form_class, name='assign_form_class'),
     path('staff/<int:staff_id>/edit/', staff_edit_view, name='staff_edit'),
     path('grades/entry/<int:class_id>/<int:subject_id>/', bulk_grade_entry_view, name='bulk_grade_entry'),
     path('reports/compile/', compile_grades_view, name='compile_grades'),
