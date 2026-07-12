@@ -1,0 +1,84 @@
+{% extends 'sis/base.html' %}
+
+{% block content %}
+<div class="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between mb-4 border-bottom pb-3 gap-3" style="border-color: #f4f4f5 !important;">
+    <div>
+        <h4 class="fw-bold text-dark mb-1" style="font-size: 22px; letter-spacing: -0.5px;">Academic Registry</h4>
+        <p class="text-muted mb-0" style="font-size: 13px;">Manage institutional class structures and subject rosters</p>
+    </div>
+    <ul class="nav nav-pills bg-light p-1 rounded-pill border" id="academicTab" role="tablist" style="max-width: fit-content; border-color: #e4e4e7 !important;">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active rounded-pill px-4 py-1 fw-medium" id="classes-tab" data-bs-toggle="tab" data-bs-target="#classes-panel" type="button" role="tab" aria-controls="classes-panel" aria-selected="true" style="font-size: 13px;">Classes</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link rounded-pill px-4 py-1 fw-medium" id="subjects-tab" data-bs-toggle="tab" data-bs-target="#subjects-panel" type="button" role="tab" aria-controls="subjects-panel" aria-selected="false" style="font-size: 13px;">Subjects</button>
+        </li>
+    </ul>
+</div>
+
+<div class="tab-content" id="academicTabContent">
+    <div class="tab-pane fade show active" id="classes-panel" role="tabpanel" aria-labelledby="classes-tab">
+        <div class="row g-4">
+            {% for class_obj in classes %}
+            <div class="col-12 col-md-6 col-lg-4 col-xl-3">
+                <div class="card border-0 p-4 h-100 position-relative transition-card"
+                     style="border-radius: 20px; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.01); background-color: #fcfdfd; border-left: 5px solid {{ class_obj.accent_color|default:'#121214' }} !important;">
+                    <div class="d-flex align-items-start justify-content-between mb-3">
+                        <div class="rounded-3 p-2 d-flex align-items-center justify-content-center" style="background-color: {{ class_obj.bg_light|default:'#f4f4f5' }}; color: {{ class_obj.accent_color|default:'#121214' }};">
+                            <i class="bi bi-building fs-5"></i>
+                        </div>
+                        <span class="badge bg-light border text-muted px-2 py-1 rounded-pill" style="font-size: 11px;">{{ class_obj.student_count|default:"0" }} Students</span>
+                    </div>
+                    <h5 class="fw-bold text-dark mb-1" style="font-size: 18px; letter-spacing: -0.3px;">{{ class_obj.name }}</h5>
+                    <p class="text-muted mb-0" style="font-size: 13px;">Form Teacher: <span class="fw-medium text-secondary">{{ class_obj.form_teacher|default:"Unassigned" }}</span></p>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-12 text-center py-5 text-muted">No classes configured for this term.</div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="tab-pane fade" id="subjects-panel" role="tabpanel" aria-labelledby="subjects-tab">
+        <div class="row g-4">
+            {% for subject in subjects %}
+            <div class="col-12 col-md-6 col-lg-4 col-xl-3">
+                <div class="card border-0 p-4 h-100 position-relative transition-card"
+                     style="border-radius: 20px; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.01); background-color: #fafbfc; border-top: 4px solid {{ subject.accent_color|default:'#4f46e5' }} !important;">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 36px; height: 36px; background-color: {{ subject.bg_light|default:'#eef2ff' }}; color: {{ subject.accent_color|default:'#4f46e5' }};">
+                            <i class="bi bi-journal-bookmark-fill" style="font-size: 14px;"></i>
+                        </div>
+                        <span class="text-muted fw-semibold" style="font-size: 11px;">{{ subject.code|default:"SUBJ" }}</span>
+                    </div>
+                    <h5 class="fw-bold text-dark mb-1" style="font-size: 16px;">{{ subject.name }}</h5>
+                    <p class="text-muted mb-0" style="font-size: 12px;">Department: {{ subject.department|default:"General" }}</p>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-12 text-center py-5 text-muted">No subjects registered yet.</div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<style>
+.transition-card {
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease;
+}
+.transition-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 20px -5px rgba(0,0,0,0.04) !important;
+}
+#academicTab .nav-link {
+    color: #71717a;
+    background: transparent;
+    border: none;
+}
+#academicTab .nav-link.active {
+    color: #121214 !important;
+    background-color: #ffffff !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08) !important;
+}
+</style>
+{% endblock %}

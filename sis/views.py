@@ -1289,3 +1289,24 @@ def parent_edit_view(request, parent_id):
         'form': form,
         'parent': parent,
     })
+
+
+def classes_subjects_hub(request):
+    mock_classes = [
+        {'name': 'CLASS 1', 'student_count': 24, 'accent_color': '#22c55e', 'bg_light': '#f0fdf4', 'form_teacher': None},
+        {'name': 'JHS 1', 'student_count': 32, 'accent_color': '#3b82f6', 'bg_light': '#eff6ff', 'form_teacher': None},
+        {'name': 'JHS 2', 'student_count': 28, 'accent_color': '#eab308', 'bg_light': '#fefce8', 'form_teacher': None},
+        {'name': 'JHS 3', 'student_count': 30, 'accent_color': '#a855f7', 'bg_light': '#faf5ff', 'form_teacher': None},
+    ]
+
+    mock_subjects = [
+        {'name': 'Mathematics', 'code': 'MATH', 'department': 'Science & Mathematics', 'accent_color': '#3b82f6', 'bg_light': '#eff6ff'},
+        {'name': 'English Language', 'code': 'ENG', 'department': 'Language Arts', 'accent_color': '#ec4899', 'bg_light': '#fdf2f8'},
+        {'name': 'Integrated Science', 'code': 'SCI', 'department': 'Science & Mathematics', 'accent_color': '#22c55e', 'bg_light': '#f0fdf4'},
+        {'name': 'Social Studies', 'code': 'SOC', 'department': 'Humanities', 'accent_color': '#f97316', 'bg_light': '#fff7ed'},
+    ]
+
+    return render(request, 'sis/classes_subjects_hub.html', {
+        'classes': mock_classes,
+        'subjects': mock_subjects,
+    })
