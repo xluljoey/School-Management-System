@@ -1,3 +1,7 @@
+import io
+
+from PIL import Image
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.urls import reverse
 
@@ -51,11 +55,47 @@ class StudentRegistrationTests(TestCase):
         self.assertEqual(f"{staff.first_name} {staff.last_name}", "Kwame Boateng")
         self.assertIn(subject, staff.subject_areas.all())
 
+    def test_staff_registration_uploads_profile_picture(self):
+        classroom = ClassRoom.objects.create(class_name="JHS 2")
+        subject = Subject.objects.create(subject_name="Science")
+        image_bytes = io.BytesIO()
+        Image.new("RGB", (100, 100), color="blue").save(image_bytes, format="PNG")
+        uploaded_file = SimpleUploadedFile(
+            "avatar.png",
+            image_bytes.getvalue(),
+            content_type="image/png",
+        )
+
+        response = self.client.post(reverse("register_staff"), {
+            "title": "Ms.",
+            "first_name": "Ama",
+            "last_name": "Boateng",
+            "staff_id": "STAFF-002",
+            "gender": "Female",
+            "dob": "1990-02-02",
+            "designation": "Teacher",
+            "email": "ama@example.com",
+            "employment_type": "Permanent",
+            "date_of_appointment": "2021-01-01",
+            "department": "Science",
+            "qualification": "Degree",
+            "certificate": "B.Ed",
+            "name_of_institution_completed": "KNUST",
+            "year_completed": "2021",
+            "form_class": classroom.id,
+            "subject_areas": [subject.id],
+            "profile_picture": uploaded_file,
+        })
+
+        self.assertEqual(response.status_code, 302)
+        staff = StaffProfile.objects.get(staff_id="STAFF-002")
+        self.assertTrue(staff.profile_picture)
+
     def test_staff_avatar_initial_uses_name_when_no_picture(self):
         staff = StaffProfile.objects.create(
             first_name="Ada",
             last_name="Lovelace",
-            staff_id="STAFF-002",
+            staff_id="STAFF-003",
             email="ada@example.com",
         )
 

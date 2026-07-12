@@ -9,6 +9,31 @@
         opacity: 0.9;
         transform: translateY(-0.5px);
     }
+
+    .basic-info-field {
+        border-radius: 10px;
+        border: 1px solid #e4e4e7;
+        padding: 10px 14px;
+        font-size: 14px;
+        height: 42px;
+    }
+
+    .basic-info-field:focus {
+        border-color: #111111;
+        box-shadow: 0 0 0 0.2rem rgba(17, 17, 17, 0.08);
+    }
+
+    .required-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+    }
+
+    .required-asterisk {
+        color: #dc3545;
+        font-weight: 700;
+        line-height: 1;
+    }
 </style>
 <div class="row justify-content-center">
     <div class="col-lg-11">
@@ -64,47 +89,48 @@
 
                         <!-- RIGHT COLUMN — Input Fields -->
                         <div class="col-lg-8">
-                            <div class="row g-3">
+                            <h6 class="fw-bold mb-3" style="font-size: 0.9rem; color: #000000;">1. Basic Information</h6>
+                            <div class="row g-3 mb-4">
                                 <div class="col-md-6">
-                                    <label class="form-label fw-semibold text-secondary" style="font-size: 0.85rem;">First Name</label>
+                                    <label class="form-label fw-semibold text-secondary required-label" style="font-size: 0.85rem;">{{ student_form.first_name.label }}{% if student_form.first_name.field.required %}<span class="required-asterisk">*</span>{% endif %}</label>
                                     {{ student_form.first_name }}
                                     {% if student_form.first_name.errors %}
                                         <div class="text-danger small">{{ student_form.first_name.errors.0 }}</div>
                                     {% endif %}
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="form-label fw-semibold text-secondary" style="font-size: 0.85rem;">Last Name</label>
+                                    <label class="form-label fw-semibold text-secondary required-label" style="font-size: 0.85rem;">{{ student_form.last_name.label }}{% if student_form.last_name.field.required %}<span class="required-asterisk">*</span>{% endif %}</label>
                                     {{ student_form.last_name }}
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="form-label fw-semibold text-secondary" style="font-size: 0.85rem;">Other Names (optional)</label>
+                                    <label class="form-label fw-semibold text-secondary required-label" style="font-size: 0.85rem;">{{ student_form.other_names.label }}{% if student_form.other_names.field.required %}<span class="required-asterisk">*</span>{% endif %}</label>
                                     {{ student_form.other_names }}
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="form-label fw-semibold text-secondary" style="font-size: 0.85rem;">Admission Number</label>
+                                    <label class="form-label fw-semibold text-secondary required-label" style="font-size: 0.85rem;">{{ student_form.admission_number.label }}{% if student_form.admission_number.field.required %}<span class="required-asterisk">*</span>{% endif %}</label>
                                     {{ student_form.admission_number }}
                                     {% if student_form.admission_number.errors %}
                                         <div class="text-danger small">{{ student_form.admission_number.errors.0 }}</div>
                                     {% endif %}
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="form-label fw-semibold text-secondary" style="font-size: 0.85rem;">Date of Birth</label>
+                                    <label class="form-label fw-semibold text-secondary required-label" style="font-size: 0.85rem;">{{ student_form.dob.label }}{% if student_form.dob.field.required %}<span class="required-asterisk">*</span>{% endif %}</label>
                                     {{ student_form.dob }}
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="form-label fw-semibold text-secondary" style="font-size: 0.85rem;">Gender</label>
+                                    <label class="form-label fw-semibold text-secondary required-label" style="font-size: 0.85rem;">{{ student_form.gender.label }}{% if student_form.gender.field.required %}<span class="required-asterisk">*</span>{% endif %}</label>
                                     {{ student_form.gender }}
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="form-label fw-semibold text-secondary" style="font-size: 0.85rem;">Status</label>
+                                    <label class="form-label fw-semibold text-secondary required-label" style="font-size: 0.85rem;">{{ student_form.status.label }}{% if student_form.status.field.required %}<span class="required-asterisk">*</span>{% endif %}</label>
                                     {{ student_form.status }}
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="form-label fw-semibold text-secondary" style="font-size: 0.85rem;">Living With</label>
+                                    <label class="form-label fw-semibold text-secondary required-label" style="font-size: 0.85rem;">{{ student_form.living_with.label }}{% if student_form.living_with.field.required %}<span class="required-asterisk">*</span>{% endif %}</label>
                                     {{ student_form.living_with }}
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="form-label fw-semibold text-secondary" style="font-size: 0.85rem;">Previous School</label>
+                                    <label class="form-label fw-semibold text-secondary required-label" style="font-size: 0.85rem;">{{ student_form.previous_school_attended.label }}{% if student_form.previous_school_attended.field.required %}<span class="required-asterisk">*</span>{% endif %}</label>
                                     {{ student_form.previous_school_attended }}
                                 </div>
                             </div>
@@ -113,7 +139,7 @@
                             {% if not is_edit %}
                             <div class="row g-4 mt-2">
                                 <div class="col-md-6">
-                                    <h6 class="fw-bold mb-3" style="font-size: 0.9rem; color: #000000;">Father's Particulars</h6>
+                                    <h6 class="fw-bold mb-3" style="font-size: 0.9rem; color: #000000;">2. Father's Particulars</h6>
                                     <div class="mb-3">
                                         <label class="form-label fw-semibold text-secondary" style="font-size: 0.8rem;">Name</label>
                                         {{ father_form.name }}
@@ -136,7 +162,7 @@
                                     </div>
                                 </div>
                                 <div class="col-md-6">
-                                    <h6 class="fw-bold mb-3" style="font-size: 0.9rem; color: #000000;">Mother's Particulars</h6>
+                                    <h6 class="fw-bold mb-3" style="font-size: 0.9rem; color: #000000;">3. Mother's Particulars</h6>
                                     <div class="mb-3">
                                         <label class="form-label fw-semibold text-secondary" style="font-size: 0.8rem;">Name</label>
                                         {{ mother_form.name }}

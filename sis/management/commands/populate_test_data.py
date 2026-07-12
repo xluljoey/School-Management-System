@@ -127,6 +127,8 @@ class Command(BaseCommand):
                 last_name=data['last'],
                 email=email,
             )
+            user.is_staff = True
+            user.save()
 
             profile = StaffProfile.objects.create(
                 user=user,
