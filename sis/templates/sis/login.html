@@ -23,8 +23,13 @@
     </style>
 </head>
 <body>
-    <div class="min-vh-100 d-flex align-items-center justify-content-center px-3 py-5">
-        <div class="card border-0 shadow-lg overflow-hidden d-flex flex-row" style="width: 1000px; max-width: 100%; min-height: 600px; border-radius: 28px; background: #ffffff;">
+    <div class="min-vh-100 d-flex align-items-center justify-content-center px-3 py-5 position-relative">
+
+        <div class="position-absolute top-0 start-0 w-100 h-100 overflow-hidden" style="z-index: 0; pointer-events: auto;">
+            <canvas id="rive-background-canvas" class="w-100 h-100"></canvas>
+        </div>
+
+        <div class="card border-0 shadow-lg overflow-hidden d-flex flex-row z-1 position-relative" style="width: 1000px; max-width: 100%; min-height: 600px; border-radius: 28px; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);">
             <div class="d-none d-lg-flex flex-column justify-content-center align-items-center text-center p-5 position-relative"
                  style="width: 45%; background: radial-gradient(circle at 20% 30%, #1e1b4b 0%, #0f172a 100%); overflow: hidden;">
                 <div class="position-absolute rounded-circle opacity-10" style="width: 400px; height: 400px; background: #4f46e5; top: -10%; left: -20%; filter: blur(40px);"></div>
@@ -73,5 +78,27 @@
             </div>
         </div>
     </div>
+<script src="https://unpkg.com/@rive-app/canvas@2.7.0"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const canvas = document.getElementById("rive-background-canvas");
+        const r = new rive.Rive({
+            src: "{% static 'sis/animations/18994-35737-gorilla-in-the-jungle.riv' %}",
+            canvas: canvas,
+            autoplay: true,
+            stateMachines: "State Machine 1",
+            fit: rive.Fit.Cover,
+            alignment: rive.Alignment.Center,
+            onLoad: () => {
+                r.resizeDrawingSurfaceToCanvas();
+            }
+        });
+        window.addEventListener('resize', () => {
+            if(r) {
+                r.resizeDrawingSurfaceToCanvas();
+            }
+        });
+    });
+</script>
 </body>
 </html>
