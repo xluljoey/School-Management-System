@@ -213,6 +213,11 @@ class SubjectAssessment(models.Model):
     academic_year = models.CharField(max_length=9)
     class_score = models.DecimalField(max_digits=5, decimal_places=2)
     exam_score = models.DecimalField(max_digits=5, decimal_places=2)
+    academic_session = models.ForeignKey('AcademicSession', on_delete=models.PROTECT, null=True, blank=True)
+    academic_term = models.ForeignKey('Term', on_delete=models.PROTECT, null=True, blank=True)
+
+    class Meta:
+        unique_together = ('student', 'subject', 'academic_session', 'academic_term')
 
     @property
     def total_score(self):
@@ -360,9 +365,11 @@ class GradeVerification(models.Model):
     verified_at = models.DateTimeField(auto_now_add=True)
     term = models.IntegerField()
     academic_year = models.CharField(max_length=9)
+    academic_session = models.ForeignKey('AcademicSession', on_delete=models.PROTECT, null=True, blank=True)
+    academic_term = models.ForeignKey('Term', on_delete=models.PROTECT, null=True, blank=True)
 
     class Meta:
-        unique_together = ('classroom', 'term', 'academic_year')
+        unique_together = ('classroom', 'academic_session', 'academic_term')
         verbose_name = 'Grade Verification'
         verbose_name_plural = 'Grade Verifications'
 

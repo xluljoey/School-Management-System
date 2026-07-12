@@ -204,8 +204,10 @@ def bulk_grade_entry_view(request, class_id, subject_id):
         })
 
     # static anchors for current tracking context
-    current_term = 1
-    current_academic_year = "2025-2026"
+    current_session = AcademicSession.objects.filter(is_current=True).first()
+    current_term_obj = Term.objects.filter(is_active=True).first()
+    current_term = int(current_term_obj.term_name.split()[-1]) if current_term_obj else 1
+    current_academic_year = current_session.academic_year if current_session else "2025-2026"
 
     if request.method == 'POST':
         for student in students:
@@ -214,15 +216,16 @@ def bulk_grade_entry_view(request, class_id, subject_id):
             exam_val = request.POST.get(f'exam_score_{student.id}')
             
             if class_val and exam_val:
-                # Create or update the SubjectAssignment record automatically based on the unique combination of student, subject, term, and academic year
                 SubjectAssessment.objects.update_or_create(
                     student=student,
                     subject=subject,
-                    term=current_term,
-                    academic_year=current_academic_year,
+                    academic_session=current_session,
+                    academic_term=current_term_obj,
                     defaults={
                         'class_score': class_val,
-                        'exam_score': exam_val
+                        'exam_score': exam_val,
+                        'term': current_term,
+                        'academic_year': current_academic_year,
                     }
                 )
         messages.success(request, f"Grades for {subject.subject_name} saved successfully!")
@@ -232,8 +235,8 @@ def bulk_grade_entry_view(request, class_id, subject_id):
     student_marks_matrix = []
     for student in students:
         existing_assessment = SubjectAssessment.objects.filter(
-            student=student, subject=subject, term=current_term, academic_year=current_academic_year
-        ).first()
+                student=student, subject=subject, academic_session=current_session, academic_term=current_term_obj
+            ).first()
         
         student_marks_matrix.append({
             'student': student,
@@ -278,9 +281,12 @@ def class_report_card_view(request, class_id):
 
     students = Student.objects.filter(enrollments__classroom=classroom).distinct()
 
+    current_session = AcademicSession.objects.filter(is_current=True).first()
+    current_term = Term.objects.filter(is_active=True).first()
+
     report_data = []
     for student in students:
-        assessments = SubjectAssessment.objects.filter(student=student, term=1)
+        assessments = SubjectAssessment.objects.filter(student=student, academic_session=current_session, academic_term=current_term)
         if not has_full_access and staff:
             assigned_subject_ids = StaffClassSubject.objects.filter(staff=staff, classroom=classroom).values_list('subject_id', flat=True).distinct()
             assessments = assessments.filter(subject_id__in=assigned_subject_ids)
@@ -837,6 +843,9 @@ def compile_grades_view(request):
         classroom = None
         students = Student.objects.none()
 
+    current_session = AcademicSession.objects.filter(is_current=True).first()
+    current_term = Term.objects.filter(is_active=True).first()
+
     if request.method == 'POST':
         selected_class_id = request.POST.get('class_id')
         classroom = get_object_or_404(ClassRoom, pk=selected_class_id)
@@ -855,11 +864,13 @@ def compile_grades_view(request):
                     SubjectAssessment.objects.update_or_create(
                         student=student,
                         subject=subject,
-                        term=1,
+                        academic_session=current_session,
+                        academic_term=current_term,
                         defaults={
                             'class_score': cs or 0,
                             'exam_score': es or 0,
-                            'academic_year': '2025/2026',
+                            'term': current_term.term_name.split()[-1] if current_term else 1,
+                            'academic_year': current_session.academic_year if current_session else '2025/2026',
                         }
                     )
         messages.success(request, 'Grades saved successfully!')
@@ -870,7 +881,7 @@ def compile_grades_view(request):
         cells = []
         for subject in subjects:
             assessment = SubjectAssessment.objects.filter(
-                student=student, subject=subject, term=1
+                student=student, subject=subject, academic_session=current_session, academic_term=current_term
             ).first()
             cells.append({
                 'subject': subject,
@@ -1126,9 +1137,12 @@ def verify_class_rankings_view(request, class_id):
 
     students = Student.objects.filter(enrollments__classroom=classroom).distinct()
 
+    current_session = AcademicSession.objects.filter(is_current=True).first()
+    current_term = Term.objects.filter(is_active=True).first()
+
     report_data = []
     for student in students:
-        assessments = SubjectAssessment.objects.filter(student=student, term=1)
+        assessments = SubjectAssessment.objects.filter(student=student, academic_session=current_session, academic_term=current_term)
         grand_total = sum(ast.total_score for ast in assessments)
         report_data.append({
             'student': student,
@@ -1140,21 +1154,21 @@ def verify_class_rankings_view(request, class_id):
     for index, row in enumerate(report_data):
         row['rank'] = index + 1
 
-    current_term = Term.objects.filter(is_active=True).first()
-    term_number = int(current_term.term_name.split()[-1]) if current_term else 1
-    year_label = current_term.session.academic_year if current_term and current_term.session else "2025/2026"
-
     verification = GradeVerification.objects.filter(
-        classroom=classroom, term=term_number, academic_year=year_label
+        classroom=classroom, academic_session=current_session, academic_term=current_term
     ).first()
 
     if request.method == 'POST':
         if not verification:
+            term_number = int(current_term.term_name.split()[-1]) if current_term else 1
+            year_label = current_session.academic_year if current_session else "2025/2026"
             GradeVerification.objects.create(
                 classroom=classroom,
                 verified_by=staff,
                 term=term_number,
                 academic_year=year_label,
+                academic_session=current_session,
+                academic_term=current_term,
             )
             messages.success(request, f'Rankings for {classroom.class_name} verified successfully.')
         else:
