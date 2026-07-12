@@ -6,58 +6,72 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login — School Management System</title>
     <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
         body {
-            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            background-color: #f4f5f8;
             min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
         }
-        .login-card {
-            width: 100%;
-            max-width: 420px;
+        .custom-pill-field:focus {
+            background-color: #ffffff !important;
+            box-shadow: 0 0 0 3px rgba(18, 18, 20, 0.08) !important;
+            border: 1px solid #121214 !important;
+        }
+        .btn-dark:hover {
+            background-color: #27272a !important;
         }
     </style>
 </head>
 <body>
-    <div class="login-card">
-        <div class="card shadow-lg border-0">
-            <div class="card-header bg-dark text-white text-center py-4">
-                <h5 class="mb-0 fw-bold">🏫 School Management System</h5>
-                <small>Sign in to your account</small>
+    <div class="min-vh-100 d-flex align-items-center justify-content-center px-3 py-5">
+        <div class="card border-0 shadow-lg overflow-hidden d-flex flex-row" style="width: 1000px; max-width: 100%; min-height: 600px; border-radius: 28px; background: #ffffff;">
+            <div class="d-none d-lg-flex flex-column justify-content-center align-items-center text-center p-5 position-relative"
+                 style="width: 45%; background: radial-gradient(circle at 20% 30%, #1e1b4b 0%, #0f172a 100%); overflow: hidden;">
+                <div class="position-absolute rounded-circle opacity-10" style="width: 400px; height: 400px; background: #4f46e5; top: -10%; left: -20%; filter: blur(40px);"></div>
+                <div class="position-absolute rounded-circle opacity-10" style="width: 350px; height: 350px; background: #06b6d4; bottom: -5%; right: -10%; filter: blur(50px);"></div>
+                <div class="position-relative z-1">
+                    <div class="bg-white d-inline-flex align-items-center justify-content-center shadow mb-3" style="width: 64px; height: 64px; border-radius: 16px;">
+                        <span class="fw-black text-dark fs-3" style="font-family: system-ui, sans-serif; letter-spacing: -1px;">S</span>
+                    </div>
+                    <h3 class="text-white fw-bold mb-2" style="font-size: 26px; letter-spacing: -0.5px;">Sign in to Smansys</h3>
+                    <p class="text-white-50 px-4" style="font-size: 13px; line-height: 1.6;">Access your master continuous assessments, classes, and administrative schedules.</p>
+                </div>
             </div>
-            <div class="card-body p-4">
-                {% if messages %}
-                    {% for message in messages %}
-                        <div class="alert alert-danger py-2 small" role="alert">{{ message }}</div>
-                    {% endfor %}
-                {% endif %}
-
-                <form method="post">
-                    {% csrf_token %}
-
-                    {% if form.non_field_errors %}
-                        <div class="alert alert-danger py-2 small">
-                            {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+            <div class="d-flex flex-column justify-content-center p-4 p-md-5" style="width: 100%;">
+                <div class="mx-auto w-100" style="max-width: 400px;">
+                    <div class="mb-4">
+                        <h2 class="fw-bold text-dark mb-1" style="font-size: 28px; letter-spacing: -0.8px;">Login into your account</h2>
+                        <p class="text-muted" style="font-size: 14px;">Let's make the circles bigger!</p>
+                    </div>
+                    <form method="POST" action="">
+                        {% csrf_token %}
+                        {% if form.errors %}
+                        <div class="alert alert-danger border-0 rounded-3 p-3 mb-4 text-center" style="font-size: 13px; background-color: #fef2f2; color: #991b1b;">
+                            Invalid username or password credentials. Please try again.
                         </div>
-                    {% endif %}
-
-                    <div class="mb-3">
-                        <label for="id_username" class="form-label fw-semibold text-secondary">Username</label>
-                        <input type="text" name="username" id="id_username"
-                               class="form-control" placeholder="Enter your username" required autofocus>
-                    </div>
-                    <div class="mb-3">
-                        <label for="id_password" class="form-label fw-semibold text-secondary">Password</label>
-                        <input type="password" name="password" id="id_password"
-                               class="form-control" placeholder="Enter your password" required>
-                    </div>
-                    <button type="submit" class="btn btn-dark w-100 py-2 fw-bold">Sign In</button>
-                </form>
+                        {% endif %}
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold text-dark mb-1" style="font-size: 13px;">Username</label>
+                            <input type="text" name="username" class="form-control px-4 py-2 bg-light border-0 text-dark placeholder-muted custom-pill-field"
+                                   placeholder="Enter your username" required style="border-radius: 50px; font-size: 14px; background-color: #f3f4f6 !important; height: 48px;">
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold text-dark mb-1" style="font-size: 13px;">Password</label>
+                            <input type="password" name="password" class="form-control px-4 py-2 bg-light border-0 text-dark placeholder-muted custom-pill-field"
+                                   placeholder="Enter your password" required style="border-radius: 50px; font-size: 14px; background-color: #f3f4f6 !important; height: 48px;">
+                        </div>
+                        <button type="submit" class="btn btn-dark w-100 text-white fw-medium mb-3"
+                                style="border-radius: 50px; height: 48px; font-size: 14px; background-color: #121214; border: none;">
+                            Sign In
+                        </button>
+                        <div class="text-center mt-4">
+                            <p class="text-muted mb-2" style="font-size: 13px;">Don't have an account? <a href="#" class="text-primary fw-medium text-decoration-none">Sign up</a></p>
+                            <a href="#" class="text-secondary d-inline-block text-decoration-none fw-medium" style="font-size: 12px; opacity: 0.8;">Forgot Password?</a>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
-        <p class="text-center text-white-50 small mt-3">&copy; {% now "Y" %} School Management System</p>
     </div>
 </body>
 </html>
