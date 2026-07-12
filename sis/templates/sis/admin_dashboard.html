@@ -4,19 +4,94 @@
 {% block title %}Admin Console — School Management System{% endblock %}
 
 {% block content %}
-<div class="d-flex align-items-center justify-content-between mb-4 border-bottom pb-3" style="border-color: #f4f4f5 !important;">
-    <div>
-        <h4 class="fw-bold text-dark mb-1" style="font-size: 22px; letter-spacing: -0.5px;">System Administrator Console</h4>
-        <p class="text-muted mb-0" style="font-size: 13px;">Global management hub for school infrastructure, permissions, and auditing.</p>
-    </div>
+<div class="alert alert-success border-0 rounded-3 d-flex align-items-center justify-content-between p-3 mb-4" style="background-color: #d1e7dd; color: #0f5132; font-size: 14px;">
+    <span>Welcome back, Admin Console!</span>
+    <button type="button" class="btn-close shadow-none" data-bs-dismiss="alert" aria-label="Close" style="font-size: 10px;"></button>
 </div>
 
 <div class="row g-4">
-    <div class="col-12 col-md-4">
-        <div class="card border-0 p-4" style="border-radius: 20px; background-color: #ffffff; border-top: 4px solid #4f46e5 !important;">
-            <h5 class="fw-bold text-dark mb-1" style="font-size: 16px;">Active Staff Tiers</h5>
-            <p class="text-muted mb-0" style="font-size: 13px;">Manage platform privileges across all departments.</p>
+    <div class="col-12 col-xl-8 d-flex flex-column gap-4">
+
+        <div class="card border-0 p-4 position-relative overflow-hidden" style="border-radius: 20px; background-color: #ffffff; min-height: 180px;">
+            <div style="max-width: 65%; z-index: 2; position: relative;">
+                <h3 class="fw-bold text-dark mb-2" style="font-size: 26px; letter-spacing: -0.5px;">Welcome, Administrator!</h3>
+                <p class="text-muted mb-0" style="font-size: 14px; line-height: 1.6;">
+                    Manage global school infrastructure with ease. Monitor institutional settings, staff provisioning, and continuous core database updates all in one unified control terminal.
+                </p>
+            </div>
+            <div class="position-absolute end-0 bottom-0 top-0 d-flex align-items-center justify-content-end p-3"
+                 style="width: 240px; max-height: 100%; pointer-events: none; z-index: 1;">
+                <div id="admin-greeting-lottie" style="width: 100%; height: 100%; max-height: 160px;"></div>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-12 col-md-6">
+                <div class="card border-0 p-4" style="border-radius: 20px; background-color: #ffffff; min-height: 280px;">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <h5 class="fw-bold text-dark mb-0" style="font-size: 16px;">System Users</h5>
+                        <a href="#" class="text-muted text-decoration-none" style="font-size: 12px;">View All &rsaquo;</a>
+                    </div>
+                    <div class="d-flex align-items-center justify-content-center h-100 py-3">
+                        <div style="width: 130px; height: 130px; border: 14px solid #f4f4f5; border-left-color: #121214; border-radius: 50%;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-md-6">
+                <div class="card border-0 p-4" style="border-radius: 20px; background-color: #ffffff; min-height: 280px;">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <h5 class="fw-bold text-dark mb-0" style="font-size: 16px;">System Notices</h5>
+                        <a href="#" class="text-muted text-decoration-none" style="font-size: 12px;">View All &rsaquo;</a>
+                    </div>
+                    <div class="mt-2">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <h6 class="fw-semibold text-dark mb-0" style="font-size: 14px;">Platform Baseline Maintenance</h6>
+                            <span class="text-muted" style="font-size: 11px;">Today</span>
+                        </div>
+                        <p class="text-muted" style="font-size: 13px;">System configurations and core structural template separation initialized successfully.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-xl-4 d-flex flex-column gap-4">
+        <div class="d-flex flex-column gap-3">
+            <div class="card border-0 p-3" style="border-radius: 16px; background-color: #ffffff;">
+                <span class="text-muted" style="font-size: 12px; font-weight: 500;">TOTAL ACCOUNTS</span>
+                <h4 class="fw-bold text-dark my-1" style="font-size: 24px;">--</h4>
+                <span class="text-success" style="font-size: 11px; font-weight: 500;">Global Metrics Control</span>
+            </div>
+
+            <div class="card border-0 p-3" style="border-radius: 16px; background-color: #ffffff;">
+                <span class="text-muted" style="font-size: 12px; font-weight: 500;">ACTIVE PRIVILEGES</span>
+                <h4 class="fw-bold text-dark my-1" style="font-size: 24px;">--</h4>
+                <span class="text-primary" style="font-size: 11px; font-weight: 500;">Root Administrator Level</span>
+            </div>
+
+            <div class="card border-0 p-3" style="border-radius: 16px; background-color: #ffffff;">
+                <span class="text-muted" style="font-size: 12px; font-weight: 500;">ENVIRONMENT STATUS</span>
+                <h4 class="fw-bold text-dark my-1" style="font-size: 20px; letter-spacing: -0.3px;">Term 1, 2026/2027</h4>
+                <span class="text-muted" style="font-size: 11px; font-weight: 500;">Operational Baseline Tier</span>
+            </div>
         </div>
     </div>
 </div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const container = document.getElementById('admin-greeting-lottie');
+        if (container) {
+            lottie.loadAnimation({
+                container: container,
+                renderer: 'svg',
+                loop: true,
+                autoplay: true,
+                path: "{% static 'sis/animations/shapes.json' %}"
+            });
+        }
+    });
+</script>
 {% endblock %}
