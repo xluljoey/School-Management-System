@@ -62,7 +62,7 @@
 </div>
 
 {% if request.user.is_superuser %}
-<a href="#" class="btn btn-dark rounded-pill shadow-lg d-flex align-items-center gap-2 px-4 py-3 position-fixed"
+<a href="{% url 'parent_edit' parent.id %}" class="btn btn-dark rounded-pill shadow-lg d-flex align-items-center gap-2 px-4 py-3 position-fixed"
    style="bottom: 32px; right: 32px; z-index: 1050; font-weight: 500; font-size: 14px; background-color: #121214; border: 1px solid #2a2a2e; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3) !important;">
     <i class="bi bi-pencil-square text-white-50"></i>
     <span class="text-white">Update Parent</span>

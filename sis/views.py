@@ -1238,3 +1238,22 @@ def parent_detail_view(request, parent_id):
         'parent': parent,
         'children': children,
     })
+
+
+@login_required
+def parent_edit_view(request, parent_id):
+    if not request.user.is_superuser:
+        raise PermissionDenied
+    parent = get_object_or_404(Parent, pk=parent_id)
+    if request.method == 'POST':
+        form = ParentForm(request.POST, instance=parent)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"Parent '{parent.name}' updated successfully!")
+            return redirect('parent_detail', parent_id=parent.id)
+    else:
+        form = ParentForm(instance=parent)
+    return render(request, 'sis/parent_edit.html', {
+        'form': form,
+        'parent': parent,
+    })

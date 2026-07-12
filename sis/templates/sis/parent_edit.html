@@ -1,0 +1,52 @@
+{% extends 'sis/base.html' %}
+{% load static %}
+
+{% block title %}Edit Parent — {{ parent.name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4 border-bottom pb-3" style="border-color: #f4f4f5 !important;">
+    <div>
+        <h4 class="fw-bold text-dark mb-1" style="font-size: 22px; letter-spacing: -0.5px;">Update Parent</h4>
+        <p class="text-muted mb-0" style="font-size: 13px;">Editing {{ parent.name }}</p>
+    </div>
+    <a href="{% url 'parent_detail' parent.id %}" class="btn btn-light rounded-pill px-4 py-2 d-flex align-items-center gap-2" style="font-size: 14px; border: 1px solid #e4e4e7; font-weight: 500;">
+        <i class="bi bi-arrow-left-short fs-5"></i> Back to Profile
+    </a>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-8">
+        <div class="card border-0 p-4" style="border-radius: 16px; background-color: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
+            <form method="POST">
+                {% csrf_token %}
+                <div class="row g-4">
+                    <div class="col-12 col-md-6">
+                        <label class="text-muted text-uppercase fw-semibold mb-2" style="font-size: 11px;">Name</label>
+                        {{ form.name }}
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label class="text-muted text-uppercase fw-semibold mb-2" style="font-size: 11px;">Occupation</label>
+                        {{ form.occupation }}
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label class="text-muted text-uppercase fw-semibold mb-2" style="font-size: 11px;">Email Address</label>
+                        {{ form.email }}
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label class="text-muted text-uppercase fw-semibold mb-2" style="font-size: 11px;">Telephone Number</label>
+                        {{ form.telephone_number }}
+                    </div>
+                    <div class="col-12">
+                        <label class="text-muted text-uppercase fw-semibold mb-2" style="font-size: 11px;">Residential Address</label>
+                        {{ form.residential_address }}
+                    </div>
+                </div>
+                <div class="d-flex justify-content-end gap-2 mt-5 pt-3 border-top" style="border-color: #f4f4f5 !important;">
+                    <a href="{% url 'parent_detail' parent.id %}" class="btn btn-light rounded-pill px-4 py-2" style="font-size: 14px; border: 1px solid #e4e4e7; font-weight: 500;">Cancel</a>
+                    <button type="submit" class="btn btn-dark rounded-pill px-5 py-2" style="font-size: 14px; font-weight: 500;">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
