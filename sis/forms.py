@@ -1,5 +1,7 @@
 from django import forms
 from .models import Parent, Student, SubjectAssessment, StaffProfile, Enrollment, AcademicSession, Term, ClassSubject, PromotionCriteria
+import os
+import uuid
 
 
 class ParentForm(forms.ModelForm):
@@ -7,11 +9,11 @@ class ParentForm(forms.ModelForm):
         model = Parent
         fields = ['name', 'occupation', 'residential_address', 'email', 'telephone_number']
         widgets = {
-            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Full Name'}),
-            'occupation': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Occupation'}),
-            'residential_address': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Residential Address'}),
-            'email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'Email Address'}),
-            'telephone_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Active Mobile Number'}),
+            'name': forms.TextInput(attrs={'class': 'form-control basic-info-field', 'placeholder': 'Full Name'}),
+            'occupation': forms.TextInput(attrs={'class': 'form-control basic-info-field', 'placeholder': 'Occupation'}),
+            'residential_address': forms.TextInput(attrs={'class': 'form-control basic-info-field', 'placeholder': 'Residential Address'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control basic-info-field', 'placeholder': 'Email Address'}),
+            'telephone_number': forms.TextInput(attrs={'class': 'form-control basic-info-field', 'placeholder': 'Active Mobile Number'}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -25,15 +27,15 @@ class StudentRegistrationForm(forms.ModelForm):
         model = Student
         fields = ['admission_number', 'first_name', 'last_name', 'other_names', 'dob', 'gender', 'status', 'living_with', 'previous_school_attended', 'profile_picture']
         widgets = {
-            'admission_number': forms.TextInput(attrs={'id': 'id_admission_number', 'class': 'form-control', 'placeholder': 'e.g., 0202420168'}),
-            'first_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'First Name'}),
-            'last_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Last Name'}),
-            'other_names': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Other Names (optional)'}),
-            'dob': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'gender': forms.Select(choices=Student.GENDER_CHOICES, attrs={'class': 'form-select'}),
-            'status': forms.Select(choices=Student.STATUS_CHOICES, attrs={'class': 'form-select'}),
-            'living_with': forms.Select(choices=Student.LIVING_WITH_CHOICES, attrs={'class': 'form-select'}),
-            'previous_school_attended': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Name of Previous School'}),
+            'admission_number': forms.TextInput(attrs={'id': 'id_admission_number', 'class': 'form-control basic-info-field', 'placeholder': 'e.g., 0202420168'}),
+            'first_name': forms.TextInput(attrs={'class': 'form-control basic-info-field', 'placeholder': 'First Name'}),
+            'last_name': forms.TextInput(attrs={'class': 'form-control basic-info-field', 'placeholder': 'Last Name'}),
+            'other_names': forms.TextInput(attrs={'class': 'form-control basic-info-field', 'placeholder': 'Other Names (optional)'}),
+            'dob': forms.DateInput(attrs={'class': 'form-control basic-info-field', 'type': 'date'}),
+            'gender': forms.Select(choices=Student.GENDER_CHOICES, attrs={'class': 'form-select basic-info-field'}),
+            'status': forms.Select(choices=Student.STATUS_CHOICES, attrs={'class': 'form-select basic-info-field'}),
+            'living_with': forms.Select(choices=Student.LIVING_WITH_CHOICES, attrs={'class': 'form-select basic-info-field'}),
+            'previous_school_attended': forms.TextInput(attrs={'class': 'form-control basic-info-field', 'placeholder': 'Name of Previous School'}),
             'profile_picture': forms.ClearableFileInput(attrs={'id': 'id_profile_picture', 'class': 'form-control', 'style': 'display: none;', 'accept': 'image/*'}),
         }
 
@@ -121,6 +123,14 @@ class StaffRegistrationForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['subject_areas'].required = False
+
+    def clean_profile_picture(self):
+        file = self.cleaned_data.get('profile_picture')
+        if file:
+            if len(file.name) > 90:
+                ext = os.path.splitext(file.name)[1]
+                file.name = f"{uuid.uuid4().hex[:10]}{ext}"
+        return file
 
     class Meta:
         model = StaffProfile
