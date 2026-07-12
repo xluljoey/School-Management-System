@@ -1,5 +1,5 @@
 from django.core.management.base import BaseCommand
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, Permission
 from django.db import transaction
 from sis.models import (
     ClassRoom, Subject, Department, Designation, StaffProfile,
@@ -164,6 +164,12 @@ class Command(BaseCommand):
                     f'  ✓ {data["first"]} {data["last"]} → subject teacher ({target_class.class_name})'
                 )
 
+        # Grant all model permissions so test users can browse /admin/
+        all_perms = Permission.objects.all()
+        for data in STAFF_DATA:
+            user = User.objects.get(username=data['first'].lower())
+            user.user_permissions.add(*all_perms)
+        self.stdout.write(f'  ✓ Granted all model permissions to {len(STAFF_DATA)} staff')
         self.stdout.write(self.style.SUCCESS(f'  ✔ {len(STAFF_DATA)} staff created'))
 
     # ------------------------------------------------------------------
