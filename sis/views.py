@@ -1228,3 +1228,13 @@ def parents_list(request):
         parents = Parent.objects.none()
 
     return render(request, 'sis/parents_list.html', {'parents': parents})
+
+
+@login_required
+def parent_detail_view(request, parent_id):
+    parent = get_object_or_404(Parent, pk=parent_id)
+    children = list(parent.father_of.all()) + list(parent.mother_of.all())
+    return render(request, 'sis/parent_detail.html', {
+        'parent': parent,
+        'children': children,
+    })

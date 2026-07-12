@@ -25,6 +25,7 @@ from .views import (
     midterm_summary_view,
     compile_midterm_grades_view,
     parents_list,
+    parent_detail_view,
 )
 
 urlpatterns = [
@@ -61,4 +62,5 @@ urlpatterns = [
     path('midterm/', midterm_summary_view, name='midterm_summary'),
     path('midterm/compile/', compile_midterm_grades_view, name='compile_midterm_grades'),
     path('parents/', parents_list, name='parents_list'),
+    path('parents/<int:parent_id>/', parent_detail_view, name='parent_detail'),
 ]
