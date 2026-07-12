@@ -24,6 +24,15 @@ from .forms import (
 # Create your views here.
 @login_required
 def dashboard_view(request):
+    is_admin = request.user.is_superuser or request.user.groups.filter(name='Admin').exists()
+
+    if is_admin:
+        context = {
+            'total_staff_count': StaffProfile.objects.count(),
+            'environment': 'Academic Year Master Control',
+        }
+        return render(request, 'sis/admin_dashboard.html', context)
+
     total_students = Student.objects.count()
     total_staff = StaffProfile.objects.count()
     active_classes = ClassRoom.objects.count()
@@ -77,7 +86,7 @@ def dashboard_view(request):
         'active_environment_string': active_environment_string,
         'assigned_classes': assigned_classes,
     }
-    return render(request, 'sis/dashboard.html', context)
+    return render(request, 'sis/staff_dashboard.html', context)
 
 
 @login_required
