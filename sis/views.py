@@ -5,7 +5,7 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.models import User
 from django.core.exceptions import PermissionDenied
-from django.db.models import Q
+from django.db.models import Q, Count
 from django.http import JsonResponse
 from django.urls import reverse
 from django.views.decorators.http import require_POST
@@ -1301,23 +1301,15 @@ def parent_edit_view(request, parent_id):
 
 
 def classes_subjects_hub(request):
-    mock_classes = [
-        {'name': 'CLASS 1', 'student_count': 24, 'accent_color': '#22c55e', 'bg_light': '#f0fdf4', 'form_teacher': None},
-        {'name': 'JHS 1', 'student_count': 32, 'accent_color': '#3b82f6', 'bg_light': '#eff6ff', 'form_teacher': None},
-        {'name': 'JHS 2', 'student_count': 28, 'accent_color': '#eab308', 'bg_light': '#fefce8', 'form_teacher': None},
-        {'name': 'JHS 3', 'student_count': 30, 'accent_color': '#a855f7', 'bg_light': '#faf5ff', 'form_teacher': None},
-    ]
+    classes_list = ClassRoom.objects.annotate(
+        student_count=Count('students')
+    ).order_by('-order')
 
-    mock_subjects = [
-        {'name': 'Mathematics', 'code': 'MATH', 'department': 'Science & Mathematics', 'accent_color': '#3b82f6', 'bg_light': '#eff6ff'},
-        {'name': 'English Language', 'code': 'ENG', 'department': 'Language Arts', 'accent_color': '#ec4899', 'bg_light': '#fdf2f8'},
-        {'name': 'Integrated Science', 'code': 'SCI', 'department': 'Science & Mathematics', 'accent_color': '#22c55e', 'bg_light': '#f0fdf4'},
-        {'name': 'Social Studies', 'code': 'SOC', 'department': 'Humanities', 'accent_color': '#f97316', 'bg_light': '#fff7ed'},
-    ]
+    unique_subjects = Subject.objects.all().order_by('subject_name')
 
     return render(request, 'sis/classes_subjects_hub.html', {
-        'classes': mock_classes,
-        'subjects': mock_subjects,
+        'classes': classes_list,
+        'subjects': unique_subjects,
     })
 
 

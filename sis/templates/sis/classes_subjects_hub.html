@@ -22,19 +22,17 @@
             {% for class_obj in classes %}
             <div class="col-12 col-md-6 col-lg-4 col-xl-3">
                 <div class="card border-0 p-4 h-100 position-relative transition-card"
-                     style="border-radius: 20px; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.01); background-color: #fcfdfd; border-left: 5px solid {{ class_obj.accent_color|default:'#121214' }} !important;">
+                     style="border-radius: 20px; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.01); background-color: #ffffff; border-left: 4px solid {% cycle '#198754' '#0d6efd' '#ffc107' '#6f42c1' %} !important;">
                     <div class="d-flex align-items-start justify-content-between mb-3">
-                        <div class="rounded-3 p-2 d-flex align-items-center justify-content-center" style="background-color: {{ class_obj.bg_light|default:'#f4f4f5' }}; color: {{ class_obj.accent_color|default:'#121214' }};">
-                            <i class="bi bi-building fs-5"></i>
-                        </div>
+                        <span class="fs-4">🏢</span>
                         <span class="badge bg-light border text-muted px-2 py-1 rounded-pill" style="font-size: 11px;">{{ class_obj.student_count|default:"0" }} Students</span>
                     </div>
-                    <h5 class="fw-bold text-dark mb-1" style="font-size: 18px; letter-spacing: -0.3px;">{{ class_obj.name }}</h5>
-                    <p class="text-muted mb-0" style="font-size: 13px;">Form Teacher: <span class="fw-medium text-secondary">{{ class_obj.form_teacher|default:"Unassigned" }}</span></p>
+                    <h5 class="fw-bold text-dark mb-1" style="font-size: 18px; letter-spacing: -0.3px;">{{ class_obj.class_name }}</h5>
+                    <p class="text-muted mb-0" style="font-size: 13px;">Form Teacher: <span class="fw-medium text-secondary">{{ class_obj.form_teacher.first_name|default:"" }} {{ class_obj.form_teacher.last_name|default:"Unassigned" }}</span></p>
                 </div>
             </div>
             {% empty %}
-            <div class="col-12 text-center py-5 text-muted">No classes configured for this term.</div>
+            <div class="col-12 text-center py-5 text-muted">No institutional classes registered yet.</div>
             {% endfor %}
         </div>
     </div>
@@ -44,19 +42,17 @@
             {% for subject in subjects %}
             <div class="col-12 col-md-6 col-lg-4 col-xl-3">
                 <div class="card border-0 p-4 h-100 position-relative transition-card"
-                     style="border-radius: 20px; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.01); background-color: #fafbfc; border-top: 4px solid {{ subject.accent_color|default:'#4f46e5' }} !important;">
-                    <div class="d-flex align-items-center justify-content-between mb-3">
-                        <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 36px; height: 36px; background-color: {{ subject.bg_light|default:'#eef2ff' }}; color: {{ subject.accent_color|default:'#4f46e5' }};">
-                            <i class="bi bi-journal-bookmark-fill" style="font-size: 14px;"></i>
-                        </div>
-                        <span class="text-muted fw-semibold" style="font-size: 11px;">{{ subject.code|default:"SUBJ" }}</span>
+                     style="border-radius: 20px; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.01); background-color: #fafbfc; border-top: 4px solid {% cycle '#0d6efd' '#d63384' '#198754' '#fd7e14' %} !important;">
+                    <div class="d-flex align-items-start justify-content-between mb-3">
+                        <span class="fs-4">📘</span>
+                        <span class="text-muted fw-semibold" style="font-size: 11px;">SUB</span>
                     </div>
-                    <h5 class="fw-bold text-dark mb-1" style="font-size: 16px;">{{ subject.name }}</h5>
-                    <p class="text-muted mb-0" style="font-size: 12px;">Department: {{ subject.department|default:"General" }}</p>
+                    <h5 class="fw-bold text-dark mb-1" style="font-size: 16px;">{{ subject.subject_name }}</h5>
+                    <p class="text-muted mb-0" style="font-size: 12px;">General Education</p>
                 </div>
             </div>
             {% empty %}
-            <div class="col-12 text-center py-5 text-muted">No subjects registered yet.</div>
+            <div class="col-12 text-center py-5 text-muted">No curriculum subjects registered yet.</div>
             {% endfor %}
         </div>
     </div>
