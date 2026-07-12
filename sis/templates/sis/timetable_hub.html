@@ -1,0 +1,45 @@
+{% extends 'sis/base.html' %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4 border-bottom pb-3" style="border-color: #f4f4f5 !important;">
+    <div>
+        <h4 class="fw-bold text-dark mb-1" style="font-size: 22px; letter-spacing: -0.5px;">Master Timetables</h4>
+        <p class="text-muted mb-0" style="font-size: 13px;">View and orchestrate daily lecture schedules across class tiers</p>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-12 col-md-6 col-lg-4 col-xl-3">
+        <div class="card border-0 p-4 h-100 position-relative timetable-card"
+             style="border-radius: 20px; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.01); background-color: #ffffff; border-top: 4px solid #0f172a !important;">
+
+            <div class="d-flex align-items-center justify-content-between mb-3">
+                <div class="rounded-3 p-2 d-flex align-items-center justify-content-center" style="background-color: #f1f5f9; color: #0f172a;">
+                    <i class="bi bi-calendar4-week fs-5"></i>
+                </div>
+                <span class="badge bg-light border text-dark px-2 py-1 rounded-pill" style="font-size: 11px; font-weight: 500;">
+                    {{ placeholder_timetable.days_active }}
+                </span>
+            </div>
+
+            <h5 class="fw-bold text-dark mb-1" style="font-size: 18px; letter-spacing: -0.3px;">{{ placeholder_timetable.class_name }} Timetable</h5>
+            <p class="text-muted mb-3" style="font-size: 13px;">Total Scheduled Slots: <span class="fw-semibold text-dark">{{ placeholder_timetable.slots_count }} daily</span></p>
+
+            <div class="border-top pt-2 d-flex align-items-center justify-content-between text-muted" style="font-size: 11px;">
+                <span>Status: <span class="text-success fw-medium">Active</span></span>
+                <span>{{ placeholder_timetable.last_updated }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.timetable-card {
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease;
+}
+.timetable-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05) !important;
+}
+</style>
+{% endblock %}

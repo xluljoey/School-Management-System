@@ -29,6 +29,7 @@ from .views import (
     parent_edit_view,
     assign_form_class,
     classes_subjects_hub,
+    timetable_hub,
 )
 
 urlpatterns = [
@@ -69,4 +70,5 @@ urlpatterns = [
     path('parents/<int:parent_id>/', parent_detail_view, name='parent_detail'),
     path('parents/<int:parent_id>/edit/', parent_edit_view, name='parent_edit'),
     path('classes-subjects/', classes_subjects_hub, name='classes_subjects_hub'),
+    path('timetables/', timetable_hub, name='timetable_hub'),
 ]

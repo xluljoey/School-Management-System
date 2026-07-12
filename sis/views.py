@@ -1310,3 +1310,15 @@ def classes_subjects_hub(request):
         'classes': mock_classes,
         'subjects': mock_subjects,
     })
+
+
+def timetable_hub(request):
+    mock_timetable = {
+        'class_name': 'JHS 1',
+        'slots_count': 5,
+        'days_active': 'Mon - Fri',
+        'last_updated': 'Just now',
+    }
+    return render(request, 'sis/timetable_hub.html', {
+        'placeholder_timetable': mock_timetable,
+    })

@@ -1,5 +1,6 @@
 from datetime import date
 import os
+import re
 import uuid
 
 from django.db import models
@@ -40,10 +41,15 @@ class Designation(models.Model):
 
 
 def get_staff_photo_path(instance, filename):
-    ext = filename.split('.')[-1]
-    unique_name = instance.staff_id if hasattr(instance, 'staff_id') and instance.staff_id else uuid.uuid4().hex[:10]
-    clean_filename = f"{unique_name}.{ext}"
-    return os.path.join('uploads/profile_pics/', clean_filename)
+    safe_filename = os.path.basename(filename or '')
+    name, ext = os.path.splitext(safe_filename)
+    extension = ext.lower().lstrip('.') or 'jpg'
+
+    raw_staff_id = getattr(instance, 'staff_id', '') or ''
+    sanitized_staff_id = re.sub(r'[^A-Za-z0-9._-]+', '-', str(raw_staff_id).strip())
+    sanitized_staff_id = sanitized_staff_id.strip('._-') or uuid.uuid4().hex[:10]
+
+    return os.path.join('uploads/profile_pics/', f'{sanitized_staff_id}.{extension}')
 
 
 class StaffProfile(models.Model):
@@ -394,3 +400,29 @@ class MidTermRecord(models.Model):
 
     def __str__(self):
         return f"{self.student} — {self.subject} ({self.term})"
+
+
+class TimetableSlot(models.Model):
+    DAY_CHOICES = [
+        ('MON', 'Monday'),
+        ('TUE', 'Tuesday'),
+        ('WED', 'Wednesday'),
+        ('THU', 'Thursday'),
+        ('FRI', 'Friday'),
+    ]
+
+    academic_term = models.ForeignKey(Term, on_delete=models.PROTECT, related_name='timetable_slots')
+    class_assigned = models.ForeignKey(ClassRoom, on_delete=models.CASCADE, related_name='timetable_slots')
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name='timetable_slots')
+    teacher = models.ForeignKey(StaffProfile, on_delete=models.SET_NULL, null=True, blank=True, related_name='timetable_slots')
+    day_of_week = models.CharField(max_length=3, choices=DAY_CHOICES)
+    start_time = models.TimeField()
+    end_time = models.TimeField()
+
+    class Meta:
+        ordering = ['day_of_week', 'start_time']
+        verbose_name = 'Timetable Slot'
+        unique_together = ('academic_term', 'class_assigned', 'day_of_week', 'start_time')
+
+    def __str__(self):
+        return f"{self.class_assigned.class_name} - {self.subject.subject_name} ({self.get_day_of_week_display()} {self.start_time})"
