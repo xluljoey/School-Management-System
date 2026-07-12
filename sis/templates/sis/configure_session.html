@@ -60,9 +60,45 @@
     </form>
 </div>
 
-<a href="#" class="btn btn-dark rounded-pill shadow-lg d-flex align-items-center gap-2 px-4 py-3 position-fixed" 
+<a href="#" data-bs-toggle="modal" data-bs-target="#createSessionModal" class="btn btn-dark rounded-pill shadow-lg d-flex align-items-center gap-2 px-4 py-3 position-fixed" 
    style="bottom: 32px; right: 32px; z-index: 1050; font-weight: 500; font-size: 14px; background-color: #121214; border: 1px solid #2a2a2e; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3) !important;">
     <i class="bi bi-plus-lg text-white-50"></i>
     <span class="text-white">Create New Academic Session</span>
 </a>
+
+<div class="modal fade" id="createSessionModal" tabindex="-1" aria-labelledby="createSessionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 16px; border: none; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);">
+            <form method="POST" action="">
+                {% csrf_token %}
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold" id="createSessionModalLabel" style="font-size: 18px; letter-spacing: -0.3px;">Create New Academic Session</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="new_academic_year" class="form-label fw-semibold text-dark" style="font-size: 14px;">Academic Year</label>
+                        <input type="text" name="new_academic_year" id="new_academic_year"
+                               class="form-control" placeholder="e.g., 2026/2027" required
+                               style="border-radius: 12px; border: 1px solid #e4e4e7; padding: 10px 16px;">
+                    </div>
+                    <div class="mb-2">
+                        <label for="new_term_name" class="form-label fw-semibold text-dark" style="font-size: 14px;">Starting Term</label>
+                        <select name="new_term_name" id="new_term_name" class="form-select" required
+                                style="border-radius: 12px; border: 1px solid #e4e4e7; padding: 10px 16px;">
+                            <option value="">-- Select Term --</option>
+                            <option value="Term 1">Term 1</option>
+                            <option value="Term 2">Term 2</option>
+                            <option value="Term 3">Term 3</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-2">
+                    <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal" style="border: 1px solid #e4e4e7; font-size: 14px;">Cancel</button>
+                    <button type="submit" name="create_new_session" class="btn btn-dark rounded-pill px-4 fw-semibold" style="font-size: 14px;">Create & Activate</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 {% endblock %}
