@@ -5,6 +5,7 @@
 
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   var studentsCtx = document.getElementById('studentsChart').getContext('2d');
@@ -36,6 +37,17 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     }
   });
+
+  var lottieContainer = document.getElementById('staff-greeting-lottie');
+  if (lottieContainer) {
+    lottie.loadAnimation({
+      container: lottieContainer,
+      renderer: 'svg',
+      loop: true,
+      autoplay: true,
+      path: "{% static 'sis/animations/Man and robot with computers sitting together in workplace.json' %}"
+    });
+  }
 });
 </script>
 {% endblock %}
@@ -45,9 +57,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
     <div class="col-lg-7 col-12 d-flex flex-column gap-4 p-0">
 
-        <div class="card border-0" style="background: #ffffff; border-radius: 16px; padding: 32px; min-height: 248px; border: 1px solid #e4e4e7 !important;">
+        <div class="card border-0 position-relative" style="background: #ffffff; border-radius: 16px; padding: 32px; min-height: 248px; border: 1px solid #e4e4e7 !important;">
             <div style="display: flex; justify-content: space-between; align-items: center; height: 100%;">
-                <div style="max-width: 460px;">
+                <div style="max-width: 380px;">
                     <h2 class="fw-bold text-dark mb-2" style="font-size: 28px; letter-spacing: -0.5px;">
                         Welcome, {% if request.user.first_name %}{{ request.user.first_name }}{% else %}User{% endif %}!
                     </h2>
@@ -56,17 +68,10 @@ document.addEventListener('DOMContentLoaded', function () {
                     </p>
                 </div>
                 <div style="flex-shrink: 0;">
-                    <svg width="140" height="140" viewBox="0 0 140 140" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <rect x="10" y="30" width="80" height="90" rx="8" fill="#EDEDED"/>
-                        <rect x="16" y="36" width="68" height="10" rx="4" fill="#C3C4FF"/>
-                        <rect x="16" y="52" width="40" height="6" rx="3" fill="#D9D9D9"/>
-                        <rect x="16" y="64" width="55" height="6" rx="3" fill="#D9D9D9"/>
-                        <rect x="16" y="76" width="50" height="6" rx="3" fill="#D9D9D9"/>
-                        <circle cx="100" cy="90" r="34" fill="#FFE89C"/>
-                        <circle cx="100" cy="90" r="18" fill="#ffffff"/>
-                        <path d="M95 88h10v10h-10z" fill="#000000" opacity="0.3"/>
-                        <circle cx="100" cy="100" r="3" fill="#000000" opacity="0.3"/>
-                    </svg>
+                     <div class="position-absolute end-0 bottom-0 top-0 d-flex align-items-center justify-content-end p-3"
+                          style="width: 300px; max-height: 100%; pointer-events: none; z-index: 1;">
+                        <div id="staff-greeting-lottie" style="width: 100%; height: 100%; max-height: 220px;"></div>
+                    </div>
                 </div>
             </div>
         </div>
