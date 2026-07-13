@@ -1,6 +1,19 @@
 from django.contrib import admin
 from .models import ClassRoom, Subject, StaffProfile, Student, SubjectAssignment, AcademicSession, Term, ClassSubject, Parent, Department, Designation, StaffClassSubject, MidTermRecord
 
+class PermissiveModelAdmin(admin.ModelAdmin):
+    """
+    A ModelAdmin class that grants view/change permissions to all staff users.
+    Useful for development and testing environments.
+    """
+    def has_view_or_change_permission(self, request, obj=None):
+        # Grant permission if user is staff (for development/testing)
+        return request.user.is_staff or super().has_view_or_change_permission(request, obj)
+    
+    def has_module_permission(self, request):
+        # Grant module permission if user is staff (for development/testing)
+        return request.user.is_staff or super().has_module_permission(request)
+
 
 class StaffClassSubjectInline(admin.TabularInline):
     model = StaffClassSubject
@@ -10,11 +23,11 @@ class StaffClassSubjectInline(admin.TabularInline):
 
 
 @admin.register(StaffProfile)
-class StaffProfileAdmin(admin.ModelAdmin):
+class StaffProfileAdmin(PermissiveModelAdmin):
     inlines = [StaffClassSubjectInline]
 
 
-class ClassSubjectAdmin(admin.ModelAdmin):
+class ClassSubjectAdmin(PermissiveModelAdmin):
     list_display = ('classroom', 'subject')
     list_filter = ('classroom', 'subject')
     search_fields = ('classroom__class_name', 'subject__subject_name')
@@ -54,20 +67,23 @@ class ClassSubjectAdmin(admin.ModelAdmin):
 
 
 @admin.register(Student)
-class StudentAdmin(admin.ModelAdmin):
+class StudentAdmin(PermissiveModelAdmin):
     list_display = ('admission_number', 'first_name', 'last_name', 'gender', 'classroom')
     list_editable = ('classroom',)
     list_filter = ('classroom', 'gender', 'status')
     search_fields = ('admission_number', 'first_name', 'last_name')
 
-admin.site.register(ClassRoom)
-admin.site.register(Subject)
-admin.site.register(SubjectAssignment)
-admin.site.register(AcademicSession)
-admin.site.register(Term)
+admin.site.register(ClassRoom, type('ClassRoomAdmin', (PermissiveModelAdmin,), {
+    'list_display': ('class_name', 'order', 'form_teacher'),
+    'search_fields': ('class_name',),
+}))
+admin.site.register(Subject, PermissiveModelAdmin)
+admin.site.register(SubjectAssignment, PermissiveModelAdmin)
+admin.site.register(AcademicSession, PermissiveModelAdmin)
+admin.site.register(Term, PermissiveModelAdmin)
 admin.site.register(ClassSubject, ClassSubjectAdmin)
-admin.site.register(Parent)
-admin.site.register(Department)
-admin.site.register(Designation)
-admin.site.register(StaffClassSubject)
-admin.site.register(MidTermRecord)
+admin.site.register(Parent, PermissiveModelAdmin)
+admin.site.register(Department, PermissiveModelAdmin)
+admin.site.register(Designation, PermissiveModelAdmin)
+admin.site.register(StaffClassSubject, PermissiveModelAdmin)
+admin.site.register(MidTermRecord, PermissiveModelAdmin)
