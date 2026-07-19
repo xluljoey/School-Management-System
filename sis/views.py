@@ -459,9 +459,13 @@ def staff_list_view(request):
 def staff_detail_view(request, staff_id):
     staff_member = get_object_or_404(StaffProfile, pk=staff_id)
     all_classes = ClassRoom.objects.all()
+    assignments = StaffClassSubject.objects.filter(
+        staff=staff_member
+    ).select_related('classroom', 'subject')
     return render(request, 'sis/staff_detail.html', {
         'staff_member': staff_member,
         'all_classes': all_classes,
+        'assignments': assignments,
     })
 
 

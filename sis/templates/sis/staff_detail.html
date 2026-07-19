@@ -97,6 +97,38 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Subject & Class Assignments -->
+            <div class="border-top my-4" style="border-color: #f4f4f5 !important;"></div>
+
+            <div class="row">
+                <div class="col-12">
+                    <h6 class="fw-bold text-dark mb-3" style="font-size: 14px; letter-spacing: -0.2px; text-transform: uppercase; color: #6c757d !important;">Subject & Class Assignments</h6>
+
+                    <div class="table-responsive">
+                        <table class="table table-borderless align-middle mb-0" style="font-size: 14px;">
+                            <thead>
+                                <tr class="border-bottom" style="border-color: #f4f4f5 !important; color: #6c757d;">
+                                    <th class="ps-0 pb-2 fw-semibold">Subject</th>
+                                    <th class="pb-2 fw-semibold">Class</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for assignment in assignments %}
+                                <tr class="border-bottom" style="border-color: #f4f4f5 !important;">
+                                    <td class="ps-0 py-2 fw-medium text-dark">{{ assignment.subject.subject_name }}</td>
+                                    <td class="py-2 text-muted">{{ assignment.classroom.class_name }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="2" class="ps-0 py-3 text-muted" style="font-style: italic;">No active subject or class assignments mapped to this teacher.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
