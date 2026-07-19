@@ -187,17 +187,18 @@
 
     (function() {
         var inputs = Array.from(document.querySelectorAll('.grade-input'));
+        var colsPerStudent = {{ subjects|length }} * 2;
         inputs.forEach(function(input) {
             input.addEventListener('wheel', function(e) { e.preventDefault(); }, { passive: false });
             input.addEventListener('keydown', function(e) {
                 var idx = inputs.indexOf(this);
                 if (e.key === 'ArrowDown') {
                     e.preventDefault();
-                    var next = inputs[idx + 1];
+                    var next = inputs[idx + colsPerStudent];
                     if (next) { next.focus(); next.select(); }
                 } else if (e.key === 'ArrowUp') {
                     e.preventDefault();
-                    var prev = inputs[idx - 1];
+                    var prev = inputs[idx - colsPerStudent];
                     if (prev) { prev.focus(); prev.select(); }
                 }
             });
