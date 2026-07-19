@@ -4,6 +4,20 @@
 {% block title %}Compile Grades & Assessment{% endblock %}
 
 {% block content %}
+<style>
+    .grade-input::-webkit-outer-spin-button,
+    .grade-input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    .grade-input[type=number] {
+        -moz-appearance: textfield;
+    }
+    .grade-input:focus {
+        border-color: #4f46e5 !important;
+        box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1) !important;
+    }
+</style>
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h4 class="fw-bold mb-1" style="color: #000000;">Compile Grades &amp; Assessment</h4>
@@ -170,6 +184,25 @@
             }
         });
     }
+
+    (function() {
+        var inputs = Array.from(document.querySelectorAll('.grade-input'));
+        inputs.forEach(function(input) {
+            input.addEventListener('wheel', function(e) { e.preventDefault(); }, { passive: false });
+            input.addEventListener('keydown', function(e) {
+                var idx = inputs.indexOf(this);
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    var next = inputs[idx + 1];
+                    if (next) { next.focus(); next.select(); }
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    var prev = inputs[idx - 1];
+                    if (prev) { prev.focus(); prev.select(); }
+                }
+            });
+        });
+    })();
 })();
 </script>
 {% endblock %}
