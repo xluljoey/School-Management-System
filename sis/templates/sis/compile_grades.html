@@ -34,7 +34,7 @@
             <option value="{{ c.id }}" {% if selected_class and selected_class.id == c.id %}selected{% endif %}>{{ c.class_name }}</option>
             {% endfor %}
         </select>
-        <select name="assessment_type" id="assessment-type-select" class="form-select" style="width: 200px; height: 42px; border-radius: 10px; border: 1px solid #E4E4E7; font-size: 14px;">
+        <select name="assessment_type" id="assessment-type-select" class="form-select" style="width: auto; min-width: 140px; height: 42px; border-radius: 10px; border: 1px solid #E4E4E7; font-size: 14px;">
             <option value="class_score" selected>Class Score (30%)</option>
             <option value="exam_score">Exam Score (70%)</option>
         </select>
@@ -65,8 +65,8 @@
     {% csrf_token %}
     <input type="hidden" name="class_id" value="{{ selected_class.id }}">
 
-    <div style="width: 100%; overflow-x: auto; background: #ffffff; border-radius: 16px; border: 1px solid #E4E4E7; margin-top: 24px;">
-        <table style="width: 100%; border-collapse: collapse; min-width: 1000px; font-size: 0.85rem;">
+    <div class="table-responsive w-100" style="-webkit-overflow-scrolling: touch; border-radius: 16px; border: 1px solid #E4E4E7; margin-top: 24px;">
+        <table style="width: 100%; border-collapse: collapse; min-width: 1000px; font-size: 0.85rem; background: #ffffff;">
             <thead>
                 <tr style="background-color: #F8F9FA;">
                     <th style="padding: 12px 16px; color: #8E8D93; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; text-align: left; border-bottom: 1px solid #E4E4E7;">Student</th>

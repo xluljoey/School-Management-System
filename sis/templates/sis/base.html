@@ -13,6 +13,63 @@
             margin: 0;
             padding: 0;
             background-color: #f8f9fa;
+            overflow-x: hidden;
+        }
+        .sidebar {
+            width: 284px;
+            min-width: 284px;
+            height: calc(100vh - 32px);
+            margin: 16px;
+            background-color: #000000;
+            border-radius: 24px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 24px 16px;
+            position: fixed;
+            left: 0;
+            top: 0;
+            z-index: 1040;
+            transition: transform 0.3s ease;
+        }
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1035;
+        }
+        .sidebar-overlay.active {
+            display: block;
+        }
+        @media (max-width: 767.98px) {
+            .sidebar {
+                transform: translateX(-100%);
+                margin: 0;
+                height: 100vh;
+                border-radius: 0;
+                width: 280px;
+                min-width: 280px;
+            }
+            .sidebar.open {
+                transform: translateX(0);
+            }
+            .main-viewport {
+                min-height: 100vh;
+            }
+            .global-header {
+                padding: 12px 16px !important;
+            }
+            .page-content-canvas {
+                padding: 0 16px 24px 16px !important;
+            }
+            .header-search-field {
+                display: none !important;
+            }
+            .utility-group svg:nth-child(2),
+            .utility-group svg:nth-child(3) {
+                display: none !important;
+            }
         }
         .sidebar {
             width: 284px;
@@ -178,6 +235,11 @@
             flex: 1 1 auto;
             min-width: 0;
         }
+        @media (max-width: 768px) {
+            .card { padding: 1rem !important; border-radius: 14px !important; }
+            h3 { font-size: 20px !important; }
+            h4 { font-size: 18px !important; }
+        }
     </style>
 </head>
 <body>
@@ -185,7 +247,7 @@
 {% if user.is_authenticated %}
 <div class="app-layout" style="display: flex; min-height: 100vh; background-color: #F8F9FA;">
     <!-- Left Sidebar Column (Fixed width) -->
-    <aside style="width: 284px; flex-shrink: 0; min-height: 100vh;">
+    <aside id="mainSidebar" style="width: 284px; flex-shrink: 0; min-height: 100vh;">
         <div class="sidebar">
             <div>
                 <div class="brand">
@@ -264,12 +326,19 @@
         </div>
     </aside>
 
+    <!-- Mobile sidebar overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
     <!-- Right Content Viewport (Fluid, takes remaining space) -->
     <div class="main-viewport" style="flex-grow: 1; display: flex; flex-direction: column; min-width: 0;">
         
         <!-- GLOBAL TOP BAR SECTION (Put it HERE, completely outside of block content) -->
         <header class="global-header" style="width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 20px 40px; background-color: transparent;">
             <div class="header-left d-flex align-items-center gap-3">
+                <!-- Mobile burger toggle -->
+                <button type="button" id="sidebarToggle" class="back-btn d-md-none" aria-label="Toggle sidebar">
+                    <i class="bi bi-list fs-5"></i>
+                </button>
                 <!-- Back Button & Search Bar Input Pill -->
                 <button type="button" onclick="window.history.back();" class="back-btn" aria-label="Go back">
                     <i class="bi bi-arrow-left"></i>
@@ -426,6 +495,38 @@ function toggleProfileCard() {
         card.style.display = card.style.display === 'none' ? 'block' : 'none';
     }
 }
+
+// Mobile sidebar toggle
+document.addEventListener('DOMContentLoaded', function() {
+    var sidebar = document.getElementById('mainSidebar');
+    var overlay = document.getElementById('sidebarOverlay');
+    var toggleBtn = document.getElementById('sidebarToggle');
+    if (sidebar && toggleBtn) {
+        function openSidebar() {
+            sidebar.querySelector('.sidebar').classList.add('open');
+            if (overlay) overlay.classList.add('active');
+        }
+        function closeSidebar() {
+            sidebar.querySelector('.sidebar').classList.remove('open');
+            if (overlay) overlay.classList.remove('active');
+        }
+        toggleBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            var isOpen = sidebar.querySelector('.sidebar').classList.contains('open');
+            if (isOpen) closeSidebar(); else openSidebar();
+        });
+        if (overlay) {
+            overlay.addEventListener('click', closeSidebar);
+        }
+    }
+});
+
+// Ensure burger is hidden on wide screens via CSS override
+(function() {
+    var style = document.createElement('style');
+    style.textContent = '@media (min-width: 768px) { #sidebarToggle { display: none !important; } }';
+    document.head.appendChild(style);
+})();
 </script>
 {% block extra_js %}{% endblock %}
 </body>
