@@ -22,57 +22,68 @@
     <div>
         <h4 class="fw-bold mb-1" style="color: #000000;">Compile Grades &amp; Assessment</h4>
         <span style="color: #8E8D93; font-size: 0.85rem;">
-            {% if selected_class %}
+            {% if selected_class and selected_subject %}
+                Class: <strong>{{ selected_class.class_name }}</strong> &mdash; Subject: <strong>{{ selected_subject.subject_name }}</strong>
+            {% elif selected_class %}
                 Class: <strong>{{ selected_class.class_name }}</strong>
             {% endif %}
         </span>
     </div>
-    <form method="get" class="d-flex align-items-center gap-2">
-        <select name="class_id" class="form-select" style="width: auto; border-radius: 12px; font-size: 0.9rem;" onchange="this.form.submit()">
-            <option value="">Select Class </option>
+    <form method="get" class="d-flex align-items-center gap-2 flex-wrap">
+        <select name="class_id" class="form-select form-select-sm" style="width: auto; min-width: 140px; border-radius: 10px; font-size: 0.85rem; height: 38px;" onchange="this.form.submit()">
+            <option value="">Select Class</option>
             {% for c in classrooms %}
-            <option value="{{ c.id }}" {% if selected_class and selected_class.id == c.id %}selected{% endif %}>{{ c.class_name }}</option>
+            <option value="{{ c.id }}" {% if selected_class_id == c.id|stringformat:"i" %}selected{% endif %}>{{ c.class_name }}</option>
             {% endfor %}
         </select>
-        <select name="assessment_type" id="assessment-type-select" class="form-select" style="width: auto; min-width: 140px; height: 42px; border-radius: 10px; border: 1px solid #E4E4E7; font-size: 14px;">
-            <option value="class_score" selected>Class Score (30%)</option>
-            <option value="exam_score">Exam Score (70%)</option>
+        <select name="subject_id" id="subjectSelect" class="form-select form-select-sm" style="width: auto; min-width: 160px; border-radius: 10px; font-size: 0.85rem; height: 38px;" onchange="this.form.submit()" {% if not selected_class_id %}disabled{% endif %}>
+            <option value="">Select Subject</option>
+            {% for s in available_subjects %}
+            <option value="{{ s.id }}" {% if selected_subject_id == s.id|stringformat:"i" %}selected{% endif %}>{{ s.subject_name }}</option>
+            {% endfor %}
+        </select>
+        <select name="assessment_type" id="assessment-type-select" class="form-select form-select-sm" style="width: auto; min-width: 140px; border-radius: 10px; font-size: 0.85rem; height: 38px;" onchange="toggleAssessmentType(this.value)">
+            <option value="class_score" {% if assessment_type == 'class_score' %}selected{% endif %}>Class Score (30%)</option>
+            <option value="exam_score" {% if assessment_type == 'exam_score' %}selected{% endif %}>Exam Score (70%)</option>
         </select>
     </form>
 </div>
 
-{% if not selected_class %}
+{% if not selected_class or not selected_subject %}
 <div class="card border-0" style="border-radius: 16px; background-color: #ffffff; min-height: calc(100vh - 140px); margin-bottom: 24px; display: flex; flex-direction: column; justify-content: center; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
-    
+
     <div class="d-flex flex-column align-items-center justify-content-center text-center py-5" style="min-height: 400px;">
-        
+
         <div class="mb-4" style="max-width: 440px; opacity: 0.5; transition: all 0.3s ease;">
             <img src="{% static 'sis/images/Group 8381.svg' %}" class="img-fluid" alt="Select parameters to compile records">
         </div>
 
         <h5 class="fw-semibold text-dark mb-2" style="font-size: 20px; letter-spacing: -0.3px;">
-            Select a class parameters to compile grades
+            {% if not selected_class %}
+                Select a class and subject to compile grades
+            {% else %}
+                Select a subject to begin grading
+            {% endif %}
         </h5>
         <p class="text-muted mx-auto" style="max-width: 440px; font-size: 14px; line-height: 1.6;">
-            Choose a target class tier and specific assessment score type from the top menus to aggregate term datasets, process grade weights, and finalize continuous records.
+            Choose a target class, then a subject and assessment type from the top menus to aggregate term datasets, process grade weights, and finalize continuous records.
         </p>
     </div>
 </div>
 {% endif %}
 
-{% if selected_class and students %}
+{% if selected_class and selected_subject and students %}
 <form method="POST" id="grade-matrix-form">
     {% csrf_token %}
     <input type="hidden" name="class_id" value="{{ selected_class.id }}">
+    <input type="hidden" name="subject_id" value="{{ selected_subject.id }}">
 
     <div class="table-responsive w-100" style="-webkit-overflow-scrolling: touch; border-radius: 16px; border: 1px solid #E4E4E7; margin-top: 24px;">
-        <table style="width: 100%; border-collapse: collapse; min-width: 1000px; font-size: 0.85rem; background: #ffffff;">
+        <table style="width: 100%; border-collapse: collapse; min-width: 500px; font-size: 0.85rem; background: #ffffff;">
             <thead>
                 <tr style="background-color: #F8F9FA;">
                     <th style="padding: 12px 16px; color: #8E8D93; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; text-align: left; border-bottom: 1px solid #E4E4E7;">Student</th>
-                    {% for subject in subjects %}
-                    <th style="padding: 12px 16px; color: #8E8D93; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; text-align: center; border-bottom: 1px solid #E4E4E7;">{{ subject.subject_name }}</th>
-                    {% endfor %}
+                    <th style="padding: 12px 16px; color: #8E8D93; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; text-align: center; border-bottom: 1px solid #E4E4E7;">{{ selected_subject.subject_name }}</th>
                     <th style="padding: 12px 16px; color: #8E8D93; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; text-align: center; border-bottom: 1px solid #E4E4E7;">Grand Total</th>
                     <th style="padding: 12px 16px; color: #8E8D93; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; text-align: center; border-bottom: 1px solid #E4E4E7;">Rank</th>
                 </tr>
@@ -87,12 +98,10 @@
                             <div style="color: #8E8D93; font-size: 0.7rem;">{{ row.student.admission_number }}</div>
                         </div>
                     </td>
-                    {% for cell in row.cells %}
                     <td style="padding: 6px 8px; text-align: center;">
-                        <input type="number" name="cs_{{ row.student.id }}_{{ cell.subject.id }}" class="grade-input class-score-field" step="0.01" min="0" max="30" placeholder="Max 30" value="{{ cell.class_score }}" style="width: 65px; height: 38px; border: 1px solid #E4E4E7; border-radius: 8px; text-align: center; font-size: 14px; outline: none; box-sizing: border-box;" onfocus="this.style.borderColor='#000000'" onblur="this.style.borderColor='#E4E4E7'">
-                        <input type="number" name="es_{{ row.student.id }}_{{ cell.subject.id }}" class="grade-input exam-score-field" step="0.01" min="0" max="70" placeholder="Max 70" value="{{ cell.exam_score }}" style="width: 65px; height: 38px; border: 1px solid #E4E4E7; border-radius: 8px; text-align: center; font-size: 14px; outline: none; box-sizing: border-box; display: none;" onfocus="this.style.borderColor='#000000'" onblur="this.style.borderColor='#E4E4E7'">
+                        <input type="number" name="cs_{{ row.student.id }}" class="grade-input class-score-field" step="0.01" min="0" max="30" placeholder="Max 30" value="{{ row.class_score }}" style="width: 65px; height: 38px; border: 1px solid #E4E4E7; border-radius: 8px; text-align: center; font-size: 14px; outline: none; box-sizing: border-box;" onfocus="this.style.borderColor='#000000'" onblur="this.style.borderColor='#E4E4E7'">
+                        <input type="number" name="es_{{ row.student.id }}" class="grade-input exam-score-field" step="0.01" min="0" max="70" placeholder="Max 70" value="{{ row.exam_score }}" style="width: 65px; height: 38px; border: 1px solid #E4E4E7; border-radius: 8px; text-align: center; font-size: 14px; outline: none; box-sizing: border-box; display: none;" onfocus="this.style.borderColor='#000000'" onblur="this.style.borderColor='#E4E4E7'">
                     </td>
-                    {% endfor %}
                     <td style="padding: 10px 16px; text-align: center;">
                         <span style="font-weight: 700; color: #1A1A1A; font-size: 0.9rem;">—</span>
                     </td>
@@ -106,7 +115,7 @@
     </div>
 
     <div style="margin-top: 24px;">
-        <a href="{% url 'class_report' class_id=selected_class.id %}" id="cancel-link" style="color: #8F8F8F; font-weight: 500; text-decoration: none; line-height: 38px;">Cancel</a>
+        <a href="{% url 'compile_grades' %}" id="cancel-link" style="color: #8F8F8F; font-weight: 500; text-decoration: none; line-height: 38px;">Cancel</a>
     </div>
 
     <div style="position: fixed; bottom: 40px; right: 40px; z-index: 1050;">
@@ -128,7 +137,7 @@
         </button>
     </div>
 </form>
-{% elif selected_class and not students %}
+{% elif selected_class and selected_subject and not students %}
 <div style="text-align: center; padding: 80px 0; color: #8E8D93;">
     <p>No students enrolled in this class.</p>
 </div>
@@ -146,7 +155,6 @@
         form.addEventListener('input', function() {
             isFormDirty = true;
         });
-
         form.addEventListener('submit', function() {
             isFormDirty = false;
         });
@@ -169,41 +177,40 @@
         }
     });
 
-    var toggle = document.getElementById('assessment-type-select');
-    if (toggle) {
-        toggle.addEventListener('change', function() {
-            var show = this.value;
-            var classFields = document.querySelectorAll('.class-score-field');
-            var examFields = document.querySelectorAll('.exam-score-field');
-            if (show === 'class_score') {
-                classFields.forEach(function(el) { el.style.display = ''; });
-                examFields.forEach(function(el) { el.style.display = 'none'; });
-            } else {
-                classFields.forEach(function(el) { el.style.display = 'none'; });
-                examFields.forEach(function(el) { el.style.display = ''; });
-            }
-        });
+    // Assessment type toggle
+    toggleAssessmentType(document.getElementById('assessment-type-select').value);
+})();
+
+function toggleAssessmentType(show) {
+    var classFields = document.querySelectorAll('.class-score-field');
+    var examFields = document.querySelectorAll('.exam-score-field');
+    if (show === 'class_score') {
+        classFields.forEach(function(el) { el.style.display = ''; });
+        examFields.forEach(function(el) { el.style.display = 'none'; });
+    } else {
+        classFields.forEach(function(el) { el.style.display = 'none'; });
+        examFields.forEach(function(el) { el.style.display = ''; });
     }
 
-    (function() {
-        var inputs = Array.from(document.querySelectorAll('.grade-input'));
-        var colsPerStudent = {{ subjects|length }} * 2;
-        inputs.forEach(function(input) {
-            input.addEventListener('wheel', function(e) { e.preventDefault(); }, { passive: false });
-            input.addEventListener('keydown', function(e) {
-                var idx = inputs.indexOf(this);
-                if (e.key === 'ArrowDown') {
-                    e.preventDefault();
-                    var next = inputs[idx + colsPerStudent];
-                    if (next) { next.focus(); next.select(); }
-                } else if (e.key === 'ArrowUp') {
-                    e.preventDefault();
-                    var prev = inputs[idx - colsPerStudent];
-                    if (prev) { prev.focus(); prev.select(); }
-                }
-            });
-        });
-    })();
-})();
+    // Arrow-key navigation: 2 inputs per student (class_score + exam_score for one subject)
+    var inputs = Array.from(document.querySelectorAll('.grade-input'));
+    inputs.forEach(function(input) {
+        input.removeEventListener('keydown', input._arrowHandler);
+        input._arrowHandler = function(e) {
+            var idx = inputs.indexOf(this);
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                var next = inputs[idx + 2];
+                if (next) { next.focus(); next.select(); }
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                var prev = inputs[idx - 2];
+                if (prev) { prev.focus(); prev.select(); }
+            }
+        };
+        input.addEventListener('keydown', input._arrowHandler);
+        input.addEventListener('wheel', function(e) { e.preventDefault(); }, { passive: false });
+    });
+}
 </script>
 {% endblock %}

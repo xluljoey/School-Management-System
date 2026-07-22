@@ -873,73 +873,76 @@ def compile_grades_view(request):
     else:
         assigned_class_ids = StaffClassSubject.objects.filter(staff=staff).values_list('classroom_id', flat=True).distinct()
         classrooms = ClassRoom.objects.filter(id__in=assigned_class_ids)
-    subjects = Subject.objects.none()
+
     selected_class_id = request.GET.get('class_id')
+    selected_subject_id = request.GET.get('subject_id')
+    assessment_type = request.GET.get('assessment_type', 'class_score')
+    selected_subject = None
+    classroom = None
     students = []
+    available_subjects = Subject.objects.none()
+
     if selected_class_id:
         classroom = get_object_or_404(ClassRoom, pk=selected_class_id)
         students = Student.objects.filter(enrollments__classroom=classroom).distinct()
-        subject_qs = Subject.objects.filter(offered_in_classes__classroom=classroom).distinct()
+        available_subjects = Subject.objects.filter(offered_in_classes__classroom=classroom).distinct()
         if not request.user.is_superuser and staff:
             assigned_subject_ids = StaffClassSubject.objects.filter(staff=staff, classroom=classroom).values_list('subject_id', flat=True).distinct()
-            subject_qs = subject_qs.filter(id__in=assigned_subject_ids)
-        subjects = subject_qs
-    else:
-        classroom = None
-        students = Student.objects.none()
+            available_subjects = available_subjects.filter(id__in=assigned_subject_ids)
+
+        if selected_subject_id:
+            selected_subject = get_object_or_404(Subject, pk=selected_subject_id)
 
     current_session = AcademicSession.objects.filter(is_current=True).first()
     current_term = Term.objects.filter(is_active=True).first()
 
     if request.method == 'POST':
         selected_class_id = request.POST.get('class_id')
+        selected_subject_id = request.POST.get('subject_id')
         classroom = get_object_or_404(ClassRoom, pk=selected_class_id)
+        selected_subject = get_object_or_404(Subject, pk=selected_subject_id)
         students = Student.objects.filter(enrollments__classroom=classroom).distinct()
-        subject_qs = Subject.objects.filter(offered_in_classes__classroom=classroom).distinct()
-        if not request.user.is_superuser and staff:
-            assigned_subject_ids = StaffClassSubject.objects.filter(staff=staff, classroom=classroom).values_list('subject_id', flat=True).distinct()
-            subject_qs = subject_qs.filter(id__in=assigned_subject_ids)
+
         for student in students:
-            for subject in subject_qs:
-                class_score_key = f'cs_{student.id}_{subject.id}'
-                exam_score_key = f'es_{student.id}_{subject.id}'
-                cs = request.POST.get(class_score_key)
-                es = request.POST.get(exam_score_key)
-                if cs or es:
-                    SubjectAssessment.objects.update_or_create(
-                        student=student,
-                        subject=subject,
-                        academic_session=current_session,
-                        academic_term=current_term,
-                        defaults={
-                            'class_score': cs or 0,
-                            'exam_score': es or 0,
-                            'term': current_term.term_name.split()[-1] if current_term else 1,
-                            'academic_year': current_session.academic_year if current_session else '2025/2026',
-                        }
-                    )
-        messages.success(request, 'Grades saved successfully!')
-        return redirect(request.path + '?class_id=' + str(selected_class_id))
+            cs = request.POST.get(f'cs_{student.id}')
+            es = request.POST.get(f'es_{student.id}')
+            if cs or es:
+                SubjectAssessment.objects.update_or_create(
+                    student=student,
+                    subject=selected_subject,
+                    academic_session=current_session,
+                    academic_term=current_term,
+                    defaults={
+                        'class_score': cs or 0,
+                        'exam_score': es or 0,
+                        'term': current_term.term_name.split()[-1] if current_term else 1,
+                        'academic_year': current_session.academic_year if current_session else '2025/2026',
+                    }
+                )
+        messages.success(request, f'Grades for {selected_subject.subject_name} saved successfully!')
+        return redirect(request.path + '?class_id=' + str(selected_class_id) + '&subject_id=' + str(selected_subject_id) + '&assessment_type=' + str(assessment_type))
 
     grades_matrix = []
-    for student in students:
-        cells = []
-        for subject in subjects:
+    if selected_subject:
+        for student in students:
             assessment = SubjectAssessment.objects.filter(
-                student=student, subject=subject, academic_session=current_session, academic_term=current_term
+                student=student, subject=selected_subject, academic_session=current_session, academic_term=current_term
             ).first()
-            cells.append({
-                'subject': subject,
+            grades_matrix.append({
+                'student': student,
                 'class_score': assessment.class_score if assessment else '',
                 'exam_score': assessment.exam_score if assessment else '',
             })
-        grades_matrix.append({'student': student, 'cells': cells})
 
     context = {
         'classrooms': classrooms,
-        'subjects': subjects,
+        'available_subjects': available_subjects,
         'students': students,
         'selected_class': classroom,
+        'selected_subject': selected_subject,
+        'selected_class_id': selected_class_id,
+        'selected_subject_id': selected_subject_id,
+        'assessment_type': assessment_type,
         'grades_matrix': grades_matrix,
     }
     return render(request, 'sis/compile_grades.html', context)
