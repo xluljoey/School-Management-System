@@ -122,7 +122,7 @@ class Command(BaseCommand):
 
             user = User.objects.create_user(
                 username=username,
-                password='TestPass123!',
+                password='staff123',
                 first_name=data['first'],
                 last_name=data['last'],
                 email=email,
