@@ -1,0 +1,296 @@
+{% extends 'sis/base.html' %}
+{% load static custom_filters %}
+
+{% block title %} Generate Report Cards — {{ classroom.class_name }} {% endblock %}
+
+{% block content %}
+<style>
+    .hub-scroll-container {
+        overflow: auto;
+        -webkit-overflow-scrolling: touch;
+        max-height: calc(100vh - 320px);
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        background: #fff;
+    }
+    .hub-scroll-container::-webkit-scrollbar { width: 8px; height: 8px; }
+    .hub-scroll-container::-webkit-scrollbar-track { background: #f4f4f5; border-radius: 10px; }
+    .hub-scroll-container::-webkit-scrollbar-thumb { background: #a1a1aa; border-radius: 10px; }
+    .hub-scroll-container::-webkit-scrollbar-thumb:hover { background: #71717a; }
+
+    .hub-table { border-collapse: separate; border-spacing: 0; min-width: max-content; width: 100%; }
+    .hub-table th, .hub-table td { white-space: nowrap; padding: 12px 16px; font-size: 13px; border-bottom: 1px solid #f0f0f0; }
+    .hub-table thead th { background: #f8f9fa; font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: 0.4px; color: #495057; position: sticky; top: 0; z-index: 10; border-bottom: 2px solid #dee2e6; }
+    .hub-table tbody tr { transition: background 0.12s; }
+    .hub-table tbody tr:hover { background: #f9fafb; }
+    .hub-table tbody tr.selected { background: #eff6ff; }
+
+    .score-mono { font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace; font-size: 13px; color: #1f2937; }
+    .status-badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 12px; border-radius: 50px; font-size: 11px; font-weight: 600; background: #d1fae5; color: #047857; }
+    .status-badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #047857; }
+
+    .action-card { border: 1px solid #e5e7eb; border-radius: 14px; padding: 20px 24px; background: #fff; transition: all 0.2s; cursor: pointer; text-decoration: none; color: inherit; display: block; }
+    .action-card:hover { border-color: #111; box-shadow: 0 4px 12px rgba(0,0,0,0.08); transform: translateY(-2px); }
+
+    .email-modal { display: none; position: fixed; inset: 0; z-index: 2000; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); align-items: center; justify-content: center; }
+    .email-modal.active { display: flex; }
+</style>
+
+<div class="card border-0" style="border-radius: 16px; background-color: #ffffff; margin-top: 20px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center" style="border-bottom: 1px solid #f0f0f0; flex-wrap: wrap; gap: 12px;">
+        <div>
+            <h5 class="mb-0 fw-bold text-dark">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; vertical-align: -3px; margin-right: 6px;">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                </svg>
+                Report Card Generation Hub
+            </h5>
+            <small class="text-muted">
+                Class: <strong>{{ classroom.class_name }}</strong> &middot;
+                {{ year_label }} &middot; Term {{ term_number }} &middot;
+                {{ student_count }} students
+                {% if verification %}
+                    <span class="badge bg-success ms-2">Verified</span>
+                {% endif %}
+            </small>
+        </div>
+        <a href="{% url 'class_report' class_id=classroom.id %}?master=1"
+           style="border-radius: 50px; padding: 10px 24px; font-weight: 500; text-decoration: none;
+                  font-size: 14px; background: #f4f4f5; color: #374151; transition: background 0.2s;"
+           onmouseover="this.style.background='#e5e7eb'" onmouseout="this.style.background='#f4f4f5'">
+           &larr; Back to Report
+        </a>
+    </div>
+    <div class="card-body" style="padding: 24px;">
+        {# ── Export Action Cards ── #}
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <a class="action-card" onclick="printSelected()" id="printAction">
+                    <div class="d-flex align-items-center gap-3">
+                        <div style="width: 44px; height: 44px; border-radius: 12px; background: #111; color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                        </div>
+                        <div>
+                            <div style="font-weight: 700; font-size: 14px; color: #111;">Print / Export PDF</div>
+                            <div style="font-size: 12px; color: #6b7280;">Generate printable report cards</div>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-md-4">
+                <a class="action-card" href="{% url 'export_excel' class_id=classroom.id %}">
+                    <div class="d-flex align-items-center gap-3">
+                        <div style="width: 44px; height: 44px; border-radius: 12px; background: #047857; color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+                        </div>
+                        <div>
+                            <div style="font-weight: 700; font-size: 14px; color: #111;">Export to Excel</div>
+                            <div style="font-size: 12px; color: #6b7280;">Download .xlsx results spreadsheet</div>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-md-4">
+                <a class="action-card" onclick="openEmailModal()" id="emailAction">
+                    <div class="d-flex align-items-center gap-3">
+                        <div style="width: 44px; height: 44px; border-radius: 12px; background: #2563eb; color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                        </div>
+                        <div>
+                            <div style="font-weight: 700; font-size: 14px; color: #111;">Share via Email</div>
+                            <div style="font-size: 12px; color: #6b7280;">Send to parents (coming soon)</div>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </div>
+
+        {# ── Selection Controls ── #}
+        <div class="d-flex align-items-center justify-content-between mb-3" style="flex-wrap: wrap; gap: 10px;">
+            <div class="d-flex align-items-center gap-3">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px; font-weight: 500; color: #374151;">
+                    <input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)" style="width: 18px; height: 18px; accent-color: #111;">
+                    Select All
+                </label>
+                <span id="selectedCount" style="font-size: 13px; color: #6b7280;">0 selected</span>
+            </div>
+        </div>
+
+        {# ── Student Grid ── #}
+        <div class="hub-scroll-container">
+            <table class="hub-table table mb-0 align-middle">
+                <thead>
+                    <tr>
+                        <th style="width: 50px; text-align: center;">Select</th>
+                        <th style="width: 60px; text-align: center;">Rank</th>
+                        <th>Student</th>
+                        <th style="text-align: center;">Grand Total</th>
+                        <th style="text-align: center;">Grade</th>
+                        <th>Remark</th>
+                        <th style="text-align: center;">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in report_data %}
+                    <tr data-student-id="{{ row.student.id }}">
+                        <td style="text-align: center;">
+                            <input type="checkbox" class="student-checkbox" value="{{ row.student.id }}" onchange="updateSelectedCount()" style="width: 18px; height: 18px; accent-color: #111; cursor: pointer;">
+                        </td>
+                        <td style="text-align: center;">
+                            {% if row.rank == 1 %}
+                            <span style="background-color: #fef3c7; color: #b45309; padding: 4px 12px; border-radius: 50px; font-weight: 700; font-size: 12px;">#1</span>
+                            {% elif row.rank == 2 %}
+                            <span style="background-color: #e0e7ff; color: #4338ca; padding: 4px 12px; border-radius: 50px; font-weight: 700; font-size: 12px;">#2</span>
+                            {% elif row.rank == 3 %}
+                            <span style="background-color: #d1fae5; color: #047857; padding: 4px 12px; border-radius: 50px; font-weight: 700; font-size: 12px;">#3</span>
+                            {% else %}
+                            <span style="background-color: #f4f4f5; color: #71717a; padding: 4px 12px; border-radius: 50px; font-weight: 700; font-size: 12px;">#{{ row.rank }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center gap-3">
+                                {% if row.student.profile_picture %}
+                                <img src="{{ row.student.profile_picture.url }}" style="width: 34px; height: 34px; border-radius: 50%; object-fit: cover;">
+                                {% else %}
+                                <div style="width: 34px; height: 34px; border-radius: 50%; background: #111; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 13px;">{{ row.student.first_name|first }}</div>
+                                {% endif %}
+                                <div>
+                                    <div style="font-weight: 600; color: #111; font-size: 13px;">{{ row.student.first_name }} {{ row.student.last_name }}</div>
+                                    <div style="font-size: 11px; color: #71717a;">{{ row.student.admission_number }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td style="text-align: center;">
+                            <span class="score-mono" style="font-weight: 700; font-size: 15px;">{{ row.grand_total|floatformat:1 }}</span>
+                        </td>
+                        <td style="text-align: center;">
+                            <span style="background: #f3f4f6; padding: 3px 12px; border-radius: 50px; font-weight: 700; font-size: 13px; color: #111;">{{ row.overall_grade }}</span>
+                        </td>
+                        <td>
+                            {% if row.overall_remark != "—" %}
+                                {% if row.overall_grade == "1" or row.overall_grade == "2" %}
+                                <span style="background: #d1fae5; color: #047857; padding: 3px 12px; border-radius: 50px; font-size: 12px; font-weight: 600;">{{ row.overall_remark }}</span>
+                                {% elif row.overall_grade == "3" or row.overall_grade == "4" %}
+                                <span style="background: #dbeafe; color: #1d4ed8; padding: 3px 12px; border-radius: 50px; font-size: 12px; font-weight: 600;">{{ row.overall_remark }}</span>
+                                {% elif row.overall_grade == "5" or row.overall_grade == "6" %}
+                                <span style="background: #fef3c7; color: #b45309; padding: 3px 12px; border-radius: 50px; font-size: 12px; font-weight: 600;">{{ row.overall_remark }}</span>
+                                {% elif row.overall_grade == "7" %}
+                                <span style="background: #fde68a; color: #92400e; padding: 3px 12px; border-radius: 50px; font-size: 12px; font-weight: 600;">{{ row.overall_remark }}</span>
+                                {% elif row.overall_grade == "8" %}
+                                <span style="background: #fed7aa; color: #c2410c; padding: 3px 12px; border-radius: 50px; font-size: 12px; font-weight: 600;">{{ row.overall_remark }}</span>
+                                {% else %}
+                                <span style="background: #fee2e2; color: #b91c1c; padding: 3px 12px; border-radius: 50px; font-size: 12px; font-weight: 600;">{{ row.overall_remark }}</span>
+                                {% endif %}
+                            {% else %}
+                            <span style="color: #d1d5db;">—</span>
+                            {% endif %}
+                        </td>
+                        <td style="text-align: center;">
+                            <span class="status-badge">Ready</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{# ── Email Modal ── #}
+<div id="emailModal" class="email-modal">
+    <div style="background: #fff; border-radius: 20px; width: min(92vw, 520px); max-height: 80vh; overflow: hidden; box-shadow: 0 25px 60px rgba(0,0,0,0.25); display: flex; flex-direction: column;">
+        <div style="padding: 28px 32px 16px; border-bottom: 1px solid #f0f0f0;">
+            <div class="d-flex align-items-start justify-content-between">
+                <div>
+                    <h5 class="fw-bold mb-1" style="font-size: 18px; color: #2563eb;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; vertical-align: -3px; margin-right: 6px;">
+                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                            <polyline points="22,6 12,13 2,6"></polyline>
+                        </svg>
+                        Send to Parents via Email
+                    </h5>
+                    <small style="color: #6b7280;">Email integration coming soon</small>
+                </div>
+                <button onclick="closeEmailModal()" style="background: none; border: none; font-size: 22px; color: #9ca3af; cursor: pointer; padding: 4px 8px;">&times;</button>
+            </div>
+        </div>
+        <div style="padding: 20px 32px; overflow-y: auto; flex: 1;">
+            <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 16px 20px; margin-bottom: 16px;">
+                <p style="font-size: 14px; color: #1e40af; margin: 0;">
+                    <strong>Coming Soon:</strong> Report cards will be sent directly to parents via email. This feature requires SMTP/email API configuration.
+                </p>
+            </div>
+            <label style="font-size: 13px; font-weight: 600; color: #374151; display: block; margin-bottom: 8px;">Parent Email Addresses ({{ parent_emails|length }}):</label>
+            <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 14px; max-height: 200px; overflow-y: auto;">
+                {% for email in parent_emails %}
+                <div style="font-size: 13px; color: #374151; padding: 4px 0; border-bottom: 1px solid #f0f0f0;">
+                    {{ email }}
+                </div>
+                {% empty %}
+                <div style="font-size: 13px; color: #9ca3af; text-align: center; padding: 12px;">
+                    No parent email addresses on file
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        <div style="padding: 16px 32px 24px; border-top: 1px solid #f0f0f0; display: flex; justify-content: flex-end; gap: 10px;">
+            <button onclick="closeEmailModal()"
+                    style="border-radius: 50px; padding: 10px 24px; font-weight: 500; font-size: 14px; border: 1px solid #e5e7eb; background: #fff; color: #374151; cursor: pointer;">
+                Close
+            </button>
+            <button disabled
+                    style="border-radius: 50px; padding: 10px 24px; font-weight: 500; font-size: 14px; background: #d1d5db; color: #9ca3af; border: none; cursor: not-allowed;">
+                Send Emails (Coming Soon)
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleSelectAll(master) {
+    var boxes = document.querySelectorAll('.student-checkbox');
+    boxes.forEach(function(cb) { cb.checked = master.checked; });
+    updateSelectedCount();
+    document.querySelectorAll('.hub-table tbody tr').forEach(function(tr) {
+        tr.classList.toggle('selected', master.checked);
+    });
+}
+
+function updateSelectedCount() {
+    var checked = document.querySelectorAll('.student-checkbox:checked').length;
+    document.getElementById('selectedCount').textContent = checked + ' selected';
+    document.getElementById('selectAll').checked = checked === document.querySelectorAll('.student-checkbox').length && checked > 0;
+    document.querySelectorAll('.student-checkbox').forEach(function(cb) {
+        cb.closest('tr').classList.toggle('selected', cb.checked);
+    });
+}
+
+function getSelectedStudentIds() {
+    var ids = [];
+    document.querySelectorAll('.student-checkbox:checked').forEach(function(cb) {
+        ids.push(cb.value);
+    });
+    return ids;
+}
+
+function printSelected() {
+    var ids = getSelectedStudentIds();
+    if (ids.length === 0) {
+        alert('Please select at least one student to print.');
+        return;
+    }
+    window.print();
+}
+
+function openEmailModal() {
+    document.getElementById('emailModal').classList.add('active');
+}
+
+function closeEmailModal() {
+    document.getElementById('emailModal').classList.remove('active');
+}
+</script>
+{% endblock %}

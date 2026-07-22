@@ -22,6 +22,7 @@ from .views import (
     api_class_subjects,
     api_class_details,
     api_subject_details,
+    api_check_completeness,
     verify_class_rankings_view,
     view_account,
     midterm_summary_view,
@@ -32,6 +33,8 @@ from .views import (
     assign_form_class,
     classes_subjects_hub,
     timetable_hub,
+    generate_report_cards_view,
+    export_excel_view,
 )
 
 urlpatterns = [
@@ -75,4 +78,7 @@ urlpatterns = [
     path('parents/<int:parent_id>/edit/', parent_edit_view, name='parent_edit'),
     path('classes-subjects/', classes_subjects_hub, name='classes_subjects_hub'),
     path('timetables/', timetable_hub, name='timetable_hub'),
+    path('api/check-completeness/<int:class_id>/', api_check_completeness, name='api_check_completeness'),
+    path('class/<int:class_id>/report/generate/', generate_report_cards_view, name='generate_report_cards'),
+    path('class/<int:class_id>/report/export-excel/', export_excel_view, name='export_excel'),
 ]

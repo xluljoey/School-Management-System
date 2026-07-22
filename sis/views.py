@@ -436,6 +436,332 @@ def class_report_card_view(request, class_id):
 
 
 @login_required
+@require_POST
+def api_check_completeness(request, class_id):
+    if not _is_staff_or_admin(request.user):
+        return JsonResponse({'error': 'Permission denied'}, status=403)
+    classroom = ClassRoom.objects.get(pk=class_id)
+    staff = getattr(request.user, 'staff_profile', None)
+    is_form_teacher = staff and staff.form_class == classroom
+    has_full_access = request.user.is_superuser or is_form_teacher
+
+    if not has_full_access:
+        return JsonResponse({'error': 'Only the form teacher or admin can generate reports'}, status=403)
+
+    current_session = AcademicSession.objects.filter(is_current=True).first()
+    current_term = Term.objects.filter(is_active=True).first()
+    if not current_session or not current_term:
+        return JsonResponse({'complete': True, 'missing': []})
+
+    subjects_for_class = Subject.objects.filter(offered_in_classes__classroom=classroom).distinct()
+    students = Student.objects.filter(enrollments__classroom=classroom).distinct()
+
+    all_assessments = SubjectAssessment.objects.filter(
+        academic_session=current_session, academic_term=current_term,
+        student__in=students, subject__in=subjects_for_class,
+    )
+    assessment_map = {}
+    for a in all_assessments:
+        assessment_map.setdefault(a.student_id, {})[a.subject_id] = a
+
+    missing = []
+    for subject in subjects_for_class:
+        teacher_name = ""
+        scs = StaffClassSubject.objects.filter(classroom=classroom, subject=subject).select_related('staff').first()
+        if scs:
+            teacher_name = f"{scs.staff.first_name} {scs.staff.last_name}"
+
+        missing_class = []
+        missing_exam = []
+        for student in students:
+            a = assessment_map.get(student.id, {}).get(subject.id)
+            if not a:
+                missing_class.append(student.first_name)
+                missing_exam.append(student.first_name)
+            else:
+                if a.class_score is None:
+                    missing_class.append(student.first_name)
+                if a.exam_score is None:
+                    missing_exam.append(student.first_name)
+
+        if missing_class or missing_exam:
+            entry = {'subject': subject.subject_name, 'teacher': teacher_name}
+            if missing_class:
+                entry['missing_class_count'] = len(missing_class)
+                entry['missing_class_students'] = missing_class[:5]
+            if missing_exam:
+                entry['missing_exam_count'] = len(missing_exam)
+                entry['missing_exam_students'] = missing_exam[:5]
+            missing.append(entry)
+
+    return JsonResponse({'complete': len(missing) == 0, 'missing': missing})
+
+
+@login_required
+def generate_report_cards_view(request, class_id):
+    if not _is_staff_or_admin(request.user):
+        raise PermissionDenied
+    classroom = ClassRoom.objects.get(pk=class_id)
+    staff = getattr(request.user, 'staff_profile', None)
+    is_form_teacher = staff and staff.form_class == classroom
+    has_full_access = request.user.is_superuser or is_form_teacher
+
+    if not has_full_access:
+        raise PermissionDenied
+
+    current_session = AcademicSession.objects.filter(is_current=True).first()
+    current_term = Term.objects.filter(is_active=True).first()
+    term_number = int(current_term.term_name.split()[-1]) if current_term else 1
+    year_label = current_term.session.academic_year if current_term and current_term.session else "2025/2026"
+
+    subjects_for_class = Subject.objects.filter(offered_in_classes__classroom=classroom).distinct().order_by('subject_name')
+    students = Student.objects.filter(enrollments__classroom=classroom).distinct()
+
+    all_assessments = SubjectAssessment.objects.filter(
+        academic_session=current_session, academic_term=current_term,
+        student__in=students, subject__in=subjects_for_class,
+    )
+    assessment_map = {}
+    for a in all_assessments:
+        assessment_map.setdefault(a.student_id, {})[a.subject_id] = a
+
+    GRADE_REMARKS = [
+        (80, "1", "Highest Distinction"), (75, "2", "Distinction"),
+        (70, "3", "Excellent"), (65, "4", "Very Good"), (60, "5", "Good"),
+        (55, "6", "Credit"), (50, "7", "Satisfactory"), (40, "8", "Pass"), (0, "9", "Fail"),
+    ]
+
+    def get_remark(total):
+        if total is None:
+            return "—", "—"
+        for floor, grade, label in GRADE_REMARKS:
+            if total >= floor:
+                return grade, label
+        return "9", "Fail"
+
+    report_data = []
+    for student in students:
+        subject_scores = {}
+        for subj in subjects_for_class:
+            a = assessment_map.get(student.id, {}).get(subj.id)
+            if a:
+                grade, remark = get_remark(float(a.total_score))
+                subject_scores[subj.id] = {
+                    'class_score': float(a.class_score),
+                    'exam_score': float(a.exam_score),
+                    'total': float(a.total_score),
+                    'grade': grade,
+                    'remark': remark,
+                }
+            else:
+                subject_scores[subj.id] = {
+                    'class_score': None, 'exam_score': None, 'total': None,
+                    'grade': '—', 'remark': '—',
+                }
+
+        grand_total = sum(
+            s['total'] for s in subject_scores.values() if s['total'] is not None
+        )
+        grade, remark = get_remark(grand_total)
+
+        report_data.append({
+            'student': student,
+            'subject_scores': subject_scores,
+            'grand_total': grand_total,
+            'overall_grade': grade,
+            'overall_remark': remark,
+        })
+
+    report_data = sorted(report_data, key=lambda x: x['grand_total'], reverse=True)
+    for index, row in enumerate(report_data):
+        row['rank'] = index + 1
+
+    subject_positions = {}
+    for subj in subjects_for_class:
+        scored = [(r['student'].id, r['subject_scores'][subj.id]['total'])
+                  for r in report_data
+                  if r['subject_scores'][subj.id]['total'] is not None]
+        scored.sort(key=lambda x: x[1], reverse=True)
+        for idx, (sid, _) in enumerate(scored):
+            subject_positions.setdefault(subj.id, {})[sid] = idx + 1
+
+    verification = GradeVerification.objects.filter(
+        classroom=classroom, term=term_number, academic_year=year_label
+    ).first()
+
+    parent_emails = []
+    for row in report_data:
+        student = row['student']
+        if student.father and student.father.email:
+            parent_emails.append(student.father.email)
+        if student.mother and student.mother.email:
+            parent_emails.append(student.mother.email)
+
+    return render(request, 'sis/generate_report_hub.html', {
+        'classroom': classroom,
+        'report_data': report_data,
+        'subjects_for_class': subjects_for_class,
+        'subject_positions': subject_positions,
+        'current_session': current_session,
+        'current_term': current_term,
+        'term_number': term_number,
+        'year_label': year_label,
+        'verification': verification,
+        'parent_emails': parent_emails,
+        'student_count': len(report_data),
+    })
+
+
+@login_required
+def export_excel_view(request, class_id):
+    if not _is_staff_or_admin(request.user):
+        raise PermissionDenied
+    classroom = ClassRoom.objects.get(pk=class_id)
+    staff = getattr(request.user, 'staff_profile', None)
+    is_form_teacher = staff and staff.form_class == classroom
+    has_full_access = request.user.is_superuser or is_form_teacher
+    if not has_full_access:
+        raise PermissionDenied
+
+    import io
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
+    from django.http import HttpResponse
+
+    current_session = AcademicSession.objects.filter(is_current=True).first()
+    current_term = Term.objects.filter(is_active=True).first()
+    term_number = int(current_term.term_name.split()[-1]) if current_term else 1
+    year_label = current_term.session.academic_year if current_term and current_term.session else "2025/2026"
+
+    subjects_for_class = Subject.objects.filter(offered_in_classes__classroom=classroom).distinct().order_by('subject_name')
+    students = Student.objects.filter(enrollments__classroom=classroom).distinct()
+
+    all_assessments = SubjectAssessment.objects.filter(
+        academic_session=current_session, academic_term=current_term,
+        student__in=students, subject__in=subjects_for_class,
+    )
+    assessment_map = {}
+    for a in all_assessments:
+        assessment_map.setdefault(a.student_id, {})[a.subject_id] = a
+
+    GRADE_REMARKS = [
+        (80, "1", "Highest Distinction"), (75, "2", "Distinction"),
+        (70, "3", "Excellent"), (65, "4", "Very Good"), (60, "5", "Good"),
+        (55, "6", "Credit"), (50, "7", "Satisfactory"), (40, "8", "Pass"), (0, "9", "Fail"),
+    ]
+
+    def get_remark(total):
+        if total is None:
+            return "—", "—"
+        for floor, grade, label in GRADE_REMARKS:
+            if total >= floor:
+                return grade, label
+        return "9", "Fail"
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = f"{classroom.class_name} Results"
+
+    header_font = Font(bold=True, size=12)
+    sub_header_font = Font(bold=True, size=10)
+    border = Border(
+        left=Side(style='thin'), right=Side(style='thin'),
+        top=Side(style='thin'), bottom=Side(style='thin')
+    )
+    header_fill = PatternFill(start_color="E8E8E8", end_color="E8E8E8", fill_type="solid")
+
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=4 + len(subjects_for_class) * 3 + 2)
+    ws.cell(row=1, column=1, value=f"{classroom.class_name} — Terminal Report ({year_label}, Term {term_number})").font = Font(bold=True, size=14)
+
+    row_num = 3
+    headers = ["Rank", "Student Name", "Admission No."]
+    for subj in subjects_for_class:
+        headers.extend([f"{subj.subject_name} (30%)", f"{subj.subject_name} (70%)", f"{subj.subject_name} Total"])
+    headers.extend(["Grand Total", "Grade", "Remark"])
+
+    for col_idx, header in enumerate(headers, 1):
+        cell = ws.cell(row=row_num, column=col_idx, value=header)
+        cell.font = sub_header_font
+        cell.border = border
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal='center', wrap_text=True)
+
+    report_data = []
+    for student in students:
+        subject_scores = {}
+        for subj in subjects_for_class:
+            a = assessment_map.get(student.id, {}).get(subj.id)
+            if a:
+                grade, remark = get_remark(float(a.total_score))
+                subject_scores[subj.id] = {
+                    'class_score': float(a.class_score),
+                    'exam_score': float(a.exam_score),
+                    'total': float(a.total_score),
+                    'grade': grade, 'remark': remark,
+                }
+            else:
+                subject_scores[subj.id] = {
+                    'class_score': None, 'exam_score': None, 'total': None,
+                    'grade': '—', 'remark': '—',
+                }
+        grand_total = sum(s['total'] for s in subject_scores.values() if s['total'] is not None)
+        grade, remark = get_remark(grand_total)
+        report_data.append({
+            'student': student, 'subject_scores': subject_scores,
+            'grand_total': grand_total, 'grade': grade, 'remark': remark,
+        })
+
+    report_data = sorted(report_data, key=lambda x: x['grand_total'], reverse=True)
+
+    for idx, row in enumerate(report_data):
+        r = row_num + 1 + idx
+        ws.cell(row=r, column=1, value=idx + 1).border = border
+        ws.cell(row=r, column=1).alignment = Alignment(horizontal='center')
+        ws.cell(row=r, column=2, value=f"{row['student'].first_name} {row['student'].last_name}").border = border
+        ws.cell(row=r, column=3, value=row['student'].admission_number).border = border
+
+        col = 4
+        for subj in subjects_for_class:
+            sc = row['subject_scores'][subj.id]
+            ws.cell(row=r, column=col, value=sc['class_score']).border = border
+            ws.cell(row=r, column=col).alignment = Alignment(horizontal='center')
+            ws.cell(row=r, column=col + 1, value=sc['exam_score']).border = border
+            ws.cell(row=r, column=col + 1).alignment = Alignment(horizontal='center')
+            ws.cell(row=r, column=col + 2, value=sc['total']).border = border
+            ws.cell(row=r, column=col + 2).alignment = Alignment(horizontal='center')
+            col += 3
+
+        total_col = col
+        ws.cell(row=r, column=total_col, value=row['grand_total']).border = border
+        ws.cell(row=r, column=total_col).alignment = Alignment(horizontal='center')
+        ws.cell(row=r, column=total_col).font = Font(bold=True)
+        ws.cell(row=r, column=total_col + 1, value=row['grade']).border = border
+        ws.cell(row=r, column=total_col + 1).alignment = Alignment(horizontal='center')
+        ws.cell(row=r, column=total_col + 2, value=row['remark']).border = border
+        ws.cell(row=r, column=total_col + 2).alignment = Alignment(horizontal='center')
+
+    for col in ws.columns:
+        max_length = 0
+        col_letter = col[0].column_letter
+        for cell in col:
+            if cell.value:
+                max_length = max(max_length, len(str(cell.value)))
+        ws.column_dimensions[col_letter].width = min(max_length + 4, 30)
+
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+
+    response = HttpResponse(
+        buffer.getvalue(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    filename = f"{classroom.class_name.replace(' ', '_')}_results_{year_label}_term{term_number}.xlsx"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
+
+
+@login_required
 def register_staff_view(request):
     departments = Department.objects.all()
     designations = Designation.objects.all()
