@@ -1044,6 +1044,25 @@ def class_enrollment_portal_view(request):
     if not _is_staff_or_admin(request.user):
         raise PermissionDenied
 
+    current_session = AcademicSession.objects.filter(is_current=True).first()
+    current_term = Term.objects.filter(is_active=True).first() if current_session else None
+
+    is_promotional_term = current_term and current_term.term_name == 'Term 3'
+
+    if not is_promotional_term:
+        term_label = current_term.term_name if current_term else "no active term"
+        session_label = current_session.academic_year if current_session else "N/A"
+        messages.warning(
+            request,
+            f"Promotion Portal is locked during {term_label}. "
+            f"Class promotions can only be executed at the end of Term 3 "
+            f"(Current Session: {session_label} — {term_label})."
+        )
+        return render(request, 'sis/promotion_locked.html', {
+            'current_session': current_session,
+            'current_term': current_term,
+        })
+
     staff = getattr(request.user, 'staff_profile', None)
     if request.user.is_superuser:
         classrooms = ClassRoom.objects.all()
@@ -1052,8 +1071,6 @@ def class_enrollment_portal_view(request):
             classrooms = ClassRoom.objects.filter(id=staff.form_class.id)
         else:
             classrooms = ClassRoom.objects.none()
-    current_session = AcademicSession.objects.filter(is_current=True).first()
-    current_term = Term.objects.filter(is_active=True).first() if current_session else None
 
     source_class = None
     students_data = []

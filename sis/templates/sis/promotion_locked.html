@@ -1,0 +1,44 @@
+{% extends 'sis/base.html' %}
+{% load static %}
+
+{% block title %} Promotion Portal — Locked {% endblock %}
+
+{% block content %}
+<div class="card border-0" style="border-radius: 16px; background-color: #ffffff; min-height: calc(100vh - 140px); margin-bottom: 24px; display: flex; flex-direction: column; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
+  <div class="card-body d-flex flex-column align-items-center justify-content-center text-center" style="min-height: 500px; padding: 48px 24px;">
+
+    <div style="width: 80px; height: 80px; border-radius: 50%; background: #fef3c7; display: flex; align-items: center; justify-content: center; margin-bottom: 24px;">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#92400e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+      </svg>
+    </div>
+
+    <h4 class="fw-bold mb-2" style="font-size: 22px; color: #111; letter-spacing: -0.3px;">
+      Promotion Portal is Locked
+    </h4>
+
+    <p style="color: #6b7280; font-size: 15px; max-width: 480px; line-height: 1.6; margin-bottom: 8px;">
+      Class promotions can only be executed at the end of <strong>Term 3</strong>.
+    </p>
+
+    {% if current_session and current_term %}
+    <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px 28px; margin-top: 12px; margin-bottom: 24px;">
+      <div style="font-size: 13px; color: #6b7280;">
+        Current Session: <strong style="color: #111;">{{ current_session.academic_year }}</strong>
+        &middot;
+        Active Term: <strong style="color: #92400e;">{{ current_term.term_name }}</strong>
+      </div>
+    </div>
+    {% endif %}
+
+    <a href="{% url 'dashboard' %}"
+       style="border-radius: 50px; background-color: #111; color: #fff; padding: 12px 28px; font-weight: 600; text-decoration: none; font-size: 14px; transition: opacity 0.2s; display: inline-flex; align-items: center; gap: 8px;"
+       onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5"></path><polyline points="12 19 5 12 12 5"></polyline></svg>
+      Back to Dashboard
+    </a>
+
+  </div>
+</div>
+{% endblock %}
