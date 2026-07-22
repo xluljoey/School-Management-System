@@ -281,6 +281,9 @@ def class_report_card_view(request, class_id):
     current_subject_id = request.GET.get('subject_id')
     if current_subject_id and not current_subject_id.isdigit():
         current_subject_id = None
+    current_subject_id = int(current_subject_id) if current_subject_id else None
+
+    is_master = request.GET.get('master') == '1' or has_full_access
 
     if request.user.is_superuser:
         assigned_subjects = Subject.objects.filter(offered_in_classes__classroom=classroom).distinct()
@@ -291,6 +294,15 @@ def class_report_card_view(request, class_id):
         assigned_subjects = Subject.objects.none()
 
     subjects_for_class = Subject.objects.filter(offered_in_classes__classroom=classroom).distinct().order_by('subject_name')
+
+    active_subject = None
+    if not is_master:
+        if current_subject_id:
+            active_subject = Subject.objects.filter(id=current_subject_id).first()
+        elif assigned_subjects.exists():
+            active_subject = assigned_subjects.first()
+        if active_subject and active_subject not in assigned_subjects:
+            active_subject = assigned_subjects.first() if assigned_subjects.exists() else None
 
     students = Student.objects.filter(enrollments__classroom=classroom).distinct()
 
@@ -308,6 +320,26 @@ def class_report_card_view(request, class_id):
     assessment_map = {}
     for a in all_assessments:
         assessment_map.setdefault(a.student_id, {})[a.subject_id] = a
+
+    GRADE_REMARKS = [
+        (80, "1", "Highest Distinction"),
+        (75, "2", "Distinction"),
+        (70, "3", "Excellent"),
+        (65, "4", "Very Good"),
+        (60, "5", "Good"),
+        (55, "6", "Credit"),
+        (50, "7", "Satisfactory"),
+        (40, "8", "Pass"),
+        (0,  "9", "Fail"),
+    ]
+
+    def get_remark(total):
+        if total is None:
+            return "—", "—"
+        for floor, grade, label in GRADE_REMARKS:
+            if total >= floor:
+                return grade, label
+        return "9", "Fail"
 
     report_data = []
     for student in students:
@@ -327,16 +359,37 @@ def class_report_card_view(request, class_id):
             s['total'] for s in subject_scores.values() if s['total'] is not None
         )
 
-        report_data.append({
+        row = {
             'student': student,
             'subject_scores': subject_scores,
             'grand_total': grand_total,
-        })
+        }
 
-    report_data = sorted(report_data, key=lambda x: x['grand_total'], reverse=True)
+        if active_subject:
+            sc = subject_scores.get(active_subject.id, {})
+            total = sc.get('total')
+            grade, remark = get_remark(total)
+            row['subject_class_score'] = sc.get('class_score')
+            row['subject_exam_score'] = sc.get('exam_score')
+            row['subject_total'] = total
+            row['subject_grade'] = grade
+            row['subject_remark'] = remark
+
+        report_data.append(row)
+
+    if is_master:
+        report_data = sorted(report_data, key=lambda x: x['grand_total'], reverse=True)
+    elif active_subject:
+        report_data = sorted(report_data, key=lambda x: x['subject_total'] if x['subject_total'] is not None else -1, reverse=True)
 
     for index, row in enumerate(report_data):
         row['rank'] = index + 1
+
+    subject_position_map = {}
+    if active_subject:
+        ranked_subject = [r for r in report_data if r['subject_total'] is not None]
+        for idx, r in enumerate(ranked_subject):
+            subject_position_map[r['student'].id] = idx + 1
 
     if request.user.is_superuser:
         classrooms = ClassRoom.objects.all()
@@ -347,7 +400,7 @@ def class_report_card_view(request, class_id):
 
     can_modify_grades = has_full_access
     if not can_modify_grades and staff:
-        if current_subject_id and current_subject_id.isdigit():
+        if current_subject_id:
             can_modify_grades = StaffClassSubject.objects.filter(
                 staff=staff, classroom=classroom, subject_id=current_subject_id
             ).exists()
@@ -370,11 +423,14 @@ def class_report_card_view(request, class_id):
         'user_form_class': user_form_class,
         'has_graded_records': has_graded_records,
         'is_form_teacher': is_form_teacher,
+        'is_master': is_master,
         'has_full_access': has_full_access,
         'verification': verification,
         'assigned_subjects': assigned_subjects,
         'subjects_for_class': subjects_for_class,
-        'current_subject_id': int(current_subject_id) if current_subject_id and current_subject_id.isdigit() else None,
+        'active_subject': active_subject,
+        'current_subject_id': current_subject_id,
+        'subject_position_map': subject_position_map,
         'can_modify_grades': can_modify_grades,
     })
 
