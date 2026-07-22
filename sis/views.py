@@ -1201,19 +1201,31 @@ def api_class_details(request, class_id):
 @login_required
 def api_subject_details(request, subject_id):
     subject = get_object_or_404(Subject, pk=subject_id)
-    scs_qs = StaffClassSubject.objects.filter(subject=subject).select_related('classroom', 'staff__user')
 
-    teacher_names = set()
-    class_allocations = []
+    class_subjects = ClassSubject.objects.filter(subject=subject).select_related('classroom')
+
+    scs_qs = StaffClassSubject.objects.filter(subject=subject).select_related('staff')
+
+    teacher_map = {}
+    all_teachers = set()
     for scs in scs_qs:
-        teacher_name = ''
+        c_id = scs.classroom_id
+        t_name = ''
         if scs.staff:
-            teacher_name = f"{scs.staff.first_name} {scs.staff.last_name}".strip()
-        if teacher_name:
-            teacher_names.add(teacher_name)
+            t_name = f"{scs.staff.first_name} {scs.staff.last_name}".strip()
+        if t_name:
+            all_teachers.add(t_name)
+            teacher_map.setdefault(c_id, [])
+            if t_name not in teacher_map[c_id]:
+                teacher_map[c_id].append(t_name)
+
+    class_allocations = []
+    for cs in class_subjects:
+        c_id = cs.classroom.id
+        teachers = teacher_map.get(c_id, [])
         class_allocations.append({
-            'class_name': scs.classroom.class_name,
-            'teacher': teacher_name or 'Unassigned',
+            'class_name': cs.classroom.class_name,
+            'teacher': ', '.join(teachers) if teachers else 'Unassigned',
         })
 
     return JsonResponse({
@@ -1221,7 +1233,7 @@ def api_subject_details(request, subject_id):
         'name': subject.subject_name,
         'category': 'General Education',
         'classes_count': len(class_allocations),
-        'assigned_teachers': sorted(teacher_names),
+        'assigned_teachers': sorted(all_teachers),
         'class_allocations': class_allocations,
     })
 
