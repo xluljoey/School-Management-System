@@ -12,6 +12,14 @@ class ClassRoom(models.Model):
         default=0,
         help_text="Used to sort classes hierarchically (e.g., Class 1 = 1, JHS 3 = 9)"
     )
+    next_class = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='previous_class',
+        help_text="Explicitly define the next class students promote into."
+    )
     form_master = models.ForeignKey('StaffProfile', on_delete=models.SET_NULL, null=True, blank=True, related_name='managed_class')
 
     class Meta:
@@ -19,6 +27,15 @@ class ClassRoom(models.Model):
 
     def __str__(self):
         return self.class_name
+
+    def get_next_class(self):
+        if self.next_class:
+            return self.next_class
+        next_cls = ClassRoom.objects.filter(order__gt=self.order).order_by('order').first()
+        return next_cls
+
+    def get_higher_classes(self):
+        return ClassRoom.objects.filter(order__gt=self.order).order_by('order')
     
 class Subject(models.Model):
     subject_name = models.CharField(max_length=100, unique =True)

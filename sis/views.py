@@ -1048,7 +1048,6 @@ def class_enrollment_portal_view(request):
     if request.user.is_superuser:
         classrooms = ClassRoom.objects.all()
     else:
-        # Form teachers can only see their own class
         if staff and staff.form_class:
             classrooms = ClassRoom.objects.filter(id=staff.form_class.id)
         else:
@@ -1062,14 +1061,31 @@ def class_enrollment_portal_view(request):
     search_query = request.GET.get('search_query', '').strip()
     source_class_id = request.GET.get('source_class_id')
 
+    target_classes = []
+    default_target_id = None
+    is_graduated = False
+
     if source_class_id:
         source_class = get_object_or_404(ClassRoom, pk=source_class_id)
+
+        next_cls = source_class.get_next_class()
+        higher_classes = list(source_class.get_higher_classes())
+
+        if next_cls:
+            target_classes = [next_cls] + [c for c in higher_classes if c.id != next_cls.id]
+            default_target_id = next_cls.id
+        elif higher_classes:
+            target_classes = higher_classes
+            default_target_id = higher_classes[0].id
+        else:
+            is_graduated = True
+
         criteria_qs = PromotionCriteria.objects.filter(classroom=source_class)
         promotion_criteria = criteria_qs.first()
         min_score = float(promotion_criteria.min_grand_total) if promotion_criteria else 50.00
 
         term_label = current_term.term_name if current_term else "Term 1"
-        term_number = int(term_label.split()[-1])  # "Term 1" -> 1 (SubjectAssessment uses IntegerField)
+        term_number = int(term_label.split()[-1])
         year_label = current_session.academic_year if current_session else "2025/2026"
 
         enrolled_ids = Enrollment.objects.filter(
@@ -1162,6 +1178,9 @@ def class_enrollment_portal_view(request):
         'promotion_criteria': promotion_criteria,
         'students_data': students_data,
         'search_query': search_query,
+        'target_classes': target_classes,
+        'default_target_id': default_target_id,
+        'is_graduated': is_graduated,
     }
     return render(request, 'sis/class_enrollment_portal.html', context)
 

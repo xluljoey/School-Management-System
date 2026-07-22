@@ -48,10 +48,18 @@
         <label for="next_class_id" class="form-label fw-semibold small">Next Class (Target)</label>
         <select name="next_class_id" id="next_class_id" class="form-select" form="promoteForm"
                 style="border-radius: 50px; border: 1px solid #e4e4e7; padding: 10px 24px; font-size: 14px; color: #4b5563; background-color: #ffffff; box-shadow: 0 1px 2px rgba(0,0,0,0.02); height: 44px;">
+          {% if is_graduated %}
+          <option value="" disabled selected>Graduated / Alumni</option>
+          {% elif not source_class %}
           <option value="">Select Target</option>
           {% for c in classrooms %}
           <option value="{{ c.id }}">{{ c.class_name }}</option>
           {% endfor %}
+          {% else %}
+          {% for c in target_classes %}
+          <option value="{{ c.id }}" {% if c.id == default_target_id %}selected{% endif %}>{{ c.class_name }}</option>
+          {% endfor %}
+          {% endif %}
         </select>
       </div>
       <div class="col-md-4">
@@ -70,12 +78,19 @@
     </div>
     {% endif %}
 
+    {% if is_graduated %}
+    <div class="alert alert-success py-2 small mb-3 d-flex align-items-center">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 8px; flex-shrink: 0;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+      <span><strong>{{ source_class.class_name }}</strong> is the highest class. Students selected here will be marked as <strong>Graduated / Alumni</strong>.</span>
+    </div>
+    {% endif %}
+
     {% if source_class %}
     <!-- ===== COHORT MATRIX ===== -->
     <form method="POST" id="promoteForm">
       {% csrf_token %}
       <input type="hidden" name="source_class_id" value="{{ source_class.id }}">
-      <input type="hidden" name="next_class_id" id="next_class_hidden" value="">
+      <input type="hidden" name="next_class_id" id="next_class_hidden" value="{{ default_target_id|default:'' }}">
 
       <div class="table-responsive">
         <table class="table table-hover align-middle mb-0" id="cohortTable">
