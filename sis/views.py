@@ -290,27 +290,47 @@ def class_report_card_view(request, class_id):
     else:
         assigned_subjects = Subject.objects.none()
 
+    subjects_for_class = Subject.objects.filter(offered_in_classes__classroom=classroom).distinct().order_by('subject_name')
+
     students = Student.objects.filter(enrollments__classroom=classroom).distinct()
 
     current_session = AcademicSession.objects.filter(is_current=True).first()
     current_term = Term.objects.filter(is_active=True).first()
 
+    all_assessments = SubjectAssessment.objects.filter(
+        academic_session=current_session, academic_term=current_term,
+        student__in=students, subject__in=subjects_for_class,
+    )
+    if not has_full_access and staff:
+        assigned_subject_ids = StaffClassSubject.objects.filter(staff=staff, classroom=classroom).values_list('subject_id', flat=True).distinct()
+        all_assessments = all_assessments.filter(subject_id__in=assigned_subject_ids)
+
+    assessment_map = {}
+    for a in all_assessments:
+        assessment_map.setdefault(a.student_id, {})[a.subject_id] = a
+
     report_data = []
     for student in students:
-        assessments = SubjectAssessment.objects.filter(student=student, academic_session=current_session, academic_term=current_term)
-        if not has_full_access and staff:
-            assigned_subject_ids = StaffClassSubject.objects.filter(staff=staff, classroom=classroom).values_list('subject_id', flat=True).distinct()
-            assessments = assessments.filter(subject_id__in=assigned_subject_ids)
-        if current_subject_id:
-            assessments = assessments.filter(subject_id=current_subject_id)
-        grand_total = sum(ast.total_score for ast in assessments)
-        first = assessments.first()
+        subject_scores = {}
+        for subj in subjects_for_class:
+            a = assessment_map.get(student.id, {}).get(subj.id)
+            if a:
+                subject_scores[subj.id] = {
+                    'class_score': float(a.class_score),
+                    'exam_score': float(a.exam_score),
+                    'total': float(a.total_score),
+                }
+            else:
+                subject_scores[subj.id] = {'class_score': None, 'exam_score': None, 'total': None}
+
+        grand_total = sum(
+            s['total'] for s in subject_scores.values() if s['total'] is not None
+        )
+
         report_data.append({
             'student': student,
-            'assessments': assessments,
+            'subject_scores': subject_scores,
             'grand_total': grand_total,
-            'class_score': f"{first.class_score:.1f}" if first else None,
-            'exam_score': f"{first.exam_score:.1f}" if first else None,
         })
 
     report_data = sorted(report_data, key=lambda x: x['grand_total'], reverse=True)
@@ -323,21 +343,17 @@ def class_report_card_view(request, class_id):
     else:
         assigned_ids = StaffClassSubject.objects.filter(staff=staff).values_list('classroom_id', flat=True).distinct()
         classrooms = ClassRoom.objects.filter(id__in=assigned_ids) if assigned_ids else ClassRoom.objects.none()
-    has_graded_records = any(row['assessments'].exists() for row in report_data)
+    has_graded_records = bool(assessment_map)
 
-    # Determine if the current user can modify grades for this class/subject
     can_modify_grades = has_full_access
     if not can_modify_grades and staff:
         if current_subject_id and current_subject_id.isdigit():
             can_modify_grades = StaffClassSubject.objects.filter(
-                staff=staff,
-                classroom=classroom,
-                subject_id=current_subject_id
+                staff=staff, classroom=classroom, subject_id=current_subject_id
             ).exists()
         else:
             can_modify_grades = assigned_subjects.exists()
 
-    current_term = Term.objects.filter(is_active=True).first()
     term_number = int(current_term.term_name.split()[-1]) if current_term else 1
     year_label = current_term.session.academic_year if current_term and current_term.session else "2025/2026"
 
@@ -357,6 +373,7 @@ def class_report_card_view(request, class_id):
         'has_full_access': has_full_access,
         'verification': verification,
         'assigned_subjects': assigned_subjects,
+        'subjects_for_class': subjects_for_class,
         'current_subject_id': int(current_subject_id) if current_subject_id and current_subject_id.isdigit() else None,
         'can_modify_grades': can_modify_grades,
     })

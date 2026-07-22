@@ -1,11 +1,166 @@
 {% extends 'sis/base.html' %}
-{% load static %}
+{% load static custom_filters %}
 
 {% block title %} Class Terminal Master Sheet {% endblock %}
 
 {% block content %}
+<style>
+    .report-scroll-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 12px;
+    }
+    .report-scroll-container::-webkit-scrollbar {
+        height: 8px;
+    }
+    .report-scroll-container::-webkit-scrollbar-track {
+        background: #f4f4f5;
+        border-radius: 10px;
+    }
+    .report-scroll-container::-webkit-scrollbar-thumb {
+        background: #a1a1aa;
+        border-radius: 10px;
+    }
+    .report-scroll-container::-webkit-scrollbar-thumb:hover {
+        background: #71717a;
+    }
+
+    .master-table {
+        border-collapse: separate;
+        border-spacing: 0;
+        min-width: max-content;
+    }
+    .master-table th,
+    .master-table td {
+        white-space: nowrap;
+        padding: 10px 14px;
+        font-size: 13px;
+    }
+
+    .master-table thead tr:first-child th {
+        background-color: #f8f9fa;
+        border-bottom: 1px solid #dee2e6;
+        font-weight: 700;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        color: #495057;
+        position: sticky;
+        top: 0;
+        z-index: 30;
+    }
+    .master-table thead tr:nth-child(2) th {
+        background-color: #f8f9fa;
+        border-bottom: 2px solid #dee2e6;
+        font-weight: 600;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #6c757d;
+        position: sticky;
+        top: 38px;
+        z-index: 30;
+    }
+
+    .master-table .col-rank {
+        position: sticky;
+        left: 0;
+        z-index: 20;
+        background: #fff;
+        width: 60px;
+        min-width: 60px;
+        text-align: center;
+    }
+    .master-table thead .col-rank {
+        z-index: 35;
+        background: #f8f9fa;
+    }
+    .master-table .col-student {
+        position: sticky;
+        left: 60px;
+        z-index: 20;
+        background: #fff;
+        min-width: 200px;
+    }
+    .master-table thead .col-student {
+        z-index: 35;
+        background: #f8f9fa;
+    }
+
+    .master-table .col-total {
+        background-color: #f9fafb;
+        border-left: 2px solid #e5e7eb;
+    }
+    .master-table thead .col-total {
+        background-color: #f3f4f6;
+    }
+
+    .master-table tbody tr {
+        border-bottom: 1px solid #f0f0f0;
+        transition: background-color 0.12s;
+    }
+    .master-table tbody tr:hover {
+        background-color: #fafafa;
+    }
+    .master-table tbody tr:hover .col-rank,
+    .master-table tbody tr:hover .col-student {
+        background-color: #fafafa;
+    }
+
+    .subject-total-cell {
+        background-color: #f9fafb;
+        border-left: 2px solid #e5e7eb;
+        font-weight: 700;
+    }
+    .grand-total-cell {
+        background-color: #f3f4f6;
+        border-left: 2px solid #d1d5db;
+        font-weight: 800;
+        font-size: 14px;
+    }
+
+    .score-mono {
+        font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+        font-size: 13px;
+        font-weight: 500;
+        color: #1f2937;
+        letter-spacing: -0.3px;
+    }
+    .score-dash {
+        color: #d1d5db;
+    }
+
+    .rank-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 32px;
+        height: 24px;
+        border-radius: 50px;
+        font-weight: 700;
+        font-size: 12px;
+    }
+    .rank-1 { background-color: #fef3c7; color: #b45309; }
+    .rank-2 { background-color: #e0e7ff; color: #4338ca; }
+    .rank-3 { background-color: #d1fae5; color: #047857; }
+    .rank-other { background-color: #f4f4f5; color: #71717a; }
+
+    .subject-header-cell {
+        text-align: center !important;
+        border-left: 1px solid #e5e7eb;
+    }
+    .sub-header-cell {
+        text-align: center !important;
+        min-width: 70px;
+    }
+    .sub-header-cell.sub-total {
+        background-color: #f3f4f6 !important;
+        border-left: 2px solid #e5e7eb;
+    }
+</style>
+
 <div class="card border-0" style="border-radius: 16px; background-color: #ffffff; flex: 1 1 auto; min-height: 100%; margin-top: 20px; margin-bottom: 24px; display: flex; flex-direction: column; justify-content: flex-start; align-items: stretch; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
-    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center" style="border-bottom: 1px solid #f0f0f0;">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center" style="border-bottom: 1px solid #f0f0f0; flex-wrap: wrap; gap: 12px;">
         <div>
             <h5 class="mb-0 fw-bold text-dark">Master Continuous Assessment Summary</h5>
             <small class="text-muted">Class: <strong>{{ classroom.class_name }}</strong>
@@ -14,7 +169,7 @@
             {% endif %}
             </small>
         </div>
-        <div class="d-flex align-items-center gap-3 justify-content-end">
+        <div class="d-flex align-items-center gap-3 justify-content-end" style="flex-wrap: wrap;">
             <div style="position: relative;">
                 <select name="subject_id" onchange="var base='{% url 'class_report' class_id=classroom.id %}';window.location.href=this.value?base+'?subject_id='+this.value:base"
                         style="appearance: none; -webkit-appearance: none; -moz-appearance: none;
@@ -45,7 +200,6 @@
 
             {% if user_form_class %}
             <a href="{% url 'class_report' class_id=user_form_class.id %}"
-               class="btn-capsule"
                style="border-radius: 50px; background-color: #111; color: #fff;
                       padding: 10px 24px; font-weight: 500; text-decoration: none;
                       font-size: 14px; transition: opacity 0.2s;"
@@ -56,7 +210,6 @@
 
             {% if can_modify_grades %}
             <a href="{% url 'compile_grades' %}"
-               class="btn-capsule"
                style="border-radius: 50px; background-color: #000; color: #fff;
                       padding: 10px 24px; font-weight: 500; text-decoration: none;
                       font-size: 14px;">
@@ -67,7 +220,7 @@
     </div>
     <div class="card-body p-0">
         {% if not has_full_access %}
-        <div class="alert alert-info m-3" role="alert">
+        <div class="alert alert-info m-3 mb-0" role="alert">
             <strong>Filtered View:</strong> Showing only subjects you are assigned to teach in this class.
         </div>
         {% endif %}
@@ -80,55 +233,80 @@
             <h5 class="fw-semibold mb-2" style="font-size: 25px; letter-spacing: -0.3px; color: #a8b5cf;">
                 No student grade records compiled for this class yet
             </h5>
-            
         </div>
         {% else %}
-        <div class="table-responsive px-0">
-            <table class="table mb-0 align-middle" style="border-collapse: separate; border-spacing: 0;">
+        <div class="report-scroll-container">
+            <table class="master-table table mb-0 align-middle">
                 <thead>
-                    <tr style="border-bottom: 2px solid #e4e4e7;">
-                        <th class="ps-4 py-3 text-muted small fw-semibold text-uppercase" style="letter-spacing: 0.5px; width: 70px;">Rank</th>
-                        <th class="py-3 text-muted small fw-semibold text-uppercase" style="letter-spacing: 0.5px;">Student</th>
-                        <th class="py-3 text-muted small fw-semibold text-uppercase text-end" style="letter-spacing: 0.5px; width: 140px;">Class Score (30%)</th>
-                        <th class="py-3 text-muted small fw-semibold text-uppercase text-end" style="letter-spacing: 0.5px; width: 140px;">Exam Score (70%)</th>
-                        <th class="pe-4 py-3 text-muted small fw-semibold text-uppercase text-end" style="letter-spacing: 0.5px; width: 100px;">Total</th>
+                    <tr>
+                        <th class="col-rank" style="text-align: center;">Rank</th>
+                        <th class="col-student">Student</th>
+                        {% for subject in subjects_for_class %}
+                        <th class="subject-header-cell" colspan="3">{{ subject.subject_name }}</th>
+                        {% endfor %}
+                        <th class="col-total" style="text-align: center;">Grand Total</th>
+                    </tr>
+                    <tr>
+                        <th class="col-rank"></th>
+                        <th class="col-student"></th>
+                        {% for subject in subjects_for_class %}
+                        <th class="sub-header-cell">30%</th>
+                        <th class="sub-header-cell">70%</th>
+                        <th class="sub-header-cell sub-total">Total</th>
+                        {% endfor %}
+                        <th class="col-total"></th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for row in report_data %}
-                    <tr style="border-bottom: 1px solid #f0f0f0; transition: background-color 0.15s;" onmouseover="this.style.backgroundColor='#fafafa'" onmouseout="this.style.backgroundColor='transparent'">
-                        <td class="ps-4 py-3">
-                            {% with rank=row.rank %}
-                            {% if rank == 1 %}
-                            <span style="background-color: #e0f2fe; color: #0369a1; padding: 4px 12px; border-radius: 50px; font-weight: 600; font-size: 13px;">#1</span>
-                            {% elif rank == 2 %}
-                            <span style="background-color: #fef3c7; color: #b45309; padding: 4px 12px; border-radius: 50px; font-weight: 600; font-size: 13px;">#2</span>
-                            {% elif rank == 3 %}
-                            <span style="background-color: #f3e8ff; color: #6b21a8; padding: 4px 12px; border-radius: 50px; font-weight: 600; font-size: 13px;">#3</span>
-                            {% else %}
-                            <span style="background-color: #f4f4f5; color: #71717a; padding: 4px 12px; border-radius: 50px; font-weight: 600; font-size: 13px;">#{{ rank }}</span>
-                            {% endif %}
-                            {% endwith %}
+                    <tr>
+                        <td class="col-rank" style="text-align: center;">
+                            <span class="rank-badge {% if row.rank == 1 %}rank-1{% elif row.rank == 2 %}rank-2{% elif row.rank == 3 %}rank-3{% else %}rank-other{% endif %}">
+                                #{{ row.rank }}
+                            </span>
                         </td>
-                        <td class="py-3">
+                        <td class="col-student">
                             <div class="d-flex align-items-center gap-3">
                                 {% if row.student.profile_picture %}
-                                <img src="{{ row.student.profile_picture.url }}" alt="" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover;">
+                                <img src="{{ row.student.profile_picture.url }}" alt="" style="width: 34px; height: 34px; border-radius: 50%; object-fit: cover; flex-shrink: 0;">
                                 {% else %}
-                                <div style="width: 36px; height: 36px; border-radius: 50%; background-color: #111; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; flex-shrink: 0;">
+                                <div style="width: 34px; height: 34px; border-radius: 50%; background-color: #111; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 13px; flex-shrink: 0;">
                                     {{ row.student.first_name|first }}
                                 </div>
                                 {% endif %}
-                                <div>
-                                    <div style="font-weight: 600; color: #111; font-size: 14px;">{{ row.student.first_name }} {{ row.student.last_name }}</div>
-                                    <div style="font-size: 12px; color: #71717a;">{{ row.student.admission_number }}</div>
+                                <div style="min-width: 0;">
+                                    <div style="font-weight: 600; color: #111; font-size: 13px; white-space: nowrap;">{{ row.student.first_name }} {{ row.student.last_name }}</div>
+                                    <div style="font-size: 11px; color: #71717a; white-space: nowrap;">{{ row.student.admission_number }}</div>
                                 </div>
                             </div>
                         </td>
-                        <td class="py-3 text-end" style="font-weight: 600; color: #18181b; font-size: 14px;">{{ row.class_score|default:"—" }}</td>
-                        <td class="py-3 text-end" style="font-weight: 600; color: #18181b; font-size: 14px;">{{ row.exam_score|default:"—" }}</td>
-                        <td class="pe-4 py-3 text-end">
-                            <span style="font-weight: 700; color: #18181b; font-size: 16px;">{{ row.grand_total|floatformat:1 }}</span>
+                        {% for subject in subjects_for_class %}
+                            {% with scores=row.subject_scores|get_item:subject.id %}
+                            <td class="text-center">
+                                {% if scores.class_score is not None %}
+                                <span class="score-mono">{{ scores.class_score|floatformat:1 }}</span>
+                                {% else %}
+                                <span class="score-mono score-dash">—</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if scores.exam_score is not None %}
+                                <span class="score-mono">{{ scores.exam_score|floatformat:1 }}</span>
+                                {% else %}
+                                <span class="score-mono score-dash">—</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center subject-total-cell">
+                                {% if scores.total is not None %}
+                                <span class="score-mono" style="font-weight: 700;">{{ scores.total|floatformat:1 }}</span>
+                                {% else %}
+                                <span class="score-mono score-dash">—</span>
+                                {% endif %}
+                            </td>
+                            {% endwith %}
+                        {% endfor %}
+                        <td class="text-center grand-total-cell">
+                            <span class="score-mono" style="font-size: 14px; font-weight: 800; color: #111;">{{ row.grand_total|floatformat:1 }}</span>
                         </td>
                     </tr>
                     {% endfor %}
@@ -142,7 +320,7 @@
 {% if has_graded_records and can_modify_grades %}
 <div style="position: fixed; bottom: 40px; right: 40px; z-index: 1050;">
     <a href="{% url 'compile_grades' %}?class_id={{ current_class_id }}{% if current_subject_id %}&subject_id={{ current_subject_id }}{% endif %}"
-       class="btn-capsule shadow-lg d-inline-flex align-items-center gap-2"
+       class="shadow-lg d-inline-flex align-items-center gap-2"
        style="border-radius: 50px; background-color: #000; color: #fff;
               padding: 14px 32px; font-weight: 600; text-decoration: none;
               font-size: 14px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);
