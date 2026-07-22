@@ -322,18 +322,10 @@
                     <a href="{% url 'midterm_summary' %}" class="{% if request.resolver_match.view_name == 'midterm_summary' %}active{% endif %}">
                         <i class="bi bi-journal-check"></i> Mid Term
                     </a>
-                    {% if is_promotional_term %}
-                    <a href="{% url 'promotion_portal' %}" class="{% if request.path == '/enrollment/portal/' %}active{% endif %}">
+                    <a href="{% url 'promotion_portal' %}" class="{% if request.path == '/enrollment/portal/' %}active{% endif %}" {% if not is_promotional_term %}style="opacity: 0.55;"{% endif %}>
                         <i class="bi bi-arrow-up-circle"></i> Promotion Portal
+                        {% if not is_promotional_term %}<i class="bi bi-lock-fill" style="font-size: 10px; margin-left: 4px; opacity: 0.7;"></i>{% endif %}
                     </a>
-                    {% else %}
-                    <div class="nav-link" style="opacity: 0.5; cursor: not-allowed; display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; font-size: 14px; color: #6b7280;">
-                        <span style="display: flex; align-items: center; gap: 8px;">
-                            <i class="bi bi-arrow-up-circle"></i> Promotion Portal
-                        </span>
-                        <span style="font-size: 10px; background: #fef3c7; color: #92400e; font-weight: 600; padding: 2px 8px; border-radius: 50px;">Locked (Term 3 Only)</span>
-                    </div>
-                    {% endif %}
                     {% endif %}
                 </nav>
             </div>
