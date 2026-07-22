@@ -22,6 +22,7 @@
             {% for class_obj in classes %}
             <div class="col-12 col-md-6 col-lg-4 col-xl-3">
                 <div class="card border-0 p-4 h-100 position-relative transition-card"
+                     data-class-id="{{ class_obj.id }}"
                      style="border-radius: 20px; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.01); background-color: #ffffff; border-left: 4px solid {% cycle '#198754' '#0d6efd' '#ffc107' '#6f42c1' %} !important;">
                     <div class="d-flex align-items-start justify-content-between mb-3">
                         <span class="fs-4"></span>
@@ -58,6 +59,40 @@
     </div>
 </div>
 
+<!-- Class Detail Modal -->
+<div class="modal fade" id="classDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 24px; overflow: hidden; backdrop-filter: blur(8px); background: rgba(255,255,255,0.95);">
+            <div class="modal-header border-0 px-4 pt-4 pb-2">
+                <div>
+                    <span class="badge rounded-pill px-3 py-1 mb-2" style="background-color: #f0f0f0; color: #555; font-size: 11px; font-weight: 600;" id="modalStudentCount">—</span>
+                    <h4 class="modal-title fw-bold text-dark mb-0" id="modalClassName" style="font-size: 20px; letter-spacing: -0.3px;">—</h4>
+                    <p class="text-muted small mb-0 mt-1">Form Teacher: <strong id="modalFormTeacher">—</strong></p>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="opacity: 0.4;"></button>
+            </div>
+
+            <div class="modal-body px-4 pb-4">
+                <div id="modalSubjectsSpinner" class="text-center py-4">
+                    <div class="spinner-border text-dark" role="status" style="width: 1.6rem; height: 1.6rem; border-width: 2px;"></div>
+                </div>
+                <div id="modalSubjectsList" class="d-none">
+                    <h6 class="fw-bold text-secondary text-uppercase mb-3" style="font-size: 11px; letter-spacing: 0.8px;">Offered Subjects &amp; Instructors</h6>
+                    <div class="row g-2" id="modalSubjectsGrid"></div>
+                </div>
+            </div>
+
+            <div class="modal-footer border-0 bg-light px-4 py-3 justify-content-between" style="border-radius: 0 0 24px 24px;">
+                <span class="text-muted" style="font-size: 12px;">Institutional Class Roster</span>
+                <div class="d-flex gap-2">
+                    <a href="#" id="modalViewStudentsBtn" class="btn btn-sm btn-outline-dark rounded-pill px-3" style="font-size: 12px; font-weight: 500;">View Students</a>
+                    <button type="button" class="btn btn-sm btn-dark rounded-pill px-3" data-bs-dismiss="modal" style="font-size: 12px;">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <style>
 .transition-card {
     transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease;
@@ -76,5 +111,77 @@
     background-color: #ffffff !important;
     box-shadow: 0 1px 3px rgba(0,0,0,0.08) !important;
 }
+.subject-chip {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #ffffff;
+    border: 1px solid #e4e4e7;
+    border-radius: 12px;
+    padding: 10px 14px;
+    transition: background 0.15s;
+}
+.subject-chip:hover {
+    background: #f8f9fa;
+}
 </style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var classCards = document.querySelectorAll('.card[data-class-id]');
+    var modal = new bootstrap.Modal(document.getElementById('classDetailModal'));
+    var spinner = document.getElementById('modalSubjectsSpinner');
+    var subjectsList = document.getElementById('modalSubjectsList');
+    var subjectsGrid = document.getElementById('modalSubjectsGrid');
+
+    classCards.forEach(function(card) {
+        card.addEventListener('click', function() {
+            var classId = this.getAttribute('data-class-id');
+            document.getElementById('modalClassName').textContent = '—';
+            document.getElementById('modalStudentCount').textContent = '—';
+            document.getElementById('modalFormTeacher').textContent = '—';
+            subjectsGrid.innerHTML = '';
+            spinner.classList.remove('d-none');
+            subjectsList.classList.add('d-none');
+
+            modal.show();
+
+            fetch('/api/class-details/' + classId + '/')
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    document.getElementById('modalClassName').textContent = data.name;
+                    document.getElementById('modalStudentCount').textContent = data.student_count + ' Students';
+                    document.getElementById('modalFormTeacher').textContent = data.form_teacher;
+                    document.getElementById('modalViewStudentsBtn').href = '/students/?class_id=' + data.id;
+
+                    subjectsGrid.innerHTML = '';
+                    if (data.subjects.length === 0) {
+                        subjectsGrid.innerHTML = '<div class="col-12 text-muted text-center py-3" style="font-size: 13px;">No subjects assigned to this class yet.</div>';
+                    } else {
+                        data.subjects.forEach(function(subj) {
+                            var col = document.createElement('div');
+                            col.className = 'col-12 col-sm-6';
+                            col.innerHTML =
+                                '<div class="subject-chip">' +
+                                    '<div>' +
+                                        '<div class="fw-semibold text-dark" style="font-size: 13px;">' + subj.name + '</div>' +
+                                        '<div class="text-muted" style="font-size: 11px;">' + subj.teacher + '</div>' +
+                                    '</div>' +
+                                    '<span class="badge rounded-pill" style="background: #f4f4f5; color: #71717a; font-size: 10px; font-weight: 600;">TCHR</span>' +
+                                '</div>';
+                            subjectsGrid.appendChild(col);
+                        });
+                    }
+                    spinner.classList.add('d-none');
+                    subjectsList.classList.remove('d-none');
+                })
+                .catch(function() {
+                    spinner.innerHTML = '<div class="text-danger" style="font-size: 13px;">Failed to load class details.</div>';
+                });
+        });
+    });
+});
+</script>
 {% endblock %}
