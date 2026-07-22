@@ -1199,6 +1199,34 @@ def api_class_details(request, class_id):
 
 
 @login_required
+def api_subject_details(request, subject_id):
+    subject = get_object_or_404(Subject, pk=subject_id)
+    scs_qs = StaffClassSubject.objects.filter(subject=subject).select_related('classroom', 'staff__user')
+
+    teacher_names = set()
+    class_allocations = []
+    for scs in scs_qs:
+        teacher_name = ''
+        if scs.staff:
+            teacher_name = f"{scs.staff.first_name} {scs.staff.last_name}".strip()
+        if teacher_name:
+            teacher_names.add(teacher_name)
+        class_allocations.append({
+            'class_name': scs.classroom.class_name,
+            'teacher': teacher_name or 'Unassigned',
+        })
+
+    return JsonResponse({
+        'id': subject.id,
+        'name': subject.subject_name,
+        'category': 'General Education',
+        'classes_count': len(class_allocations),
+        'assigned_teachers': sorted(teacher_names),
+        'class_allocations': class_allocations,
+    })
+
+
+@login_required
 def verify_class_rankings_view(request, class_id):
     if not _is_staff_or_admin(request.user):
         raise PermissionDenied

@@ -43,6 +43,7 @@
             {% for subject in subjects %}
             <div class="col-12 col-md-6 col-lg-4 col-xl-3">
                 <div class="card border-0 p-4 h-100 position-relative transition-card"
+                     data-subject-id="{{ subject.id }}"
                      style="border-radius: 20px; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.01); background-color: #fafbfc; border-top: 4px solid {% cycle '#0d6efd' '#d63384' '#198754' '#fd7e14' %} !important;">
                     <div class="d-flex align-items-start justify-content-between mb-3">
                         <span class="fs-4"></span>
@@ -93,6 +94,40 @@
     </div>
 </div>
 
+<!-- Subject Detail Modal -->
+<div class="modal fade" id="subjectDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 24px; overflow: hidden; backdrop-filter: blur(8px); background: rgba(255,255,255,0.95);">
+            <div class="modal-header border-0 px-4 pt-4 pb-2">
+                <div>
+                    <span class="badge rounded-pill px-3 py-1 mb-2" style="background-color: #f0f0f0; color: #555; font-size: 11px; font-weight: 600;" id="modalSubClassCount">—</span>
+                    <h4 class="modal-title fw-bold text-dark mb-0" id="modalSubName" style="font-size: 20px; letter-spacing: -0.3px;">—</h4>
+                    <p class="text-muted small mb-0 mt-1">Department: <strong id="modalSubCategory">—</strong></p>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="opacity: 0.4;"></button>
+            </div>
+
+            <div class="modal-body px-4 pb-4">
+                <div id="modalSubSpinner" class="text-center py-4">
+                    <div class="spinner-border text-dark" role="status" style="width: 1.6rem; height: 1.6rem; border-width: 2px;"></div>
+                </div>
+                <div id="modalSubContent" class="d-none">
+                    <h6 class="fw-bold text-secondary text-uppercase mb-3" style="font-size: 11px; letter-spacing: 0.8px;">Assigned Instructors</h6>
+                    <div id="modalSubTeachers" class="d-flex flex-wrap gap-2 mb-4"></div>
+
+                    <h6 class="fw-bold text-secondary text-uppercase mb-3" style="font-size: 11px; letter-spacing: 0.8px;">Classes Taught</h6>
+                    <div class="row g-2" id="modalSubClasses"></div>
+                </div>
+            </div>
+
+            <div class="modal-footer border-0 bg-light px-4 py-3 justify-content-between" style="border-radius: 0 0 24px 24px;">
+                <span class="text-muted" style="font-size: 12px;">Institutional Subject Overview</span>
+                <button type="button" class="btn btn-sm btn-dark rounded-pill px-3" data-bs-dismiss="modal" style="font-size: 12px;">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <style>
 .transition-card {
     transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease;
@@ -130,8 +165,9 @@
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // --- Class card modal ---
     var classCards = document.querySelectorAll('.card[data-class-id]');
-    var modal = new bootstrap.Modal(document.getElementById('classDetailModal'));
+    var classModal = new bootstrap.Modal(document.getElementById('classDetailModal'));
     var spinner = document.getElementById('modalSubjectsSpinner');
     var subjectsList = document.getElementById('modalSubjectsList');
     var subjectsGrid = document.getElementById('modalSubjectsGrid');
@@ -146,7 +182,7 @@ document.addEventListener('DOMContentLoaded', function() {
             spinner.classList.remove('d-none');
             subjectsList.classList.add('d-none');
 
-            modal.show();
+            classModal.show();
 
             fetch('/api/class-details/' + classId + '/')
                 .then(function(r) { return r.json(); })
@@ -179,6 +215,75 @@ document.addEventListener('DOMContentLoaded', function() {
                 })
                 .catch(function() {
                     spinner.innerHTML = '<div class="text-danger" style="font-size: 13px;">Failed to load class details.</div>';
+                });
+        });
+    });
+
+    // --- Subject card modal ---
+    var subjectCards = document.querySelectorAll('.card[data-subject-id]');
+    var subModal = new bootstrap.Modal(document.getElementById('subjectDetailModal'));
+    var subSpinner = document.getElementById('modalSubSpinner');
+    var subContent = document.getElementById('modalSubContent');
+    var subTeachers = document.getElementById('modalSubTeachers');
+    var subClasses = document.getElementById('modalSubClasses');
+
+    subjectCards.forEach(function(card) {
+        card.addEventListener('click', function() {
+            var subjectId = this.getAttribute('data-subject-id');
+            document.getElementById('modalSubName').textContent = '—';
+            document.getElementById('modalSubClassCount').textContent = '—';
+            document.getElementById('modalSubCategory').textContent = '—';
+            subTeachers.innerHTML = '';
+            subClasses.innerHTML = '';
+            subSpinner.classList.remove('d-none');
+            subContent.classList.add('d-none');
+
+            subModal.show();
+
+            fetch('/api/subject-details/' + subjectId + '/')
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    document.getElementById('modalSubName').textContent = data.name;
+                    document.getElementById('modalSubClassCount').textContent = data.classes_count + ' Classes';
+                    document.getElementById('modalSubCategory').textContent = data.category;
+
+                    subTeachers.innerHTML = '';
+                    if (data.assigned_teachers.length === 0) {
+                        subTeachers.innerHTML = '<span class="text-muted" style="font-size: 13px;">No teachers assigned yet.</span>';
+                    } else {
+                        data.assigned_teachers.forEach(function(name) {
+                            var pill = document.createElement('span');
+                            pill.className = 'badge rounded-pill px-3 py-2';
+                            pill.style.cssText = 'background: #ffffff; border: 1px solid #e4e4e7; color: #333; font-size: 12px; font-weight: 500;';
+                            pill.textContent = name;
+                            subTeachers.appendChild(pill);
+                        });
+                    }
+
+                    subClasses.innerHTML = '';
+                    if (data.class_allocations.length === 0) {
+                        subClasses.innerHTML = '<div class="col-12 text-muted text-center py-3" style="font-size: 13px;">This subject is not offered in any class yet.</div>';
+                    } else {
+                        data.class_allocations.forEach(function(alloc) {
+                            var col = document.createElement('div');
+                            col.className = 'col-12 col-sm-6';
+                            col.innerHTML =
+                                '<div class="subject-chip">' +
+                                    '<div>' +
+                                        '<div class="fw-semibold text-dark" style="font-size: 13px;">' + alloc.class_name + '</div>' +
+                                        '<div class="text-muted" style="font-size: 11px;">' + alloc.teacher + '</div>' +
+                                    '</div>' +
+                                    '<span class="badge rounded-pill" style="background: #f4f4f5; color: #71717a; font-size: 10px; font-weight: 600;">CLASS</span>' +
+                                '</div>';
+                            subClasses.appendChild(col);
+                        });
+                    }
+
+                    subSpinner.classList.add('d-none');
+                    subContent.classList.remove('d-none');
+                })
+                .catch(function() {
+                    subSpinner.innerHTML = '<div class="text-danger" style="font-size: 13px;">Failed to load subject details.</div>';
                 });
         });
     });
