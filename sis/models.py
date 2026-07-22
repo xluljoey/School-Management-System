@@ -173,6 +173,11 @@ class Student(models.Model):
     GENDER_CHOICES = [('Male', 'Male'), ('Female', 'Female')]
     STATUS_CHOICES = [('Day', 'Day'), ('Boarder', 'Boarder')]
     LIVING_WITH_CHOICES = [('Mother', 'Mother'), ('Father', 'Father'), ('Both', 'Both')]
+    PROMOTION_STATUS_CHOICES = [
+        ('NEUTRAL', 'Neutral'),
+        ('APPROVED', 'Approved for Promotion'),
+        ('HELD_BACK', 'Held Back'),
+    ]
 
     admission_number = models.CharField(max_length=50, unique=True)
     first_name = models.CharField(max_length=100)
@@ -188,6 +193,16 @@ class Student(models.Model):
     classroom = models.ForeignKey('ClassRoom', on_delete=models.SET_NULL, null=True, blank=True, related_name='students')
     father = models.ForeignKey(Parent, on_delete=models.SET_NULL, null=True, blank=True, related_name='father_of')
     mother = models.ForeignKey(Parent, on_delete=models.SET_NULL, null=True, blank=True, related_name='mother_of')
+    pending_next_class = models.ForeignKey(
+        'ClassRoom', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='pending_students',
+        help_text="Target class set during Term 3 promotion approval. Applied at session rollover."
+    )
+    promotion_status = models.CharField(
+        max_length=20, choices=PROMOTION_STATUS_CHOICES, default='NEUTRAL',
+        help_text="NEUTRAL = no pending action, APPROVED = promoted at rollover, HELD_BACK = stays in current class"
+    )
+    is_alumni = models.BooleanField(default=False, help_text="Set to True when student graduates (no next class)")
     
     @property
     def current_class(self):

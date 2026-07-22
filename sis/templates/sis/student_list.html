@@ -10,7 +10,9 @@
         <span style="color: #8E8D93; font-size: 0.85rem;">{{ students|length }} students total</span>
     </div>
     <div>
+        {% if is_admin %}
         <a href="{% url 'student_registration' %}" style="background-color: #000000; color: #ffffff; border: none; border-radius: 25px; padding: 10px 24px; font-weight: 600; font-size: 0.9rem; text-decoration: none; display: inline-block; cursor: pointer;">+ Add Student</a>
+        {% endif %}
     </div>
 </div>
 

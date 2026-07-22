@@ -17,7 +17,7 @@
 <div class="row justify-content-center">
     <div class="col-12 col-lg-8">
         <div class="card border-0 p-4" style="border-radius: 16px; background-color: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
-            <form method="POST">
+            <form method="POST" data-unsaved-guard>
                 {% csrf_token %}
                 <div class="row g-4">
                     <div class="col-12 col-md-6">
@@ -42,7 +42,7 @@
                     </div>
                 </div>
                 <div class="d-flex justify-content-end gap-2 mt-5 pt-3 border-top" style="border-color: #f4f4f5 !important;">
-                    <a href="{% url 'parent_detail' parent.id %}" class="btn btn-light rounded-pill px-4 py-2" style="font-size: 14px; border: 1px solid #e4e4e7; font-weight: 500;">Cancel</a>
+                    <a href="{% url 'parent_detail' parent.id %}" data-cancel-link class="btn btn-light rounded-pill px-4 py-2" style="font-size: 14px; border: 1px solid #e4e4e7; font-weight: 500;">Cancel</a>
                     <button type="submit" class="btn btn-dark rounded-pill px-5 py-2" style="font-size: 14px; font-weight: 500;">Save Changes</button>
                 </div>
             </form>

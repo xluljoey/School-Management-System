@@ -326,6 +326,10 @@
                         <i class="bi bi-arrow-up-circle"></i> Promotion Portal
                         {% if not is_promotional_term %}<i class="bi bi-lock-fill" style="font-size: 10px; margin-left: 4px; opacity: 0.7;"></i>{% endif %}
                     </a>
+                    <a href="{% url 'academic_year_rollover' %}" class="{% if request.resolver_match.url_name == 'academic_year_rollover' %}active{% endif %}" style="opacity: 0.75;">
+                        <i class="bi bi-arrow-repeat"></i> Year Rollover
+                        <span style="background: #fef3c7; color: #92400e; font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: 600;">Admin</span>
+                    </a>
                     {% endif %}
                 </nav>
             </div>
@@ -352,7 +356,7 @@
                     <i class="bi bi-list fs-5"></i>
                 </button>
                 <!-- Back Button & Search Bar Input Pill -->
-                <button type="button" onclick="window.history.back();" class="back-btn" aria-label="Go back">
+                <button type="button" id="globalBackBtn" class="back-btn" aria-label="Go back">
                     <i class="bi bi-arrow-left"></i>
                 </button>
                 <div class="header-search-field" style="position: relative;">
@@ -540,6 +544,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.head.appendChild(style);
 })();
 </script>
+<script src="{% static 'js/unsaved_changes.js' %}"></script>
 {% block extra_js %}{% endblock %}
 </body>
 </html>

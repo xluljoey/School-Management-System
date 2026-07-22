@@ -29,7 +29,7 @@
             </div>
           {% endfor %}
         {% endif %}
-        <form method="POST">
+        <form method="POST" data-unsaved-guard>
             {% csrf_token %}
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
@@ -62,7 +62,7 @@
                 </table>
             </div>
             <div class="card-footer bg-white py-3 d-flex justify-content-end gap-2 border-top-0">
-                <a href="{% url 'student_list' %}" class="btn btn-light px-4">Cancel</a>
+                <a href="{% url 'student_list' %}" data-cancel-link class="btn btn-light px-4">Cancel</a>
                 <button type="submit" class="btn btn-success px-4">Compile & Save Grades</button>
             </div>
         </form>

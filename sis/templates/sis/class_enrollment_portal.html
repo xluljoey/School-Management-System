@@ -87,7 +87,7 @@
 
     {% if source_class %}
     <!-- ===== COHORT MATRIX ===== -->
-    <form method="POST" id="promoteForm">
+    <form method="POST" id="promoteForm" data-unsaved-guard>
       {% csrf_token %}
       <input type="hidden" name="source_class_id" value="{{ source_class.id }}">
       <input type="hidden" name="next_class_id" id="next_class_hidden" value="{{ default_target_id|default:'' }}">

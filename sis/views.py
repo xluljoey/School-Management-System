@@ -5,6 +5,7 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.models import User
 from django.core.exceptions import PermissionDenied
+from django.db import transaction
 from django.db.models import Q, Count
 from django.http import JsonResponse
 from django.urls import reverse
@@ -91,11 +92,23 @@ def dashboard_view(request):
 
 @login_required
 def student_list_view(request):
-    students = Student.objects.all().select_related('classroom')
+    is_admin = _is_admin(request.user)
+
+    if is_admin:
+        students = Student.objects.all().select_related('classroom')
+    else:
+        taught_class_ids = StaffClassSubject.objects.filter(
+            staff=request.user.staff_profile
+        ).values_list('classroom_id', flat=True).distinct()
+        students = Student.objects.filter(
+            classroom_id__in=taught_class_ids
+        ).select_related('classroom').distinct()
+
     classrooms = ClassRoom.objects.all()
     return render(request, 'sis/student_list.html', {
         'students': students,
         'classrooms': classrooms,
+        'is_admin': is_admin,
     })
 
 
@@ -125,6 +138,8 @@ def student_edit_view(request, student_id):
 
 @login_required
 def student_registration_view(request):
+    if not _is_admin(request.user):
+        raise PermissionDenied
     if request.method == 'POST':
         student_form = StudentRegistrationForm(request.POST, request.FILES)
         father_form = ParentForm(request.POST, prefix='father')
@@ -1148,42 +1163,35 @@ def class_enrollment_portal_view(request):
             next_class = get_object_or_404(ClassRoom, pk=next_class_id)
             src_class = get_object_or_404(ClassRoom, pk=src_id)
 
-            term_label = current_term.term_name if current_term else "Term 1"
-            year_label = current_session.academic_year if current_session else "2025/2026"
-
             source_ids = set(
                 Enrollment.objects.filter(
-                    classroom=src_class, term=term_label, academic_year=year_label
+                    classroom=src_class,
                 ).values_list('student_id', flat=True)
             )
             selected_set = set(int(sid) for sid in selected_ids)
             held_back_ids = source_ids - selected_set
 
+            promoted_count = 0
+            held_count = 0
+
             for sid in selected_set:
                 student = get_object_or_404(Student, pk=sid)
-                Enrollment.objects.update_or_create(
-                    student=student,
-                    term=term_label,
-                    academic_year=year_label,
-                    defaults={'classroom': next_class},
-                )
-                student.classroom = next_class
-                student.save(update_fields=['classroom'])
+                student.pending_next_class = next_class
+                student.promotion_status = 'APPROVED'
+                student.save(update_fields=['pending_next_class', 'promotion_status'])
+                promoted_count += 1
 
             for sid in held_back_ids:
                 student = get_object_or_404(Student, pk=sid)
-                Enrollment.objects.update_or_create(
-                    student=student,
-                    term=term_label,
-                    academic_year=year_label,
-                    defaults={'classroom': src_class},
-                )
-                student.classroom = src_class
-                student.save(update_fields=['classroom'])
+                student.pending_next_class = None
+                student.promotion_status = 'HELD_BACK'
+                student.save(update_fields=['pending_next_class', 'promotion_status'])
+                held_count += 1
 
             messages.success(
                 request,
-                "Successfully processed promotions/enrollments for the selected cohort."
+                f"Promotion approvals recorded: {promoted_count} student(s) approved for {next_class.class_name}, "
+                f"{held_count} held back. Changes will take effect at session rollover."
             )
             return redirect('class_enrollment_portal')
 
@@ -1261,6 +1269,79 @@ def configure_session_view(request):
         'current_term': Term.objects.filter(is_active=True).first(),
     }
     return render(request, 'sis/configure_session.html', context)
+
+
+@login_required
+def academic_year_rollover_view(request):
+    if not _is_admin(request.user):
+        raise PermissionDenied
+
+    current_session = AcademicSession.objects.filter(is_current=True).first()
+    current_term = Term.objects.filter(is_active=True).first() if current_session else None
+
+    approved_students = Student.objects.filter(
+        promotion_status='APPROVED', pending_next_class__isnull=False
+    ).select_related('classroom', 'pending_next_class')
+
+    held_back_students = Student.objects.filter(promotion_status='HELD_BACK')
+
+    graduated_students = Student.objects.filter(
+        promotion_status='APPROVED', pending_next_class__isnull=True, classroom__next_class__isnull=True
+    )
+
+    if request.method == 'POST':
+        confirm = request.POST.get('confirm_rollover')
+        if confirm != 'YES_EXECUTE_ROLLOVER':
+            messages.error(request, "Confirmation text did not match. Type YES_EXECUTE_ROLLOVER to proceed.")
+            return redirect('academic_year_rollover')
+
+        with transaction.atomic():
+            graduated_count = Student.objects.filter(
+                promotion_status='APPROVED',
+                pending_next_class__isnull=True,
+                classroom__next_class__isnull=True,
+            ).update(is_active=False, is_alumni=True, promotion_status='NEUTRAL')
+
+            promoted_count = 0
+            for student in Student.objects.filter(
+                promotion_status='APPROVED', pending_next_class__isnull=False
+            ).select_related('pending_next_class'):
+                old_class = student.classroom
+                new_class = student.pending_next_class
+
+                student.classroom = new_class
+                student.pending_next_class = None
+                student.promotion_status = 'NEUTRAL'
+                student.save(update_fields=['classroom', 'pending_next_class', 'promotion_status'])
+
+                Enrollment.objects.update_or_create(
+                    student=student,
+                    term='Term 1',
+                    academic_year=current_session.academic_year if current_session else '2025/2026',
+                    defaults={'classroom': new_class},
+                )
+                promoted_count += 1
+
+            held_count = Student.objects.filter(promotion_status='HELD_BACK').update(
+                promotion_status='NEUTRAL'
+            )
+
+        messages.success(
+            request,
+            f"Academic year rollover complete: {promoted_count} promoted, "
+            f"{graduated_count} graduated, {held_count} held back (status cleared)."
+        )
+        return redirect('configure_session')
+
+    context = {
+        'current_session': current_session,
+        'current_term': current_term,
+        'approved_students': approved_students,
+        'held_back_students': held_back_students,
+        'graduated_students': graduated_students,
+        'total_pending': approved_students.count() + held_back_students.count(),
+    }
+    return render(request, 'sis/academic_year_rollover.html', context)
 
 
 @login_required
@@ -1614,13 +1695,16 @@ def api_class_details(request, class_id):
         form_teacher_name = f"{ft.first_name} {ft.last_name}".strip()
 
     subjects_data = []
-    scs_qs = StaffClassSubject.objects.filter(classroom=classroom).select_related('subject', 'staff__user')
-    for scs in scs_qs:
+    cs_qs = ClassSubject.objects.filter(classroom=classroom).select_related('subject')
+    for cs in cs_qs:
+        assignment = StaffClassSubject.objects.filter(
+            classroom=classroom, subject=cs.subject
+        ).select_related('staff__user').first()
         teacher_name = ''
-        if scs.staff:
-            teacher_name = f"{scs.staff.first_name} {scs.staff.last_name}".strip()
+        if assignment and assignment.staff:
+            teacher_name = f"{assignment.staff.first_name} {assignment.staff.last_name}".strip()
         subjects_data.append({
-            'name': scs.subject.subject_name,
+            'name': cs.subject.subject_name,
             'teacher': teacher_name or 'Unassigned',
         })
 
