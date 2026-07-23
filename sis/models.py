@@ -109,6 +109,7 @@ class StaffProfile(models.Model):
     year_completed = models.IntegerField(default=2000)
     profile_picture = models.ImageField(upload_to=get_staff_photo_path, max_length=100, blank=True, null=True)
     address = models.TextField(blank=True, null=True, verbose_name="Residential Address")
+    theme = models.CharField(max_length=10, choices=[('light', 'Light'), ('dark', 'Dark'), ('system', 'System')], default='system', blank=True)
 
     form_class = models.OneToOneField('ClassRoom', on_delete=models.SET_NULL, null=True, blank=True, related_name='form_teacher')
     subject_areas = models.ManyToManyField('Subject', blank=True, related_name='teachers', help_text="Select all subjects this staff member is assigned to teach.")

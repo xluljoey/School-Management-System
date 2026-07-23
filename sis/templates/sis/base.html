@@ -7,6 +7,14 @@
     <title>{% block title %}MIS School Portal{% endblock %}</title>
     <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <script>
+        (function() {
+            var t = localStorage.getItem('theme');
+            if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+            }
+        })();
+    </script>
     <style>
         html, body {
             height: 100%;
@@ -251,6 +259,68 @@
                 max-width: 100% !important;
             }
         }
+        /* ── Dark mode CSS variables ── */
+        html.dark {
+            --bg-page: #111318;
+            --bg-card: #1c1f26;
+            --bg-elevated: #252830;
+            --bg-input: #2c2f38;
+            --text-primary: #e4e4e7;
+            --text-secondary: #9ca3af;
+            --text-muted: #6b7280;
+            --border-color: #2e3039;
+            --accent: #818cf8;
+        }
+        html:not(.dark) {
+            --bg-page: #f8f9fa;
+            --bg-card: #ffffff;
+            --bg-elevated: #ffffff;
+            --bg-input: #ebeaef;
+            --text-primary: #1a1a1a;
+            --text-secondary: #6b7280;
+            --text-muted: #9ca3af;
+            --border-color: #e5e7eb;
+            --accent: #4f46e5;
+        }
+        html.dark body,
+        html.dark .app-layout { background-color: var(--bg-page) !important; }
+        html.dark .main-workspace-column,
+        html.dark .main-viewport,
+        html.dark .page-content-canvas { background-color: var(--bg-page) !important; }
+        html.dark .global-header { background-color: transparent !important; }
+        html.dark .header-search-field { background-color: var(--bg-input) !important; }
+        html.dark .header-search-field input { color: var(--text-primary) !important; }
+        html.dark .header-right .utility-group svg { stroke: var(--text-secondary) !important; }
+        html.dark .card {
+            background-color: var(--bg-card) !important;
+            color: var(--text-primary) !important;
+            border-color: var(--border-color) !important;
+        }
+        html.dark .card .text-muted,
+        html.dark .card .text-secondary,
+        html.dark .card p { color: var(--text-secondary) !important; }
+        html.dark .card .fw-bold,
+        html.dark .card .fw-semibold,
+        html.dark .card h3,
+        html.dark .card h4,
+        html.dark .card h5 { color: var(--text-primary) !important; }
+        html.dark .text-dark { color: var(--text-primary) !important; }
+        html.dark .table { color: var(--text-primary) !important; }
+        html.dark .table-light,
+        html.dark .table thead { background-color: var(--bg-elevated) !important; }
+        html.dark .table td,
+        html.dark .table th { border-color: var(--border-color) !important; }
+        html.dark .alert-info { background-color: #1e3a5f !important; color: #93c5fd !important; border-color: #1e40af !important; }
+        html.dark .back-btn { background: var(--bg-elevated) !important; color: var(--text-primary) !important; }
+        html.dark .header-profile-pill .text-end .fw-bold { color: var(--text-primary) !important; }
+        html.dark .sidebar { background-color: #0a0a0a !important; }
+        html.dark #profileQuickCard { background: var(--bg-card) !important; color: var(--text-primary) !important; border: 1px solid var(--border-color); }
+        html.dark #notificationDropdown { background: var(--bg-card) !important; border: 1px solid var(--border-color); }
+        html.dark #notificationDropdown .notif-item { border-color: var(--border-color) !important; }
+        html.dark #search-results-dropdown { background: var(--bg-card) !important; border-color: var(--border-color) !important; }
+        html.dark #search-results-dropdown a { color: var(--text-primary) !important; }
+        /* Settings card dark overrides */
+        html.dark #settingsCard { background: var(--bg-card) !important; border-color: var(--border-color) !important; }
     </style>
 </head>
 <body>
@@ -412,10 +482,28 @@
                         <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
                         <polyline points="22,6 12,13 2,6"/>
                     </svg>
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8E8D93" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="cursor: pointer;">
-                        <circle cx="12" cy="12" r="3"/>
-                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-                    </svg>
+                    <div class="settings-wrapper" style="position: relative;">
+                        <button type="button" id="settingsBtn" style="background: none; border: none; padding: 0; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8E8D93" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="3"/>
+                                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                            </svg>
+                        </button>
+                        <div id="settingsCard" style="display: none; position: absolute; right: 0; top: 36px; width: 280px; background: #fff; border-radius: 14px; box-shadow: 0 12px 36px rgba(0,0,0,0.18); z-index: 1100; padding: 18px; border: 1px solid rgba(0,0,0,0.06);">
+                            <div style="font-weight: 700; font-size: 14px; color: #1a1a1a; margin-bottom: 16px;">Appearance</div>
+                            <div style="display: flex; gap: 6px; background: #f3f4f6; border-radius: 10px; padding: 4px;" id="themeToggleGroup">
+                                <button data-theme="light" class="theme-btn" style="flex: 1; padding: 8px 0; border: none; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; background: #fff; color: #111; box-shadow: 0 1px 3px rgba(0,0,0,0.1); transition: all 0.2s;">
+                                    <i class="bi bi-sun" style="margin-right: 4px;"></i> Light
+                                </button>
+                                <button data-theme="dark" class="theme-btn" style="flex: 1; padding: 8px 0; border: none; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; background: transparent; color: #6b7280; transition: all 0.2s;">
+                                    <i class="bi bi-moon" style="margin-right: 4px;"></i> Dark
+                                </button>
+                                <button data-theme="system" class="theme-btn" style="flex: 1; padding: 8px 0; border: none; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; background: transparent; color: #6b7280; transition: all 0.2s;">
+                                    <i class="bi bi-display" style="margin-right: 4px;"></i> Auto
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="profile-dropdown-container" style="position: relative;">
                     <div class="header-profile-pill d-flex align-items-center" style="gap: 10px; margin-left: 20px; cursor: pointer;" onclick="toggleProfileCard()">
@@ -606,6 +694,85 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     }
+
+    // Settings card toggle & theme switcher
+    var settingsBtn = document.getElementById('settingsBtn');
+    var settingsCard = document.getElementById('settingsCard');
+    var themeBtns = document.querySelectorAll('.theme-btn');
+
+    function applyTheme(mode) {
+        if (mode === 'dark') {
+            document.documentElement.classList.add('dark');
+        } else if (mode === 'light') {
+            document.documentElement.classList.remove('dark');
+        } else {
+            // system: follow OS preference
+            if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        }
+    }
+
+    function setActiveBtn(mode) {
+        themeBtns.forEach(function(btn) {
+            var isActive = btn.getAttribute('data-theme') === mode;
+            if (isActive) {
+                btn.style.background = '#fff';
+                btn.style.color = '#111';
+                btn.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+            } else {
+                btn.style.background = 'transparent';
+                btn.style.color = '#6b7280';
+                btn.style.boxShadow = 'none';
+            }
+        });
+    }
+
+    function saveTheme(mode) {
+        localStorage.setItem('theme', mode);
+        fetch('/api/user/settings/theme/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({theme: mode})
+        }).catch(function() {});
+    }
+
+    var saved = localStorage.getItem('theme') || 'system';
+    setActiveBtn(saved);
+
+    themeBtns.forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var mode = this.getAttribute('data-theme');
+            applyTheme(mode);
+            setActiveBtn(mode);
+            saveTheme(mode);
+        });
+    });
+
+    if (settingsBtn && settingsCard) {
+        settingsBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            settingsCard.style.display = settingsCard.style.display === 'none' ? 'block' : 'none';
+        });
+        document.addEventListener('click', function(e) {
+            var wrapper = document.querySelector('.settings-wrapper');
+            if (wrapper && !wrapper.contains(e.target)) {
+                settingsCard.style.display = 'none';
+            }
+        });
+    }
+
+    // Listen for OS theme changes when in system mode
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function() {
+        if (!localStorage.getItem('theme') || localStorage.getItem('theme') === 'system') {
+            applyTheme('system');
+        }
+    });
 
     // Toast popups for Django messages
     {% if messages %}

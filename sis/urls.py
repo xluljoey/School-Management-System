@@ -38,6 +38,7 @@ from .views import (
     generate_report_cards_view,
     export_excel_view,
     mark_all_notifications_read,
+    save_theme_preference,
 )
 
 urlpatterns = [
@@ -87,4 +88,5 @@ urlpatterns = [
     path('class/<int:class_id>/report/generate/', generate_report_cards_view, name='generate_report_cards'),
     path('class/<int:class_id>/report/export-excel/', export_excel_view, name='export_excel'),
     path('api/notifications/mark-all-read/', mark_all_notifications_read, name='mark_all_notifications_read'),
+    path('api/user/settings/theme/', save_theme_preference, name='save_theme_preference'),
 ]

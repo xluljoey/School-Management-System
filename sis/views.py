@@ -194,6 +194,23 @@ def _is_admin(user):
     return user.is_active and user.is_superuser
 
 
+def _notify_form_teacher(request, classroom, subject, created):
+    form_teacher = getattr(classroom, 'form_teacher', None)
+    if not form_teacher or not form_teacher.user:
+        return
+    if form_teacher.user == request.user:
+        return
+    Notification.objects.create(
+        recipient=form_teacher.user,
+        title="Assessment Scores Updated",
+        message=(
+            f"Scores for {subject.subject_name} have been "
+            f"{'added' if created else 'updated'} for {classroom.class_name}."
+        ),
+        notification_type='ASSESSMENT_UPDATE',
+    )
+
+
 # bulk score processing view
 @login_required
 def bulk_grade_entry_view(request, class_id, subject_id):
@@ -413,18 +430,18 @@ def class_report_card_view(request, class_id):
         classrooms = ClassRoom.objects.filter(id__in=assigned_ids) if assigned_ids else ClassRoom.objects.none()
     has_graded_records = bool(assessment_map)
 
-    can_modify_grades = has_full_access
-    if not can_modify_grades and staff:
+    can_modify_grades = False
+    if staff:
         if current_subject_id:
             can_modify_grades = StaffClassSubject.objects.filter(
                 staff=staff, classroom=classroom, subject_id=current_subject_id
             ).exists()
         else:
-            can_modify_grades = assigned_subjects.exists()
+            can_modify_grades = is_form_teacher or assigned_subjects.exists()
 
     all_subject_ids = set(subjects_for_class.values_list('id', flat=True))
     assigned_subject_ids_set = set(assigned_subjects.values_list('id', flat=True))
-    can_edit_master = request.user.is_superuser or (all_subject_ids and all_subject_ids.issubset(assigned_subject_ids_set))
+    can_edit_master = bool(assigned_subject_ids_set)
 
     term_number = int(current_term.term_name.split()[-1]) if current_term else 1
     year_label = current_term.session.academic_year if current_term and current_term.session else "2025/2026"
@@ -566,15 +583,15 @@ def api_edit_assessment(request):
     subject = get_object_or_404(Subject, pk=subject_id)
 
     staff = getattr(request.user, 'staff_profile', None)
-    has_full_access = request.user.is_superuser
-    if not has_full_access and staff:
-        enrollment = student.enrollments.order_by('-date_enrolled').first()
-        if not enrollment:
-            return JsonResponse({'error': 'Student is not enrolled'}, status=400)
-        has_full_access = StaffClassSubject.objects.filter(
-            staff=staff, classroom=enrollment.classroom, subject=subject
-        ).exists()
-    if not has_full_access:
+    if not staff:
+        return JsonResponse({'error': 'You are not assigned to teach this subject in this class'}, status=403)
+    enrollment = student.enrollments.order_by('-date_enrolled').first()
+    if not enrollment:
+        return JsonResponse({'error': 'Student is not enrolled'}, status=400)
+    is_assigned = StaffClassSubject.objects.filter(
+        staff=staff, classroom=enrollment.classroom, subject=subject
+    ).exists()
+    if not is_assigned:
         return JsonResponse({'error': 'You are not assigned to teach this subject in this class'}, status=403)
 
     current_session = AcademicSession.objects.filter(is_current=True).first()
@@ -597,6 +614,8 @@ def api_edit_assessment(request):
             'academic_year': year_label,
         },
     )
+
+    _notify_form_teacher(request, enrollment.classroom, subject, created)
 
     total = float(assessment.class_score or 0) + float(assessment.exam_score or 0)
 
@@ -1530,6 +1549,10 @@ def compile_grades_view(request):
         selected_subject_id = request.POST.get('subject_id')
         classroom = get_object_or_404(ClassRoom, pk=selected_class_id)
         selected_subject = get_object_or_404(Subject, pk=selected_subject_id)
+
+        if not staff or not StaffClassSubject.objects.filter(staff=staff, classroom=classroom, subject=selected_subject).exists():
+            raise PermissionDenied
+
         students = Student.objects.filter(enrollments__classroom=classroom).distinct()
 
         for student in students:
@@ -1548,6 +1571,7 @@ def compile_grades_view(request):
                         'academic_year': current_session.academic_year if current_session else '2025/2026',
                     }
                 )
+        _notify_form_teacher(request, classroom, selected_subject, False)
         messages.success(request, f'Grades for {selected_subject.subject_name} saved successfully!')
         return redirect(request.path + '?class_id=' + str(selected_class_id) + '&subject_id=' + str(selected_subject_id) + '&assessment_type=' + str(assessment_type))
 
@@ -2038,3 +2062,20 @@ def timetable_hub(request):
 def mark_all_notifications_read(request):
     Notification.objects.filter(recipient=request.user, is_read=False).update(is_read=True)
     return JsonResponse({'success': True})
+
+
+@login_required
+@require_POST
+def save_theme_preference(request):
+    try:
+        data = json.loads(request.body)
+        theme = data.get('theme', 'system')
+        if theme not in ('light', 'dark', 'system'):
+            return JsonResponse({'error': 'Invalid theme'}, status=400)
+        staff = getattr(request.user, 'staff_profile', None)
+        if staff:
+            staff.theme = theme
+            staff.save(update_fields=['theme'])
+        return JsonResponse({'success': True, 'theme': theme})
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
