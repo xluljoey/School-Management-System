@@ -321,6 +321,22 @@
         html.dark #search-results-dropdown a { color: var(--text-primary) !important; }
         /* Settings card dark overrides */
         html.dark #settingsCard { background: var(--bg-card) !important; border-color: var(--border-color) !important; }
+        /* Search result type badges */
+        .search-badge-student { background: #dbeafe; color: #1e40af; }
+        .search-badge-staff { background: #c3c4ff; color: #3730a3; }
+        .search-badge-parent { background: #d1fae5; color: #065f46; }
+        .search-badge-class { background: #fef3c7; color: #92400e; }
+        .search-badge-subject { background: #ede9fe; color: #5b21b6; }
+        .search-badge-timetable { background: #ccfbf1; color: #115e59; }
+        /* Reports tab row highlight animation */
+        @keyframes highlightPulse {
+            0%   { background-color: rgba(59, 130, 246, 0.35); }
+            50%  { background-color: rgba(59, 130, 246, 0.15); }
+            100% { background-color: transparent; }
+        }
+        .row-highlight { animation: highlightPulse 2s ease-in-out; }
+        /* Hide search bar on registration/form pages */
+        .hide-search .header-search-field { display: none !important; }
     </style>
 </head>
 <body>
@@ -566,32 +582,95 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (!input) return;
 
+    // --- Scope detection ---
+    function detectScope() {
+        var path = window.location.pathname;
+        if (/^\/(staff\/register|students\/register)/.test(path)) return 'hidden';
+        if (/^\/staff\/list/.test(path) || /^\/staff\/?$/.test(path)) return 'staff';
+        if (/^\/students\/?$/.test(path)) return 'students';
+        if (/^\/parents\/?$/.test(path)) return 'parents';
+        if (/^\/classes-subjects/.test(path)) return 'classes';
+        if (/^\/timetables/.test(path)) return 'timetables';
+        if (/\/report\//.test(path) || /^\/reports/.test(path)) return 'reports';
+        return 'dashboard';
+    }
+
+    function getTypeId(type) {
+        var map = {
+            Student: 'search-badge-student',
+            Staff: 'search-badge-staff',
+            Parent: 'search-badge-parent',
+            Class: 'search-badge-class',
+            Subject: 'search-badge-subject',
+            Timetable: 'search-badge-timetable'
+        };
+        return map[type] || 'search-badge-student';
+    }
+
+    var scope = detectScope();
+
+    // Hide search on registration forms
+    if (scope === 'hidden') {
+        var sf = document.querySelector('.header-search-field');
+        if (sf) sf.style.display = 'none';
+        return;
+    }
+
+    // Reports: get current class_id from URL if present
+    function getReportClassId() {
+        var m = window.location.pathname.match(/\/report\/(\d+)/);
+        return m ? m[1] : '';
+    }
+
+    // Debounce
+    var debounceTimer;
     input.addEventListener('input', function() {
         var q = this.value.trim();
+        clearTimeout(debounceTimer);
         if (q.length < 2) {
             dropdown.style.display = 'none';
             return;
         }
-        fetch('/api/search/?q=' + encodeURIComponent(q))
-            .then(function(r) { return r.json(); })
-            .then(function(data) {
-                dropdown.innerHTML = '';
-                if (!data.results || data.results.length === 0) {
-                    dropdown.style.display = 'none';
-                    return;
-                }
-                data.results.forEach(function(item) {
-                    var row = document.createElement('a');
-                    row.href = item.url;
-                    row.style.cssText = 'display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; text-decoration: none; color: #1A1A1A; border-bottom: 1px solid #f0f0f0; transition: background 0.15s;';
-                    row.innerHTML = '<span style="font-size: 0.9rem; font-weight: 500;">' + escapeHtml(item.name) + '</span><span style="font-size: 0.7rem; font-weight: 600; padding: 2px 10px; border-radius: 10px; background: ' + (item.type === 'Staff' ? '#C3C4FF' : '#FFE89C') + '; color: #000000;">' + item.type + '</span>';
-                    row.addEventListener('mouseenter', function() { this.style.background = '#f8f9fa'; });
-                    row.addEventListener('mouseleave', function() { this.style.background = ''; });
-                    dropdown.appendChild(row);
-                });
-                dropdown.style.display = 'block';
-            })
-            .catch(function() { dropdown.style.display = 'none'; });
+        debounceTimer = setTimeout(function() {
+            var url = '/api/search/?q=' + encodeURIComponent(q) + '&scope=' + scope;
+            if (scope === 'reports') {
+                var cid = getReportClassId();
+                if (cid) url += '&class_id=' + cid;
+            }
+            fetch(url)
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    dropdown.innerHTML = '';
+                    if (!data.results || data.results.length === 0) {
+                        dropdown.style.display = 'none';
+                        return;
+                    }
+                    data.results.forEach(function(item) {
+                        var row = document.createElement('div');
+                        row.style.cssText = 'display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; border-bottom: 1px solid #f0f0f0; cursor: pointer; transition: background 0.15s;';
+                        row.innerHTML =
+                            '<div style="display:flex;align-items:center;gap:10px;min-width:0;flex:1;">' +
+                                '<span style="font-size:0.9rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(item.name) + '</span>' +
+                                (item.extra ? '<span style="font-size:0.75rem;color:#9ca3af;white-space:nowrap;">' + escapeHtml(item.extra) + '</span>' : '') +
+                            '</div>' +
+                            '<span class="' + getTypeId(item.type) + '" style="font-size:0.7rem;font-weight:600;padding:2px 10px;border-radius:10px;white-space:nowrap;flex-shrink:0;">' + item.type + '</span>';
+                        row.addEventListener('mouseenter', function() { this.style.background = '#f8f9fa'; });
+                        row.addEventListener('mouseleave', function() { this.style.background = ''; });
+                        row.addEventListener('click', function() {
+                            if (item.action) {
+                                dropdown.style.display = 'none';
+                                input.value = '';
+                                try { eval(item.action); } catch(e) {}
+                            } else if (item.url && item.url !== '#') {
+                                window.location.href = item.url;
+                            }
+                        });
+                        dropdown.appendChild(row);
+                    });
+                    dropdown.style.display = 'block';
+                })
+                .catch(function() { dropdown.style.display = 'none'; });
+        }, 250);
     });
 
     document.addEventListener('click', function(e) {
@@ -812,6 +891,56 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     {% endif %}
 });
+
+// --- Global search action functions ---
+function highlightStudentRow(studentId) {
+    var row = document.querySelector('tr[data-student-id="' + studentId + '"]');
+    if (!row) {
+        row = document.querySelector('[data-student-id="' + studentId + '"]');
+    }
+    if (row) {
+        row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        row.classList.remove('row-highlight');
+        void row.offsetWidth;
+        row.classList.add('row-highlight');
+    }
+}
+
+function openClassModal(classId) {
+    if (typeof window._openClassModal === 'function') {
+        window._openClassModal(classId);
+    } else {
+        fetch('/api/class-details/' + classId + '/')
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                var modal = document.getElementById('classDetailModal');
+                if (modal && typeof bootstrap !== 'undefined') {
+                    var bsModal = new bootstrap.Modal(modal);
+                    bsModal.show();
+                }
+            });
+    }
+}
+
+function openSubjectModal(subjectId) {
+    if (typeof window._openSubjectModal === 'function') {
+        window._openSubjectModal(subjectId);
+    } else {
+        fetch('/api/subject-details/' + subjectId + '/')
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                var modal = document.getElementById('subjectDetailModal');
+                if (modal && typeof bootstrap !== 'undefined') {
+                    var bsModal = new bootstrap.Modal(modal);
+                    bsModal.show();
+                }
+            });
+    }
+}
+
+function openTimetable(className) {
+    window.location.href = '/timetables/?class=' + encodeURIComponent(className);
+}
 
 function getCookie(name) {
     var value = '; ' + document.cookie;

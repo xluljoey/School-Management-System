@@ -15,7 +15,7 @@ from .models import (
     Parent, Student, Subject, SubjectAssessment, ClassRoom, Enrollment,
     StaffProfile, AcademicSession, Term, ClassSubject, PromotionCriteria,
     StaffClassSubject, Department, Designation, GradeVerification,
-    MidTermRecord, Notification,
+    MidTermRecord, Notification, TimetableSlot,
 )
 from .forms import (
     ParentForm, StudentRegistrationForm, StaffRegistrationForm, EnrollmentForm,
@@ -1479,34 +1479,150 @@ def academic_year_rollover_view(request):
 @login_required
 def global_search_view(request):
     q = request.GET.get('q', '').strip()
+    scope = request.GET.get('scope', 'dashboard')
     if len(q) < 2:
         return JsonResponse({'results': []})
 
     full_name_q = Q(first_name__icontains=q) | Q(last_name__icontains=q)
-
-    students = Student.objects.filter(
-        full_name_q | Q(admission_number__icontains=q)
-    )[:5]
-
-    staff = StaffProfile.objects.filter(
-        Q(first_name__icontains=q) | Q(last_name__icontains=q) | Q(staff_id__icontains=q)
-    )[:5]
-
     results = []
-    for s in students:
-        results.append({
-            'id': s.id,
-            'name': f"{s.first_name} {s.last_name} ({s.admission_number})",
-            'type': 'Student',
-            'url': reverse('student_list'),
-        })
-    for st in staff:
-        results.append({
-            'id': st.id,
-            'name': f"{st.first_name} {st.last_name} ({st.staff_id})",
-            'type': 'Staff',
-            'url': reverse('staff_detail', args=[st.id]),
-        })
+
+    if scope == 'students':
+        for s in Student.objects.filter(full_name_q | Q(admission_number__icontains=q))[:8]:
+            results.append({
+                'id': s.id,
+                'name': f"{s.first_name} {s.last_name}",
+                'extra': s.admission_number,
+                'type': 'Student',
+                'url': reverse('student_detail', args=[s.id]),
+            })
+
+    elif scope == 'staff':
+        for st in StaffProfile.objects.filter(
+            Q(first_name__icontains=q) | Q(last_name__icontains=q) | Q(staff_id__icontains=q)
+        )[:8]:
+            results.append({
+                'id': st.id,
+                'name': f"{st.first_name} {st.last_name}",
+                'extra': st.staff_id,
+                'type': 'Staff',
+                'url': reverse('staff_detail', args=[st.id]),
+            })
+
+    elif scope == 'parents':
+        for p in Parent.objects.filter(Q(name__icontains=q) | Q(email__icontains=q) | Q(telephone_number__icontains=q))[:8]:
+            results.append({
+                'id': p.id,
+                'name': p.name or 'Unnamed',
+                'extra': p.email or '',
+                'type': 'Parent',
+                'url': reverse('parent_detail', args=[p.id]),
+            })
+
+    elif scope == 'classes':
+        for c in ClassRoom.objects.filter(class_name__icontains=q)[:5]:
+            results.append({
+                'id': c.id,
+                'name': c.class_name,
+                'extra': 'Class',
+                'type': 'Class',
+                'url': '#',
+                'action': f'openClassModal({c.id})',
+            })
+        for s in Subject.objects.filter(subject_name__icontains=q)[:5]:
+            results.append({
+                'id': s.id,
+                'name': s.subject_name,
+                'extra': 'Subject',
+                'type': 'Subject',
+                'url': '#',
+                'action': f'openSubjectModal({s.id})',
+            })
+
+    elif scope == 'timetables':
+        for slot in TimetableSlot.objects.filter(
+            Q(class_assigned__class_name__icontains=q) |
+            Q(subject__subject_name__icontains=q) |
+            Q(teacher__first_name__icontains=q) |
+            Q(teacher__last_name__icontains=q)
+        ).select_related('class_assigned', 'subject', 'teacher').distinct()[:8]:
+            teacher_name = f"{slot.teacher.first_name} {slot.teacher.last_name}" if slot.teacher else 'Unassigned'
+            results.append({
+                'id': slot.id,
+                'name': f"{slot.class_assigned.class_name} — {slot.subject.subject_name}",
+                'extra': f"{slot.get_day_of_week_display()} {slot.start_time.strftime('%H:%M')}",
+                'type': 'Timetable',
+                'url': '#',
+                'action': f"openTimetable('{slot.class_assigned.class_name}')",
+            })
+
+    elif scope == 'reports':
+        class_id = request.GET.get('class_id')
+        if class_id:
+            for s in Student.objects.filter(
+                enrollments__classroom_id=class_id
+            ).filter(full_name_q | Q(admission_number__icontains=q)).distinct()[:8]:
+                results.append({
+                    'id': s.id,
+                    'name': f"{s.first_name} {s.last_name}",
+                    'extra': s.admission_number,
+                    'type': 'Student',
+                    'url': '#',
+                    'action': f'highlightStudentRow({s.id})',
+                })
+        else:
+            for s in Student.objects.filter(full_name_q | Q(admission_number__icontains=q))[:8]:
+                results.append({
+                    'id': s.id,
+                    'name': f"{s.first_name} {s.last_name}",
+                    'extra': s.admission_number,
+                    'type': 'Student',
+                    'url': reverse('student_detail', args=[s.id]),
+                })
+
+    else:
+        # dashboard — global
+        for s in Student.objects.filter(full_name_q | Q(admission_number__icontains=q))[:4]:
+            results.append({
+                'id': s.id,
+                'name': f"{s.first_name} {s.last_name}",
+                'extra': s.admission_number,
+                'type': 'Student',
+                'url': reverse('student_detail', args=[s.id]),
+            })
+        for st in StaffProfile.objects.filter(
+            Q(first_name__icontains=q) | Q(last_name__icontains=q) | Q(staff_id__icontains=q)
+        )[:4]:
+            results.append({
+                'id': st.id,
+                'name': f"{st.first_name} {st.last_name}",
+                'extra': st.staff_id,
+                'type': 'Staff',
+                'url': reverse('staff_detail', args=[st.id]),
+            })
+        for p in Parent.objects.filter(Q(name__icontains=q))[:3]:
+            results.append({
+                'id': p.id,
+                'name': p.name or 'Unnamed',
+                'extra': p.email or '',
+                'type': 'Parent',
+                'url': reverse('parent_detail', args=[p.id]),
+            })
+        for c in ClassRoom.objects.filter(class_name__icontains=q)[:3]:
+            results.append({
+                'id': c.id,
+                'name': c.class_name,
+                'extra': 'Class',
+                'type': 'Class',
+                'url': reverse('classes_subjects_hub'),
+            })
+        for s in Subject.objects.filter(subject_name__icontains=q)[:3]:
+            results.append({
+                'id': s.id,
+                'name': s.subject_name,
+                'extra': 'Subject',
+                'type': 'Subject',
+                'url': reverse('classes_subjects_hub'),
+            })
 
     return JsonResponse({'results': results})
 
