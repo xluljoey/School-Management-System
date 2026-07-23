@@ -329,12 +329,14 @@
         .search-badge-subject { background: #ede9fe; color: #5b21b6; }
         .search-badge-timetable { background: #ccfbf1; color: #115e59; }
         /* Reports tab row highlight animation */
-        @keyframes highlightPulse {
-            0%   { background-color: rgba(59, 130, 246, 0.35); }
-            50%  { background-color: rgba(59, 130, 246, 0.15); }
+        @keyframes rowFlash {
+            0%   { background-color: rgba(59, 130, 246, 0.45); }
+            25%  { background-color: rgba(59, 130, 246, 0.15); }
+            50%  { background-color: rgba(59, 130, 246, 0.45); }
+            75%  { background-color: rgba(59, 130, 246, 0.15); }
             100% { background-color: transparent; }
         }
-        .row-highlight { animation: highlightPulse 2s ease-in-out; }
+        .row-highlight { animation: rowFlash 2.5s ease-in-out forwards; }
         /* Hide search bar on registration/form pages */
         .hide-search .header-search-field { display: none !important; }
     </style>

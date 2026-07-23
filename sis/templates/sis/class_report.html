@@ -309,7 +309,7 @@
                 </thead>
                 <tbody>
                     {% for row in report_data %}
-                    <tr>
+                    <tr data-student-id="{{ row.student.id }}">
                         <td class="col-rank" style="text-align: center;">
                             <span class="rank-badge {% if row.rank == 1 %}rank-1{% elif row.rank == 2 %}rank-2{% elif row.rank == 3 %}rank-3{% else %}rank-other{% endif %}">
                                 #{{ row.rank }}
@@ -381,7 +381,7 @@
                 </thead>
                 <tbody>
                     {% for row in report_data %}
-                    <tr>
+                    <tr data-student-id="{{ row.student.id }}">
                         <td class="col-rank" style="text-align: center;">
                             <span class="rank-badge {% if row.rank == 1 %}rank-1{% elif row.rank == 2 %}rank-2{% elif row.rank == 3 %}rank-3{% else %}rank-other{% endif %}">
                                 #{{ row.rank }}
