@@ -371,10 +371,43 @@
             <div class="header-right d-flex align-items-center" style="gap: 20px; margin-left: auto;">
                 <!-- Notification Bell | Message | Settings | Profile Icon -->
                 <div class="utility-group d-flex align-items-center gap-3">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8E8D93" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="cursor: pointer;">
-                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-                    </svg>
+                    <div class="notification-bell-wrapper" style="position: relative;">
+                        <button type="button" id="notificationBellBtn" style="background: none; border: none; padding: 0; cursor: pointer; position: relative; display: flex; align-items: center; justify-content: center;">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8E8D93" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                            </svg>
+                            {% if unread_notification_count %}
+                            <span id="notifBadge" style="position: absolute; top: -4px; right: -4px; background: #ef4444; color: #fff; font-size: 10px; font-weight: 700; min-width: 17px; height: 17px; border-radius: 9px; display: flex; align-items: center; justify-content: center; padding: 0 4px; line-height: 1; border: 2px solid #fff;">
+                                {{ unread_notification_count }}
+                            </span>
+                            {% endif %}
+                        </button>
+                        <div id="notificationDropdown" style="display: none; position: absolute; right: 0; top: 36px; width: 370px; max-height: 480px; background: #fff; border-radius: 14px; box-shadow: 0 12px 36px rgba(0,0,0,0.18); z-index: 1100; overflow: hidden;">
+                            <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px 18px; border-bottom: 1px solid #f0f0f0;">
+                                <span style="font-weight: 700; font-size: 14px; color: #1a1a1a;">Notifications</span>
+                                {% if unread_notification_count %}
+                                <button id="markAllReadBtn" style="background: none; border: none; color: #3b82f6; font-size: 12px; font-weight: 600; cursor: pointer;">Mark all read</button>
+                                {% endif %}
+                            </div>
+                            <div id="notifList" style="overflow-y: auto; max-height: 400px;">
+                                {% for notif in recent_notifications %}
+                                <div class="notif-item" data-id="{{ notif.id }}" style="padding: 14px 18px; border-bottom: 1px solid #f5f5f5; cursor: pointer; {% if not notif.is_read %}background: #f0f7ff;{% endif %}" onmouseenter="this.style.background='#f9fafb'" onmouseleave="this.style.background='{% if not notif.is_read %}#f0f7ff{% else %}#fff{% endif %}'">
+                                    <div style="display: flex; align-items: flex-start; gap: 10px;">
+                                        <div style="width: 8px; height: 8px; border-radius: 50%; margin-top: 6px; flex-shrink: 0; background: {% if not notif.is_read %}#3b82f6{% else %}#d1d5db{% endif %};"></div>
+                                        <div style="flex: 1; min-width: 0;">
+                                            <div style="font-size: 13px; font-weight: {% if not notif.is_read %}600{% else %}500{% endif %}; color: #1a1a1a; margin-bottom: 3px;">{{ notif.title }}</div>
+                                            <div style="font-size: 12px; color: #6b7280; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">{{ notif.message }}</div>
+                                            <div style="font-size: 11px; color: #9ca3af; margin-top: 4px;">{{ notif.created_at|timesince }} ago</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% empty %}
+                                <div style="padding: 40px 18px; text-align: center; color: #9ca3af; font-size: 13px;">No notifications yet.</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8E8D93" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="cursor: pointer;">
                         <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
                         <polyline points="22,6 12,13 2,6"/>
@@ -428,15 +461,6 @@
         <!-- DYNAMIC INNER PAGE CONTENT -->
         <main class="page-content-canvas" style="flex: 1 1 auto; display: flex; flex-direction: column; min-height: calc(100vh - 120px); padding: 0 40px 40px 40px;">
 {% endif %}
-
-            {% if messages %}
-                {% for message in messages %}
-                    <div class="alert alert-success alert-dismissible fade show" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                {% endfor %}
-            {% endif %}
 
             {% block content %}
             {% endblock %}
@@ -543,6 +567,91 @@ document.addEventListener('DOMContentLoaded', function() {
     style.textContent = '@media (min-width: 768px) { #sidebarToggle { display: none !important; } }';
     document.head.appendChild(style);
 })();
+
+// Notification bell dropdown
+document.addEventListener('DOMContentLoaded', function() {
+    var bellBtn = document.getElementById('notificationBellBtn');
+    var dropdown = document.getElementById('notificationDropdown');
+    if (bellBtn && dropdown) {
+        bellBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+        });
+        document.addEventListener('click', function(e) {
+            if (!dropdown.contains(e.target) && !bellBtn.contains(e.target)) {
+                dropdown.style.display = 'none';
+            }
+        });
+    }
+
+    var markAllBtn = document.getElementById('markAllReadBtn');
+    if (markAllBtn) {
+        markAllBtn.addEventListener('click', function() {
+            fetch('/api/notifications/mark-all-read/', {
+                method: 'POST',
+                headers: {'X-CSRFToken': getCookie('csrftoken'), 'Content-Type': 'application/json'}
+            }).then(function(r) { return r.json(); }).then(function(data) {
+                if (data.success) {
+                    document.querySelectorAll('.notif-item').forEach(function(el) {
+                        el.style.background = '#fff';
+                        var dot = el.querySelector('div > div:first-child');
+                        if (dot) dot.style.background = '#d1d5db';
+                        var title = el.querySelector('div > div > div:first-child');
+                        if (title) title.style.fontWeight = '500';
+                    });
+                    var badge = document.getElementById('notifBadge');
+                    if (badge) badge.remove();
+                    markAllBtn.remove();
+                }
+            });
+        });
+    }
+
+    // Toast popups for Django messages
+    {% if messages %}
+    var toasts = [
+        {% for message in messages %}
+        {text: "{{ message|escapejs }}", level: "{{ message.tags }}"},
+        {% endfor %}
+    ];
+    var toastContainer = document.createElement('div');
+    toastContainer.id = 'toastContainer';
+    toastContainer.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 10000; display: flex; flex-direction: column; gap: 10px; pointer-events: none;';
+    document.body.appendChild(toastContainer);
+
+    toasts.forEach(function(msg) {
+        var bgMap = {success: '#10b981', error: '#ef4444', warning: '#f59e0b', info: '#3b82f6'};
+        var bg = bgMap[msg.level] || bgMap['info'];
+        var iconMap = {
+            success: '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>',
+            error: '<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>',
+            warning: '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+            info: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>'
+        };
+        var svgIcon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + (iconMap[msg.level] || iconMap['info']) + '</svg>';
+        var toast = document.createElement('div');
+        toast.style.cssText = 'display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-radius: 10px; background: ' + bg + '; color: #fff; font-size: 13px; font-weight: 500; box-shadow: 0 6px 20px rgba(0,0,0,0.15); pointer-events: auto; opacity: 0; transform: translateX(40px); transition: all 0.3s ease; max-width: 380px;';
+        toast.innerHTML = '<span style="flex-shrink:0;">' + svgIcon + '</span><span style="flex:1;">' + msg.text + '</span>';
+        toastContainer.appendChild(toast);
+        requestAnimationFrame(function() {
+            toast.style.opacity = '1';
+            toast.style.transform = 'translateX(0)';
+        });
+        setTimeout(function() {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateX(40px)';
+            setTimeout(function() { toast.remove(); }, 300);
+        }, 4000);
+    });
+    {% endif %}
+});
+
+function getCookie(name) {
+    var value = '; ' + document.cookie;
+    var parts = value.split('; ' + name + '=');
+    if (parts.length === 2) return parts.pop().split(';').shift();
+    return '';
+}
 </script>
 <script src="{% static 'js/unsaved_changes.js' %}"></script>
 {% block extra_js %}{% endblock %}

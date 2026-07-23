@@ -15,7 +15,7 @@ from .models import (
     Parent, Student, Subject, SubjectAssessment, ClassRoom, Enrollment,
     StaffProfile, AcademicSession, Term, ClassSubject, PromotionCriteria,
     StaffClassSubject, Department, Designation, GradeVerification,
-    MidTermRecord,
+    MidTermRecord, Notification,
 )
 from .forms import (
     ParentForm, StudentRegistrationForm, StaffRegistrationForm, EnrollmentForm,
@@ -298,7 +298,7 @@ def class_report_card_view(request, class_id):
         current_subject_id = None
     current_subject_id = int(current_subject_id) if current_subject_id else None
 
-    is_master = request.GET.get('master') == '1' or has_full_access
+    is_master = request.GET.get('master') == '1'
 
     if request.user.is_superuser:
         assigned_subjects = Subject.objects.filter(offered_in_classes__classroom=classroom).distinct()
@@ -422,12 +422,28 @@ def class_report_card_view(request, class_id):
         else:
             can_modify_grades = assigned_subjects.exists()
 
+    all_subject_ids = set(subjects_for_class.values_list('id', flat=True))
+    assigned_subject_ids_set = set(assigned_subjects.values_list('id', flat=True))
+    can_edit_master = request.user.is_superuser or (all_subject_ids and all_subject_ids.issubset(assigned_subject_ids_set))
+
     term_number = int(current_term.term_name.split()[-1]) if current_term else 1
     year_label = current_term.session.academic_year if current_term and current_term.session else "2025/2026"
 
     verification = GradeVerification.objects.filter(
         classroom=classroom, term=term_number, academic_year=year_label
     ).first()
+
+    assessment_json = {}
+    for sid, subj_map in assessment_map.items():
+        assessment_json[str(sid)] = {}
+        for subj_id, a in subj_map.items():
+            assessment_json[str(sid)][str(subj_id)] = {
+                'cs': float(a.class_score),
+                'es': float(a.exam_score),
+            }
+
+    students_json = [{'id': s.id, 'name': f"{s.first_name} {s.last_name}"} for s in students]
+    subjects_json = [{'id': s.id, 'name': s.subject_name} for s in subjects_for_class]
 
     return render(request, 'sis/class_report.html', {
         'classroom': classroom,
@@ -447,6 +463,10 @@ def class_report_card_view(request, class_id):
         'current_subject_id': current_subject_id,
         'subject_position_map': subject_position_map,
         'can_modify_grades': can_modify_grades,
+        'can_edit_master': can_edit_master,
+        'assessment_json': assessment_json,
+        'students_json': students_json,
+        'subjects_json': subjects_json,
     })
 
 
@@ -510,6 +530,85 @@ def api_check_completeness(request, class_id):
             missing.append(entry)
 
     return JsonResponse({'complete': len(missing) == 0, 'missing': missing})
+
+
+@login_required
+@require_POST
+def api_edit_assessment(request):
+    if not _is_staff_or_admin(request.user):
+        return JsonResponse({'error': 'Permission denied'}, status=403)
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    student_id = data.get('student_id')
+    subject_id = data.get('subject_id')
+    class_score = data.get('class_score')
+    exam_score = data.get('exam_score')
+
+    if not student_id or not subject_id:
+        return JsonResponse({'error': 'student_id and subject_id are required'}, status=400)
+
+    try:
+        class_score = float(class_score) if class_score is not None else None
+        exam_score = float(exam_score) if exam_score is not None else None
+    except (TypeError, ValueError):
+        return JsonResponse({'error': 'Invalid score values'}, status=400)
+
+    if class_score is not None and not (0 <= class_score <= 30):
+        return JsonResponse({'error': 'Class score must be between 0 and 30'}, status=400)
+    if exam_score is not None and not (0 <= exam_score <= 70):
+        return JsonResponse({'error': 'Exam score must be between 0 and 70'}, status=400)
+
+    student = get_object_or_404(Student, pk=student_id)
+    subject = get_object_or_404(Subject, pk=subject_id)
+
+    staff = getattr(request.user, 'staff_profile', None)
+    has_full_access = request.user.is_superuser
+    if not has_full_access and staff:
+        enrollment = student.enrollments.order_by('-date_enrolled').first()
+        if not enrollment:
+            return JsonResponse({'error': 'Student is not enrolled'}, status=400)
+        has_full_access = StaffClassSubject.objects.filter(
+            staff=staff, classroom=enrollment.classroom, subject=subject
+        ).exists()
+    if not has_full_access:
+        return JsonResponse({'error': 'You are not assigned to teach this subject in this class'}, status=403)
+
+    current_session = AcademicSession.objects.filter(is_current=True).first()
+    current_term = Term.objects.filter(is_active=True).first()
+    if not current_session or not current_term:
+        return JsonResponse({'error': 'No active academic session/term'}, status=400)
+
+    term_number = int(current_term.term_name.split()[-1]) if current_term else 1
+    year_label = current_session.academic_year
+
+    assessment, created = SubjectAssessment.objects.update_or_create(
+        student=student,
+        subject=subject,
+        academic_session=current_session,
+        academic_term=current_term,
+        defaults={
+            'class_score': class_score if class_score is not None else 0,
+            'exam_score': exam_score if exam_score is not None else 0,
+            'term': term_number,
+            'academic_year': year_label,
+        },
+    )
+
+    total = float(assessment.class_score or 0) + float(assessment.exam_score or 0)
+
+    return JsonResponse({
+        'success': True,
+        'created': created,
+        'student_id': student.id,
+        'subject_id': subject.id,
+        'class_score': float(assessment.class_score),
+        'exam_score': float(assessment.exam_score),
+        'total': total,
+    })
 
 
 @login_required
@@ -1187,6 +1286,20 @@ def class_enrollment_portal_view(request):
                 student.promotion_status = 'HELD_BACK'
                 student.save(update_fields=['pending_next_class', 'promotion_status'])
                 held_count += 1
+
+            from django.contrib.auth.models import User as DjangoUser
+            admin_users = DjangoUser.objects.filter(is_superuser=True)
+            for admin_user in admin_users:
+                Notification.objects.create(
+                    recipient=admin_user,
+                    title="Student Promotions Processed",
+                    message=(
+                        f"Promotion approvals for {src_class.class_name} recorded: "
+                        f"{promoted_count} approved for {next_class.class_name}, "
+                        f"{held_count} held back."
+                    ),
+                    notification_type='PROMOTION',
+                )
 
             messages.success(
                 request,
@@ -1918,3 +2031,10 @@ def timetable_hub(request):
     return render(request, 'sis/timetable_hub.html', {
         'placeholder_timetable': mock_timetable,
     })
+
+
+@login_required
+@require_POST
+def mark_all_notifications_read(request):
+    Notification.objects.filter(recipient=request.user, is_read=False).update(is_read=True)
+    return JsonResponse({'success': True})

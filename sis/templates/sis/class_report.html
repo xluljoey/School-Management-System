@@ -253,15 +253,7 @@
                 <span style="position: absolute; right: 18px; top: 50%; transform: translateY(-50%); pointer-events: none; font-size: 10px; color: #666;">▼</span>
             </div>
 
-            {% if user_form_class and not is_master %}
-            <a href="{% url 'class_report' class_id=user_form_class.id %}?master=1"
-               style="border-radius: 50px; background-color: #111; color: #fff;
-                      padding: 10px 24px; font-weight: 500; text-decoration: none;
-                      font-size: 14px; transition: opacity 0.2s;"
-               onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
-               View My Form Class
-            </a>
-            {% endif %}
+
 
             {% if can_modify_grades %}
             <a href="{% url 'compile_grades' %}"
@@ -478,8 +470,24 @@
     </div>
 </div>
 
-{% if has_graded_records and is_form_teacher or has_full_access %}
-<div style="position: fixed; bottom: 40px; right: 40px; z-index: 1050;">
+{% if has_graded_records %}
+{% if is_master and can_edit_master or not is_master and can_modify_grades %}
+<div style="position: fixed; bottom: 40px; right: 40px; z-index: 1050; display: flex; gap: 12px; align-items: center;">
+    <button onclick="openEditModal()"
+       class="shadow-lg d-inline-flex align-items-center gap-2"
+       style="border-radius: 50px; background-color: #fff; color: #111;
+              padding: 14px 28px; font-weight: 600; text-decoration: none;
+              font-size: 14px; box-shadow: 0 10px 25px rgba(0,0,0,0.12);
+              transition: transform 0.2s ease, background-color 0.2s; border: 1px solid #e4e4e7; cursor: pointer;"
+       onmouseover="this.style.backgroundColor='#f9fafb'; this.style.transform='scale(1.03)';"
+       onmouseout="this.style.backgroundColor='#fff'; this.style.transform='scale(1)';">
+       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+           <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+           <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+       </svg>
+       Edit Scores
+    </button>
+    {% if is_master and is_form_teacher or is_master and has_full_access %}
     <button onclick="checkCompletenessAndGenerate()"
        class="shadow-lg d-inline-flex align-items-center gap-2"
        style="border-radius: 50px; background-color: #000; color: #fff;
@@ -497,7 +505,9 @@
        </svg>
        Generate Report Cards
     </button>
+    {% endif %}
 </div>
+{% endif %}
 {% endif %}
 
 <div id="incompleteModal" style="display: none; position: fixed; inset: 0; z-index: 2000; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); align-items: center; justify-content: center;">
@@ -530,6 +540,75 @@
                style="border-radius: 50px; padding: 10px 24px; font-weight: 500; font-size: 14px; background: #111; color: #fff; text-decoration: none; display: inline-block;">
                 Go to Grade Entry
             </a>
+        </div>
+    </div>
+</div>
+
+<div id="editModal" style="display: none; position: fixed; inset: 0; z-index: 2000; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); align-items: center; justify-content: center;">
+    <div style="background: #fff; border-radius: 20px; width: min(92vw, 520px); max-height: 85vh; overflow: hidden; box-shadow: 0 25px 60px rgba(0,0,0,0.25); display: flex; flex-direction: column;">
+        <div style="padding: 24px 28px 16px; border-bottom: 1px solid #f0f0f0;">
+            <div class="d-flex align-items-start justify-content-between">
+                <div>
+                    <h5 class="fw-bold mb-1" style="font-size: 18px; color: #111;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; vertical-align: -3px; margin-right: 6px;">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                        </svg>
+                        Edit Assessment Scores
+                    </h5>
+                    <small style="color: #6b7280;">{{ classroom.class_name }} — {{ active_subject.subject_name|default:"All Subjects" }}</small>
+                </div>
+                <button onclick="closeEditModal()"
+                        style="background: none; border: none; font-size: 22px; color: #9ca3af; cursor: pointer; padding: 4px 8px; line-height: 1;">&times;</button>
+            </div>
+        </div>
+        <div style="padding: 20px 28px; overflow-y: auto; flex: 1;">
+            <div id="editAlert" style="display: none; padding: 10px 16px; border-radius: 10px; margin-bottom: 16px; font-size: 13px; font-weight: 500;"></div>
+
+            <div class="mb-3">
+                <label class="form-label fw-semibold text-secondary" style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.3px;">Student</label>
+                <select id="editStudent" class="form-select" style="border-radius: 10px; border: 1px solid #e4e4e7; padding: 10px 14px; font-size: 14px;">
+                    <option value="">-- Select Student --</option>
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-semibold text-secondary" style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.3px;">Subject</label>
+                <select id="editSubject" class="form-select" style="border-radius: 10px; border: 1px solid #e4e4e7; padding: 10px 14px; font-size: 14px;">
+                    <option value="">-- Select Subject --</option>
+                </select>
+            </div>
+
+            <div class="row g-3 mb-3">
+                <div class="col-6">
+                    <label class="form-label fw-semibold text-secondary" style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.3px;">Class Score (30%)</label>
+                    <input type="number" id="editClassScore" min="0" max="30" step="0.1"
+                           style="border-radius: 10px; border: 1px solid #e4e4e7; padding: 10px 14px; font-size: 14px; width: 100%; outline: none; font-family: 'SF Mono', monospace;"
+                           onfocus="this.style.borderColor='#4f46e5'" onblur="this.style.borderColor='#e4e4e7'">
+                </div>
+                <div class="col-6">
+                    <label class="form-label fw-semibold text-secondary" style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.3px;">Exam Score (70%)</label>
+                    <input type="number" id="editExamScore" min="0" max="70" step="0.1"
+                           style="border-radius: 10px; border: 1px solid #e4e4e7; padding: 10px 14px; font-size: 14px; width: 100%; outline: none; font-family: 'SF Mono', monospace;"
+                           onfocus="this.style.borderColor='#4f46e5'" onblur="this.style.borderColor='#e4e4e7'">
+                </div>
+            </div>
+
+            <div style="background: #f9fafb; border-radius: 10px; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 13px; color: #6b7280;">Total</span>
+                <span id="editTotal" style="font-family: 'SF Mono', monospace; font-size: 18px; font-weight: 800; color: #111;">0.0</span>
+            </div>
+        </div>
+        <div style="padding: 16px 28px 24px; border-top: 1px solid #f0f0f0; display: flex; justify-content: flex-end; gap: 10px;">
+            <button onclick="closeEditModal()"
+                    style="border-radius: 50px; padding: 10px 24px; font-weight: 500; font-size: 14px; border: 1px solid #e5e7eb; background: #fff; color: #374151; cursor: pointer;">
+                Cancel
+            </button>
+            <button id="editSaveBtn" onclick="saveAssessment()"
+                    style="border-radius: 50px; padding: 10px 28px; font-weight: 600; font-size: 14px; background: #111; color: #fff; border: none; cursor: pointer; transition: background 0.2s;"
+                    onmouseover="this.style.backgroundColor='#333'" onmouseout="this.style.backgroundColor='#111'">
+                Save Scores
+            </button>
         </div>
     </div>
 </div>
@@ -597,5 +676,141 @@ function showIncompleteModal(missing) {
     document.getElementById('incompleteActionLink').href = "{% url 'compile_grades' %}?class_id={{ classroom.id }}";
     document.getElementById('incompleteModal').style.display = 'flex';
 }
+
+var assessmentData = {{ assessment_json|safe }};
+var studentsList = {{ students_json|safe }};
+var subjectsList = {{ subjects_json|safe }};
+
+function populateEditDropdowns() {
+    var studentSelect = document.getElementById('editStudent');
+    var subjectSelect = document.getElementById('editSubject');
+    studentSelect.innerHTML = '<option value="">-- Select Student --</option>';
+    subjectSelect.innerHTML = '<option value="">-- Select Subject --</option>';
+    studentsList.forEach(function(s) {
+        var opt = document.createElement('option');
+        opt.value = s.id;
+        opt.textContent = s.name;
+        studentSelect.appendChild(opt);
+    });
+    subjectsList.forEach(function(s) {
+        var opt = document.createElement('option');
+        opt.value = s.id;
+        opt.textContent = s.name;
+        subjectSelect.appendChild(opt);
+    });
+}
+
+function prefillScores() {
+    var sid = document.getElementById('editStudent').value;
+    var subid = document.getElementById('editSubject').value;
+    var csInput = document.getElementById('editClassScore');
+    var esInput = document.getElementById('editExamScore');
+    if (sid && subid && assessmentData[sid] && assessmentData[sid][subid]) {
+        csInput.value = assessmentData[sid][subid].cs;
+        esInput.value = assessmentData[sid][subid].es;
+    } else {
+        csInput.value = '';
+        esInput.value = '';
+    }
+    updateEditTotal();
+}
+
+function updateEditTotal() {
+    var cs = parseFloat(document.getElementById('editClassScore').value) || 0;
+    var es = parseFloat(document.getElementById('editExamScore').value) || 0;
+    document.getElementById('editTotal').textContent = (cs + es).toFixed(1);
+}
+
+function openEditModal() {
+    document.getElementById('editAlert').style.display = 'none';
+    populateEditDropdowns();
+    {% if active_subject %}
+    document.getElementById('editSubject').value = '{{ active_subject.id }}';
+    {% endif %}
+    prefillScores();
+    document.getElementById('editModal').style.display = 'flex';
+}
+
+function closeEditModal() {
+    document.getElementById('editModal').style.display = 'none';
+}
+
+function saveAssessment() {
+    var sid = document.getElementById('editStudent').value;
+    var subid = document.getElementById('editSubject').value;
+    var cs = document.getElementById('editClassScore').value;
+    var es = document.getElementById('editExamScore').value;
+    var alertEl = document.getElementById('editAlert');
+    var btn = document.getElementById('editSaveBtn');
+
+    if (!sid || !subid) {
+        alertEl.style.display = 'block';
+        alertEl.style.background = '#fef2f2';
+        alertEl.style.color = '#991b1b';
+        alertEl.textContent = 'Please select both a student and a subject.';
+        return;
+    }
+    if (cs === '' && es === '') {
+        alertEl.style.display = 'block';
+        alertEl.style.background = '#fef2f2';
+        alertEl.style.color = '#991b1b';
+        alertEl.textContent = 'Enter at least one score.';
+        return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Saving...';
+
+    fetch("{% url 'api_edit_assessment' %}", {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            student_id: parseInt(sid),
+            subject_id: parseInt(subid),
+            class_score: cs !== '' ? parseFloat(cs) : null,
+            exam_score: es !== '' ? parseFloat(es) : null,
+        }),
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        btn.disabled = false;
+        btn.textContent = 'Save Scores';
+        if (data.success) {
+            alertEl.style.display = 'block';
+            alertEl.style.background = '#f0fdf4';
+            alertEl.style.color = '#166534';
+            alertEl.textContent = 'Scores saved successfully. Total: ' + data.total.toFixed(1);
+
+            if (!assessmentData[sid]) assessmentData[sid] = {};
+            assessmentData[sid][subid] = { cs: data.class_score, es: data.exam_score };
+
+            setTimeout(function() {
+                closeEditModal();
+                location.reload();
+            }, 800);
+        } else {
+            alertEl.style.display = 'block';
+            alertEl.style.background = '#fef2f2';
+            alertEl.style.color = '#991b1b';
+            alertEl.textContent = data.error || 'Failed to save scores.';
+        }
+    })
+    .catch(function() {
+        btn.disabled = false;
+        btn.textContent = 'Save Scores';
+        alertEl.style.display = 'block';
+        alertEl.style.background = '#fef2f2';
+        alertEl.style.color = '#991b1b';
+        alertEl.textContent = 'Network error. Please try again.';
+    });
+}
+
+document.getElementById('editStudent').addEventListener('change', prefillScores);
+document.getElementById('editSubject').addEventListener('change', prefillScores);
+document.getElementById('editClassScore').addEventListener('input', updateEditTotal);
+document.getElementById('editExamScore').addEventListener('input', updateEditTotal);
 </script>
 {% endblock %}
