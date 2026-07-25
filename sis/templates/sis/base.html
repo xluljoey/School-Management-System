@@ -422,10 +422,11 @@
                         <i class="bi bi-arrow-up-circle"></i> Promotion Portal
                         {% if not is_promotional_term %}<i class="bi bi-lock-fill" style="font-size: 10px; margin-left: 4px; opacity: 0.7;"></i>{% endif %}
                     </a>
+                    {% if user.is_superuser %}
                     <a href="{% url 'academic_year_rollover' %}" class="{% if request.resolver_match.url_name == 'academic_year_rollover' %}active{% endif %}" style="opacity: 0.75;">
                         <i class="bi bi-arrow-repeat"></i> Year Rollover
-                        <span style="background: #fef3c7; color: #92400e; font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: 600;">Admin</span>
                     </a>
+                    {% endif %}
                     {% endif %}
                 </nav>
             </div>
