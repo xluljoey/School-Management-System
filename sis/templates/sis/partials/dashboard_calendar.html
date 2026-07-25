@@ -1,0 +1,79 @@
+{% if request.user.is_superuser %}
+<div>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 style="font-size: 16px; font-weight: 600; color: #111; margin: 0;">{{ calendar_month_label }}</h3>
+        <div style="color: #71717a; cursor: pointer; font-size: 14px; display: flex; gap: 12px; font-weight: 600;">
+            <button type="button" class="calendar-nav-btn" data-month="{{ calendar_prev_month }}" data-year="{{ calendar_prev_year }}" style="background: none; border: none; color: inherit; padding: 0;">‹</button>
+            <button type="button" class="calendar-nav-btn" data-month="{{ calendar_next_month }}" data-year="{{ calendar_next_year }}" style="background: none; border: none; color: inherit; padding: 0;">›</button>
+        </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 12px; font-weight: 500; color: #71717a; margin-bottom: 12px;">
+        <div>S</div><div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; gap: 8px; font-size: 13px; font-weight: 500; color: #111; align-items: center;">
+        {% for week in calendar_weeks %}
+            {% for day in week %}
+                {% if day.is_current_month %}
+                    {% if day.is_today %}
+                        <div style="background: #000; color: #fff; border-radius: 50%; width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; margin: 0 auto; font-size: 12px;">{{ day.day }}</div>
+                    {% else %}
+                        <div>{{ day.day }}</div>
+                    {% endif %}
+                {% else %}
+                    <div style="color: #e4e4e7;">{{ day.day }}</div>
+                {% endif %}
+            {% endfor %}
+        {% endfor %}
+    </div>
+</div>
+{% else %}
+<div class="d-flex flex-column h-100 justify-content-between" style="color: #111; font-size: 14px;">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #71717a;">Calendar</div>
+            <div style="font-size: 20px; font-weight: 700; color: #111; margin-top: 2px;">{{ calendar_month_label }}</div>
+        </div>
+        <div style="display: flex; gap: 10px; color: #71717a; font-size: 14px;">
+            <button type="button" class="calendar-nav-btn" data-month="{{ calendar_prev_month }}" data-year="{{ calendar_prev_year }}" style="background: none; border: none; color: inherit; padding: 0;">‹</button>
+            <button type="button" class="calendar-nav-btn" data-month="{{ calendar_next_month }}" data-year="{{ calendar_next_year }}" style="background: none; border: none; color: inherit; padding: 0;">›</button>
+        </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; text-align: center; font-size: 12px; font-weight: 600; color: #71717a; margin-top: 8px;">
+        <span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span>
+    </div>
+
+    {% for week in calendar_weeks %}
+    <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; text-align: center; font-size: 11px; font-weight: 600; color: #111; margin-top: 4px;">
+        {% for day in week %}
+        <div style="min-height: 34px;{% if not day.is_current_month %} color: #d4d4d8;{% endif %}">
+            {% if day.is_current_month %}
+            <div style="{% if day.is_today %}background: #111; color: #fff; border-radius: 999px; width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; margin: 0 auto;{% endif %}">{{ day.day }}</div>
+            {% for event in day.events %}
+            <div style="font-size: 9px; color: #2563eb; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ event.subject|truncatechars:10 }}</div>
+            {% endfor %}
+            {% else %}
+            <div style="color: #d4d4d8;">&nbsp;</div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% endfor %}
+
+    {% if has_calendar_events %}
+    <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 12px; padding-top: 12px; border-top: 1px solid #f4f4f5;">
+        {% for event in upcoming_events %}
+        <div style="font-size: 11px; color: #111; line-height: 1.4;">
+            <span style="font-weight: 700;">{{ event.date|date:'M d' }}</span> · {{ event.start_time }} · {{ event.subject }}
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #f4f4f5; font-size: 12px; color: #71717a;">
+        No classes scheduled for this month yet.
+    </div>
+    {% endif %}
+</div>
+{% endif %}

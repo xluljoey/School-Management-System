@@ -8,6 +8,38 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+  document.body.addEventListener('click', function (event) {
+    var button = event.target.closest('.calendar-nav-btn');
+    if (!button) return;
+
+    event.preventDefault();
+    var month = button.getAttribute('data-month');
+    var year = button.getAttribute('data-year');
+    var container = document.getElementById('dashboard-calendar-container');
+
+    if (!container) return;
+
+    var url = new URL(window.location.href);
+    url.searchParams.set('month', month);
+    url.searchParams.set('year', year);
+    url.searchParams.set('calendar_partial', '1');
+
+    fetch(url, {
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+      .then(function (response) { return response.text(); })
+      .then(function (html) {
+        container.innerHTML = html;
+        var currentUrl = new URL(window.location.href);
+        currentUrl.searchParams.set('month', month);
+        currentUrl.searchParams.set('year', year);
+        currentUrl.searchParams.set('calendar_partial', '1');
+        window.history.replaceState({}, '', currentUrl);
+      })
+      .catch(function () {
+        window.location.href = url.toString();
+      });
+  });
   var studentsCtx = document.getElementById('studentsChart').getContext('2d');
   new Chart(studentsCtx, {
     type: 'doughnut',
@@ -55,9 +87,9 @@ document.addEventListener('DOMContentLoaded', function () {
 {% block content %}
 <div class="row g-4 m-0 w-100 align-items-start">
 
-    <div class="col-lg-7 col-12 d-flex flex-column gap-4 p-0">
+    <div class="col-lg-7 col-12 d-flex flex-column gap-1 p-0">
 
-        <div class="card border-0 position-relative" style="background: #ffffff; border-radius: 16px; padding: 32px; min-height: 248px; border: 1px solid #e4e4e7 !important;">
+        <div class="card border-0 position-relative" style="background: #ffffff; border-radius: 16px; padding: 20px 24px; min-height: 200px; border: 1px solid #e4e4e7 !important;">
             <div style="display: flex; justify-content: space-between; align-items: center; height: 100%;">
                 <div style="max-width: 380px;">
                     <h2 class="fw-bold text-dark mb-2" style="font-size: 28px; letter-spacing: -0.5px;">
@@ -79,9 +111,9 @@ document.addEventListener('DOMContentLoaded', function () {
         <div class="row g-4 m-0 w-100 p-0">
 
             <div class="col-xl-6 col-lg-12 p-0 pe-xl-2">
-                <div class="card border-0 d-flex flex-column" style="height: 280px; background: #ffffff; border-radius: 16px; padding: 24px; border: 1px solid #e4e4e7 !important; box-sizing: border-box;">
+                <div class="card border-0 d-flex flex-column" style="height: 280px; background: #ffffff; border-radius: 16px; padding: 12px 24px 24px; border: 1px solid #e4e4e7 !important; box-sizing: border-box;">
 
-                    <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
                         <h3 style="font-size: 16px; font-weight: 600; color: #111; margin: 0;">Students</h3>
                         <span style="font-size: 13px; color: #71717a; font-weight: 500; cursor: pointer;">View All ›</span>
                     </div>
@@ -114,9 +146,9 @@ document.addEventListener('DOMContentLoaded', function () {
             </div>
 
             <div class="col-xl-6 col-lg-12 p-0 ps-xl-2">
-                <div class="card border-0 d-flex flex-column" style="height: 280px; background: #ffffff; border-radius: 16px; padding: 24px; border: 1px solid #e4e4e7 !important; box-sizing: border-box;">
+                <div class="card border-0 d-flex flex-column" style="height: 280px; background: #ffffff; border-radius: 16px; padding: 12px 24px 24px; border: 1px solid #e4e4e7 !important; box-sizing: border-box;">
 
-                    <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
                         <h3 style="font-size: 16px; font-weight: 600; color: #111; margin: 0;">Notice Board</h3>
                         <span style="font-size: 13px; color: #71717a; font-weight: 500; cursor: pointer;">View All ›</span>
                     </div>
@@ -140,7 +172,7 @@ document.addEventListener('DOMContentLoaded', function () {
     </div>
 
     <div class="col-lg-5 col-12 p-0">
-        <div class="d-flex align-items-start gap-3 w-100">
+        <div class="d-flex align-items-start gap-3 w-100 ps-3 pe-2">
 
             <div class="d-flex flex-column gap-3" style="width: 185px; flex-shrink: 0;">
 
@@ -183,37 +215,9 @@ document.addEventListener('DOMContentLoaded', function () {
             </div>
 
             <div class="card border-0 flex-grow-1" style="background: #ffffff; border-radius: 16px; padding: 24px; min-height: 346px; border: 1px solid #e4e4e7 !important;">
-                {% if request.user.is_superuser %}
-                <div>
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h3 style="font-size: 16px; font-weight: 600; color: #111; margin: 0;">July 2026</h3>
-                        <div style="color: #71717a; cursor: pointer; font-size: 14px; display: flex; gap: 12px; font-weight: 600;">
-                            <span>‹</span> <span>›</span>
-                        </div>
-                    </div>
-
-                    <div style="display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 12px; font-weight: 500; color: #71717a; margin-bottom: 12px;">
-                        <div>S</div><div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div>
-                    </div>
-
-                    <div style="display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; gap: 8px; font-size: 13px; font-weight: 500; color: #111; align-items: center;">
-                        <div style="color: #e4e4e7;">28</div><div style="color: #e4e4e7;">29</div><div style="color: #e4e4e7;">30</div><div>1</div><div>2</div><div>3</div><div>4</div>
-                        <div>5</div>
-                        <div style="background: #000; color: #fff; border-radius: 50%; width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; margin: 0 auto; font-size: 12px;">6</div>
-                        <div>7</div><div>8</div><div>9</div><div>10</div><div>11</div>
-                        <div>12</div><div>13</div><div>14</div><div>15</div><div>16</div><div>17</div><div>18</div>
-                        <div>19</div><div>20</div><div>21</div><div>22</div><div>23</div><div>24</div><div>25</div>
-                        <div>26</div><div>27</div><div>28</div><div>29</div><div>30</div><div>31</div><div style="color: #e4e4e7;">1</div>
-                    </div>
+                <div id="dashboard-calendar-container">
+                    {% include "sis/partials/dashboard_calendar.html" %}
                 </div>
-                {% else %}
-                <div class="d-flex align-items-center justify-content-center h-100 text-center" style="color: #71717a; font-size: 14px;">
-                    <div>
-                        <div style="font-size: 2rem; font-weight: 700; color: #111; margin-bottom: 4px;">{{ staff_student_count }}</div>
-                        <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Students under your care</div>
-                    </div>
-                </div>
-                {% endif %}
             </div>
 
         </div>

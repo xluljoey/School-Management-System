@@ -1,4 +1,4 @@
-{% load static %}
+{% load static custom_filters %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -346,7 +346,7 @@
         {% endif %}
 
         <div class="school-info">
-            <h1>{{ school_name|default:"CHRISMARG INTERNATIONAL SCHOOL" }}</h1>
+            <h1>{{ school_name|default:"SCHOOL MANAGEMENT SYSTEM" }}</h1>
             <div class="contact-line">{{ school_address|default:"P. O. BOX 40 BEREKUM, BONO REGION" }}</div>
             <div class="contact-line">EMAIL: {{ school_email|default:"info@school.edu" }} &nbsp;|&nbsp; TEL: {{ school_phone|default:"0504111240" }}</div>
             <span class="term-badge">OFFICIAL REPORT CARD &mdash; {{ current_term.term_name|default:"Term 1" }} {{ year_label }}</span>

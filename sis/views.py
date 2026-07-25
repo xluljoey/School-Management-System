@@ -10,7 +10,9 @@ from django.db.models import Q, Count
 from django.http import JsonResponse
 from django.urls import reverse
 from django.views.decorators.http import require_POST
+import calendar
 import json
+from datetime import date
 from .models import (
     Parent, Student, Subject, SubjectAssessment, ClassRoom, Enrollment,
     StaffProfile, AcademicSession, Term, ClassSubject, PromotionCriteria,
@@ -30,6 +32,82 @@ def _is_admin(user):
     return user.is_active and user.is_superuser
 
 
+def _build_dashboard_calendar_data(request, current_date=None):
+    today = date.today()
+    current_date = current_date or today
+    year = current_date.year
+    month = current_date.month
+    month_name = current_date.strftime('%B %Y')
+
+    active_timetables = Timetable.objects.filter(is_active=True)
+    staff_profile = getattr(request.user, 'staff_profile', None)
+
+    if request.user.is_superuser:
+        pass
+    elif staff_profile:
+        assigned_class_ids = StaffClassSubject.objects.filter(staff=staff_profile).values_list('classroom_id', flat=True).distinct()
+        active_timetables = active_timetables.filter(student_class_id__in=assigned_class_ids)
+    else:
+        active_timetables = active_timetables.none()
+
+    active_timetables = active_timetables.select_related('student_class', 'academic_term').prefetch_related('slots__subject', 'slots__teacher')
+
+    day_index = {'MON': 0, 'TUE': 1, 'WED': 2, 'THU': 3, 'FRI': 4, 'SAT': 5, 'SUN': 6}
+    events_by_date = {}
+
+    for timetable in active_timetables:
+        for slot in timetable.slots.all():
+            weekday_index = day_index.get(slot.day_of_week)
+            if weekday_index is None:
+                continue
+
+            for week in calendar.Calendar(firstweekday=0).monthdatescalendar(year, month):
+                for day in week:
+                    if day.month != month:
+                        continue
+                    if day.weekday() != weekday_index:
+                        continue
+
+                    teacher_name = ''
+                    if slot.teacher:
+                        teacher_name = slot.teacher.user.get_full_name() or slot.teacher.user.username
+
+                    event_entry = {
+                        'date': day,
+                        'subject': slot.subject.subject_name,
+                        'start_time': slot.start_time.strftime('%H:%M'),
+                        'teacher': teacher_name,
+                        'class_name': timetable.student_class.class_name,
+                    }
+                    events_by_date.setdefault(day, []).append(event_entry)
+
+    calendar_weeks = []
+    for week in calendar.Calendar(firstweekday=0).monthdatescalendar(year, month):
+        week_days = []
+        for day in week:
+            week_days.append({
+                'date': day,
+                'day': day.day if day.month == month else '',
+                'is_current_month': day.month == month,
+                'is_today': day == today and day.month == month and day.year == year,
+                'events': events_by_date.get(day, [])[:2],
+            })
+        calendar_weeks.append(week_days)
+
+    upcoming_events = []
+    for day in sorted(events_by_date.keys()):
+        for event in events_by_date[day]:
+            upcoming_events.append(event)
+    upcoming_events = sorted(upcoming_events, key=lambda item: (item['date'], item['start_time']))
+
+    return {
+        'month_label': month_name,
+        'calendar_weeks': calendar_weeks,
+        'upcoming_events': upcoming_events[:4],
+        'has_calendar_events': bool(upcoming_events),
+    }
+
+
 # Create your views here.
 @login_required
 def dashboard_view(request):
@@ -41,6 +119,38 @@ def dashboard_view(request):
             'environment': 'Academic Year Master Control',
         }
         return render(request, 'sis/admin_dashboard.html', context)
+
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.GET.get('calendar_partial') == '1':
+        month_param = request.GET.get('month')
+        year_param = request.GET.get('year')
+        current_date = date.today()
+
+        if month_param and year_param:
+            try:
+                current_date = date(int(year_param), int(month_param), 1)
+            except ValueError:
+                current_date = date.today()
+
+        prev_month = current_date.month - 1 if current_date.month > 1 else 12
+        prev_year = current_date.year if current_date.month > 1 else current_date.year - 1
+        next_month = current_date.month + 1 if current_date.month < 12 else 1
+        next_year = current_date.year if current_date.month < 12 else current_date.year + 1
+
+        calendar_data = _build_dashboard_calendar_data(request, current_date)
+        context = {
+            'request': request,
+            'calendar_month_label': calendar_data['month_label'],
+            'calendar_weeks': calendar_data['calendar_weeks'],
+            'upcoming_events': calendar_data['upcoming_events'],
+            'has_calendar_events': calendar_data['has_calendar_events'],
+            'calendar_year': current_date.year,
+            'calendar_month': current_date.month,
+            'calendar_prev_month': prev_month,
+            'calendar_prev_year': prev_year,
+            'calendar_next_month': next_month,
+            'calendar_next_year': next_year,
+        }
+        return render(request, 'sis/partials/dashboard_calendar.html', context)
 
     total_students = Student.objects.count()
     total_staff = StaffProfile.objects.count()
@@ -80,6 +190,23 @@ def dashboard_view(request):
         term_name = ''
     active_environment_string = f"{term_name}, {current_session.academic_year}" if current_session and term_name else (str(current_session) if current_session else '')
 
+    month_param = request.GET.get('month')
+    year_param = request.GET.get('year')
+    current_date = date.today()
+
+    if month_param and year_param:
+        try:
+            current_date = date(int(year_param), int(month_param), 1)
+        except ValueError:
+            current_date = date.today()
+
+    prev_month = current_date.month - 1 if current_date.month > 1 else 12
+    prev_year = current_date.year if current_date.month > 1 else current_date.year - 1
+    next_month = current_date.month + 1 if current_date.month < 12 else 1
+    next_year = current_date.year if current_date.month < 12 else current_date.year + 1
+
+    calendar_data = _build_dashboard_calendar_data(request, current_date)
+
     context = {
         'total_students': total_students,
         'total_staff': total_staff,
@@ -94,6 +221,16 @@ def dashboard_view(request):
         'staff_subject_count': staff_subject_count,
         'active_environment_string': active_environment_string,
         'assigned_classes': assigned_classes,
+        'calendar_month_label': calendar_data['month_label'],
+        'calendar_weeks': calendar_data['calendar_weeks'],
+        'upcoming_events': calendar_data['upcoming_events'],
+        'has_calendar_events': calendar_data['has_calendar_events'],
+        'calendar_year': current_date.year,
+        'calendar_month': current_date.month,
+        'calendar_prev_month': prev_month,
+        'calendar_prev_year': prev_year,
+        'calendar_next_month': next_month,
+        'calendar_next_year': next_year,
     }
     return render(request, 'sis/staff_dashboard.html', context)
 

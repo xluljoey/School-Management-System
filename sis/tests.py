@@ -2,7 +2,10 @@ import io
 
 from PIL import Image
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import TestCase
+from datetime import date
+from unittest.mock import patch
+
+from django.test import RequestFactory, TestCase
 from django.urls import reverse
 
 from .forms import StaffRegistrationForm, StudentRegistrationForm
@@ -14,6 +17,40 @@ class StudentRegistrationTests(TestCase):
         from django.contrib.auth.models import User
         self.user = User.objects.create_superuser(username="admin", password="password", email="admin@example.com")
         self.client.login(username="admin", password="password")
+
+    def test_dashboard_calendar_partial_renders_without_full_page_shell(self):
+        from django.contrib.auth.models import User
+
+        user = User.objects.create_user(username="staff", password="password", email="staff@example.com")
+        self.client.login(username="staff", password="password")
+
+        response = self.client.get(reverse("dashboard"), {"month": 7, "year": 2026, "calendar_partial": 1})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "sis/partials/dashboard_calendar.html")
+        self.assertNotContains(response, "<!DOCTYPE html>")
+        self.assertContains(response, "Calendar")
+
+    def test_dashboard_calendar_marks_today_in_current_month(self):
+        from .views import _build_dashboard_calendar_data
+
+        request = RequestFactory().get(reverse("dashboard"))
+        request.user = self.user
+
+        class FixedDate(date):
+            @classmethod
+            def today(cls):
+                return cls(2026, 7, 25)
+
+        with patch('sis.views.date', FixedDate):
+            calendar_data = _build_dashboard_calendar_data(request, date(2026, 7, 1))
+
+        today_marked = [
+            day for week in calendar_data['calendar_weeks'] for day in week if day.get('is_today')
+        ]
+
+        self.assertEqual(len(today_marked), 1)
+        self.assertEqual(today_marked[0]['day'], 25)
 
     def test_e_path_redirects_to_students(self):
         response = self.client.get("/e")
