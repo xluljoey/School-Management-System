@@ -471,8 +471,9 @@
 </div>
 
 {% if has_graded_records %}
-{% if is_master and can_edit_master or not is_master and can_modify_grades %}
+{% if is_master and has_full_access or not is_master and can_modify_grades %}
 <div style="position: fixed; bottom: 40px; right: 40px; z-index: 1050; display: flex; gap: 12px; align-items: center;">
+    {% if is_master and can_edit_master or not is_master and can_modify_grades %}
     <button onclick="openEditModal()"
        class="shadow-lg d-inline-flex align-items-center gap-2"
        style="border-radius: 50px; background-color: #fff; color: #111;
@@ -487,6 +488,7 @@
        </svg>
        Edit Scores
     </button>
+    {% endif %}
     {% if is_master and is_form_teacher or is_master and has_full_access %}
     <button onclick="checkCompletenessAndGenerate()"
        class="shadow-lg d-inline-flex align-items-center gap-2"

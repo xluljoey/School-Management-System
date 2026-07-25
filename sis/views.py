@@ -22,6 +22,14 @@ from .forms import (
     MarkSubmissionForm,
 )
 
+def _is_staff_or_admin(user):
+    return user.is_active and (user.is_superuser or user.is_staff or hasattr(user, 'staff_profile'))
+
+
+def _is_admin(user):
+    return user.is_active and user.is_superuser
+
+
 # Create your views here.
 @login_required
 def dashboard_view(request):
@@ -119,6 +127,7 @@ def student_detail_view(request, student_id):
 
 
 @login_required
+@user_passes_test(_is_admin)
 def student_edit_view(request, student_id):
     student = get_object_or_404(Student, pk=student_id)
     if request.method == 'POST':
@@ -185,14 +194,6 @@ def student_registration_view(request):
         'father_form': father_form,
         'mother_form': mother_form,
     })
-
-def _is_staff_or_admin(user):
-    return user.is_active and (user.is_superuser or user.is_staff or hasattr(user, 'staff_profile'))
-
-
-def _is_admin(user):
-    return user.is_active and user.is_superuser
-
 
 def _notify_form_teacher(request, classroom, subject, created):
     form_teacher = getattr(classroom, 'form_teacher', None)

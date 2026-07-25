@@ -83,7 +83,7 @@
     </div>
 </div>
 
-{% if request.user.is_staff or request.user.is_superuser %}
+{% if request.user.is_superuser %}
     <div style="position: fixed; bottom: 32px; right: 32px; z-index: 1050;">
         <a href="{% url 'student_edit' student.id %}"
            class="btn btn-dark d-flex align-items-center justify-content-center gap-2"

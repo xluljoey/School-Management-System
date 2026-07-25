@@ -80,7 +80,9 @@ if not staff or not StaffClassSubject.objects.filter(
 |---|---|---|
 | Master View toggle | `is_form_teacher or has_full_access` | 213 |
 | "+ New Grade Entry" | `can_modify_grades` | 258 |
-| Edit Scores FAB | `is_master and can_edit_master or not is_master and can_modify_grades` | 474 |
+| Floating bar (master) | `is_master and has_full_access` | 474 |
+| Floating bar (subject) | `not is_master and can_modify_grades` | 474 |
+| Edit Scores FAB | `is_master and can_edit_master or not is_master and can_modify_grades` | 476 |
 | Generate Report Cards | `is_master and is_form_teacher or is_master and has_full_access` | 490 |
 
 `has_full_access` = `request.user.is_superuser or is_form_teacher` (used for view/generation, NOT edit).
@@ -93,3 +95,17 @@ if not staff or not StaffClassSubject.objects.filter(
 2. **Edit = explicit assignment.** Only `StaffClassSubject` records grant edit access.
 3. **Form teacher = full edit in their class.** The form teacher can edit all subjects they teach (or all subjects in their class by virtue of form_class).
 4. **Backend is the source of truth.** Template conditions hide UI; backend guards enforce security.
+
+---
+
+## Student Record Permissions
+
+| Action | Admin / Superuser | Form Teacher | Subject Teacher | Non-teaching Staff |
+|---|---|---|---|---|
+| View student profile | Yes | Yes (assigned classes) | Yes (assigned classes) | Read-only |
+| Edit student core records | Yes | No | No | No |
+| Register new students | Yes | No | No | No |
+
+* **Template:** `student_detail.html` — "Update Student" button visible only to `request.user.is_superuser`.
+* **Backend:** `student_edit_view` protected by `@user_passes_test(_is_admin)` (superuser-only).
+* **Consistency:** `student_registration_view` uses the same `_is_admin` guard.
