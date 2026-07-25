@@ -2141,6 +2141,235 @@ def compile_midterm_grades_view(request):
 
 
 @login_required
+def midterm_generate_report_hub_view(request, class_id):
+    if not _is_staff_or_admin(request.user):
+        raise PermissionDenied
+    classroom = ClassRoom.objects.get(pk=class_id)
+    staff = getattr(request.user, 'staff_profile', None)
+    is_form_teacher = staff and staff.form_class == classroom
+    has_full_access = request.user.is_superuser or is_form_teacher
+    if not has_full_access:
+        raise PermissionDenied
+
+    current_session = AcademicSession.objects.filter(is_current=True).first()
+    current_term = Term.objects.filter(is_active=True).first()
+
+    subjects_for_class = Subject.objects.filter(offered_in_classes__classroom=classroom).distinct().order_by('subject_name')
+    students = Student.objects.filter(enrollments__classroom=classroom).distinct()
+
+    all_records = MidTermRecord.objects.filter(
+        academic_session=current_session, academic_term=current_term,
+        student__in=students, subject__in=subjects_for_class,
+    )
+    record_map = {}
+    for r in all_records:
+        record_map.setdefault(r.student_id, {})[r.subject_id] = r
+
+    GRADE_REMARKS = [
+        (80, "1", "Highest Distinction"), (75, "2", "Distinction"),
+        (70, "3", "Excellent"), (65, "4", "Very Good"), (60, "5", "Good"),
+        (55, "6", "Credit"), (50, "7", "Satisfactory"), (40, "8", "Pass"), (0, "9", "Fail"),
+    ]
+
+    def get_remark(total):
+        if total is None:
+            return "—", "—"
+        for floor, grade, label in GRADE_REMARKS:
+            if total >= floor:
+                return grade, label
+        return "9", "Fail"
+
+    report_data = []
+    for student in students:
+        subject_scores = {}
+        for subj in subjects_for_class:
+            rec = record_map.get(student.id, {}).get(subj.id)
+            if rec and rec.midterm_score is not None:
+                score = float(rec.midterm_score)
+                grade, remark = get_remark(score)
+                subject_scores[subj.id] = {
+                    'score': score,
+                    'grade': grade,
+                    'remark': remark,
+                }
+            else:
+                subject_scores[subj.id] = {
+                    'score': None,
+                    'grade': '—',
+                    'remark': '—',
+                }
+
+        total = sum(
+            s['score'] for s in subject_scores.values() if s['score'] is not None
+        )
+        grade, remark = get_remark(total)
+
+        report_data.append({
+            'student': student,
+            'subject_scores': subject_scores,
+            'total': total,
+            'overall_grade': grade,
+            'overall_remark': remark,
+        })
+
+    report_data = sorted(report_data, key=lambda x: x['total'], reverse=True)
+    for index, row in enumerate(report_data):
+        row['rank'] = index + 1
+
+    subject_positions = {}
+    for subj in subjects_for_class:
+        scored = [(r['student'].id, r['subject_scores'][subj.id]['score'])
+                  for r in report_data
+                  if r['subject_scores'][subj.id]['score'] is not None]
+        scored.sort(key=lambda x: x[1], reverse=True)
+        for idx, (sid, _) in enumerate(scored):
+            subject_positions.setdefault(subj.id, {})[sid] = idx + 1
+
+    if request.user.is_superuser:
+        classrooms = ClassRoom.objects.all()
+    elif staff:
+        assigned_ids = StaffClassSubject.objects.filter(staff=staff).values_list('classroom_id', flat=True).distinct()
+        classrooms = ClassRoom.objects.filter(id__in=assigned_ids)
+    else:
+        classrooms = ClassRoom.objects.none()
+
+    return render(request, 'sis/midterm_generate_report_hub.html', {
+        'classroom': classroom,
+        'classrooms': classrooms,
+        'report_data': report_data,
+        'subjects_for_class': subjects_for_class,
+        'subject_positions': subject_positions,
+        'current_session': current_session,
+        'current_term': current_term,
+        'term_number': int(current_term.term_name.split()[-1]) if current_term else 1,
+        'year_label': current_session.academic_year if current_session else '',
+        'student_count': len(report_data),
+    })
+
+
+@login_required
+def midterm_print_report_cards_view(request, class_id):
+    if not _is_staff_or_admin(request.user):
+        raise PermissionDenied
+    classroom = ClassRoom.objects.get(pk=class_id)
+    staff = getattr(request.user, 'staff_profile', None)
+    is_form_teacher = staff and staff.form_class == classroom
+    has_full_access = request.user.is_superuser or is_form_teacher
+    if not has_full_access:
+        raise PermissionDenied
+
+    student_ids = request.POST.getlist('student_ids[]')
+    if not student_ids:
+        return render(request, 'sis/midterm_report_card_print.html', {
+            'classroom': classroom,
+            'selected_students': [],
+            'subjects_for_class': [],
+            'current_session': None,
+            'current_term': None,
+            'term_number': 1,
+            'year_label': '',
+        })
+
+    current_session = AcademicSession.objects.filter(is_current=True).first()
+    current_term = Term.objects.filter(is_active=True).first() if current_session else None
+
+    subjects_for_class = Subject.objects.filter(offered_in_classes__classroom=classroom).distinct().order_by('subject_name')
+    students = Student.objects.filter(id__in=student_ids, enrollments__classroom=classroom).distinct()
+
+    all_records = MidTermRecord.objects.filter(
+        academic_session=current_session, academic_term=current_term,
+        student__in=students, subject__in=subjects_for_class,
+    )
+    record_map = {}
+    for r in all_records:
+        record_map.setdefault(r.student_id, {})[r.subject_id] = r
+
+    GRADE_REMARKS = [
+        (80, "1", "Highest Distinction"), (75, "2", "Distinction"),
+        (70, "3", "Excellent"), (65, "4", "Very Good"), (60, "5", "Good"),
+        (55, "6", "Credit"), (50, "7", "Satisfactory"), (40, "8", "Pass"), (0, "9", "Fail"),
+    ]
+
+    def get_remark(total):
+        if total is None:
+            return "—", "—"
+        for floor, grade, label in GRADE_REMARKS:
+            if total >= floor:
+                return grade, label
+        return "9", "Fail"
+
+    report_data = []
+    for student in students:
+        subject_scores = {}
+        for subj in subjects_for_class:
+            rec = record_map.get(student.id, {}).get(subj.id)
+            if rec and rec.midterm_score is not None:
+                score = float(rec.midterm_score)
+                grade, remark = get_remark(score)
+                subject_scores[subj.id] = {
+                    'subject': subj,
+                    'score': score,
+                    'grade': grade,
+                    'remark': remark,
+                }
+            else:
+                subject_scores[subj.id] = {
+                    'subject': subj,
+                    'score': None,
+                    'grade': '—',
+                    'remark': '—',
+                }
+
+        total = sum(
+            s['score'] for s in subject_scores.values() if s['score'] is not None
+        )
+        grade, remark = get_remark(total)
+
+        report_data.append({
+            'student': student,
+            'subject_scores': subject_scores,
+            'total': total,
+            'overall_grade': grade,
+            'overall_remark': remark,
+        })
+
+    report_data = sorted(report_data, key=lambda x: x['total'], reverse=True)
+    for index, row in enumerate(report_data):
+        row['rank'] = index + 1
+
+    subject_positions = {}
+    for subj in subjects_for_class:
+        scored = [(r['student'].id, r['subject_scores'][subj.id]['score'])
+                  for r in report_data
+                  if r['subject_scores'][subj.id]['score'] is not None]
+        scored.sort(key=lambda x: x[1], reverse=True)
+        for idx, (sid, _) in enumerate(scored):
+            subject_positions.setdefault(subj.id, {})[sid] = idx + 1
+
+    for row in report_data:
+        for subj in subjects_for_class:
+            row['subject_scores'][subj.id]['subject_position'] = subject_positions.get(subj.id, {}).get(row['student'].id)
+
+    class_size = Student.objects.filter(enrollments__classroom=classroom).distinct().count()
+
+    form_master_name = ""
+    if classroom.form_master:
+        form_master_name = f"{classroom.form_master.first_name} {classroom.form_master.last_name}"
+
+    return render(request, 'sis/midterm_report_card_print.html', {
+        'classroom': classroom,
+        'selected_students': report_data,
+        'subjects_for_class': subjects_for_class,
+        'current_session': current_session,
+        'current_term': current_term,
+        'term_number': int(current_term.term_name.split()[-1]) if current_term else 1,
+        'year_label': current_session.academic_year if current_session else '',
+        'class_size': class_size,
+        'form_master_name': form_master_name,
+    })
+
+
+@login_required
 def api_class_subjects(request):
     class_id = request.GET.get('class_id')
     if not class_id:
