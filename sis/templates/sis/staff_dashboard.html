@@ -85,33 +85,33 @@ document.addEventListener('DOMContentLoaded', function () {
 {% endblock %}
 
 {% block content %}
-<div class="row g-4 m-0 w-100 align-items-start">
+<div class="row g-3 m-0 w-100 align-items-start">
 
-    <div class="col-lg-7 col-12 d-flex flex-column gap-1 p-0">
+    <div class="col-lg-7 col-12 d-flex flex-column gap-1 p-0" style="max-width: 62%;">
 
-        <div class="card border-0 position-relative" style="background: #ffffff; border-radius: 16px; padding: 20px 24px; min-height: 200px; border: 1px solid #e4e4e7 !important;">
-            <div style="display: flex; justify-content: space-between; align-items: center; height: 100%;">
-                <div style="max-width: 380px;">
-                    <h2 class="fw-bold text-dark mb-2" style="font-size: 28px; letter-spacing: -0.5px;">
+        <div class="card border-0 position-relative" style="background: #ffffff; border-radius: 16px; padding: 16px 24px 14px; min-height: 150px; border: 1px solid #e4e4e7 !important; overflow: hidden;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; height: 100%; gap: 12px;">
+                <div style="max-width: 360px; padding-right: 8px;">
+                    <h2 class="fw-bold text-dark mb-2" style="font-size: 24px; letter-spacing: -0.5px; line-height: 1.2;">
                         Welcome, {% if request.user.first_name %}{{ request.user.first_name }}{% else %}User{% endif %}!
                     </h2>
-                    <p style="font-size: 0.95rem; color: #8F8F8F; margin: 0; line-height: 1.6;">
+                    <p style="font-size: 0.9rem; color: #8F8F8F; margin: 0; line-height: 1.5;">
                         Manage your school operations with ease. Stay updated on academics, attendance, finances, and more, all in one place. Let's keep shaping a brighter future together!
                     </p>
                 </div>
-                <div style="flex-shrink: 0;">
-                     <div class="position-absolute end-0 bottom-0 top-0 d-flex align-items-center justify-content-end p-3"
-                          style="width: 300px; max-height: 100%; pointer-events: none; z-index: 1;">
-                        <div id="staff-greeting-lottie" style="width: 100%; height: 100%; max-height: 220px;"></div>
+                <div style="flex-shrink: 0; align-self: center; margin-right: -8px;">
+                    <div class="position-absolute end-0 bottom-0 top-0 d-flex align-items-center justify-content-end p-2"
+                         style="width: 220px; max-height: 100%; pointer-events: none; z-index: 1;">
+                        <div id="staff-greeting-lottie" style="width: 100%; height: 100%; max-height: 140px;"></div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="row g-4 m-0 w-100 p-0">
+        <div class="row g-2 m-0 w-100 p-0">
 
             <div class="col-xl-6 col-lg-12 p-0 pe-xl-2">
-                <div class="card border-0 d-flex flex-column" style="height: 280px; background: #ffffff; border-radius: 16px; padding: 12px 24px 24px; border: 1px solid #e4e4e7 !important; box-sizing: border-box;">
+                <div class="card border-0 d-flex flex-column" style="height: 230px; background: #ffffff; border-radius: 16px; padding: 10px 20px 16px; border: 1px solid #e4e4e7 !important; box-sizing: border-box;">
 
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <h3 style="font-size: 16px; font-weight: 600; color: #111; margin: 0;">Students</h3>
@@ -146,7 +146,7 @@ document.addEventListener('DOMContentLoaded', function () {
             </div>
 
             <div class="col-xl-6 col-lg-12 p-0 ps-xl-2">
-                <div class="card border-0 d-flex flex-column" style="height: 280px; background: #ffffff; border-radius: 16px; padding: 12px 24px 24px; border: 1px solid #e4e4e7 !important; box-sizing: border-box;">
+                <div class="card border-0 d-flex flex-column" style="height: 230px; background: #ffffff; border-radius: 16px; padding: 10px 20px 16px; border: 1px solid #e4e4e7 !important; box-sizing: border-box;">
 
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <h3 style="font-size: 16px; font-weight: 600; color: #111; margin: 0;">Notice Board</h3>
@@ -171,8 +171,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     </div>
 
-    <div class="col-lg-5 col-12 p-0">
-        <div class="d-flex align-items-start gap-3 w-100 ps-3 pe-2">
+    <div class="col-lg-5 col-12 p-0" style="max-width: 38%;">
+        <div class="d-flex align-items-start gap-3 w-100 ps-2 pe-1">
 
             <div class="d-flex flex-column gap-3" style="width: 185px; flex-shrink: 0;">
 
@@ -214,7 +214,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             </div>
 
-            <div class="card border-0 flex-grow-1" style="background: #ffffff; border-radius: 16px; padding: 24px; min-height: 346px; border: 1px solid #e4e4e7 !important;">
+            <div class="card border-0 flex-grow-1" style="background: #ffffff; border-radius: 16px; padding: 20px; min-height: 330px; border: 1px solid #e4e4e7 !important;">
                 <div id="dashboard-calendar-container">
                     {% include "sis/partials/dashboard_calendar.html" %}
                 </div>
