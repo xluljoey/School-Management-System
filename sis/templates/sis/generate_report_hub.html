@@ -282,7 +282,30 @@ function printSelected() {
         alert('Please select at least one student to print.');
         return;
     }
-    window.print();
+
+    var form = document.createElement('form');
+    form.method = 'POST';
+    form.action = "{% url 'print_report_cards' class_id=classroom.id %}";
+    form.target = '_blank';
+    form.style.display = 'none';
+
+    var csrf = document.createElement('input');
+    csrf.type = 'hidden';
+    csrf.name = 'csrfmiddlewaretoken';
+    csrf.value = '{{ csrf_token }}';
+    form.appendChild(csrf);
+
+    ids.forEach(function(id) {
+        var input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'student_ids[]';
+        input.value = id;
+        form.appendChild(input);
+    });
+
+    document.body.appendChild(form);
+    form.submit();
+    document.body.removeChild(form);
 }
 
 function openEmailModal() {
