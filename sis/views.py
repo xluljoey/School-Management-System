@@ -905,11 +905,16 @@ def export_excel_view(request, class_id):
 
     for col in ws.columns:
         max_length = 0
-        col_letter = col[0].column_letter
+        col_letter = None
         for cell in col:
+            if not hasattr(cell, 'column_letter'):
+                continue
+            if col_letter is None:
+                col_letter = cell.column_letter
             if cell.value:
                 max_length = max(max_length, len(str(cell.value)))
-        ws.column_dimensions[col_letter].width = min(max_length + 4, 30)
+        if col_letter:
+            ws.column_dimensions[col_letter].width = min(max_length + 4, 30)
 
     buffer = io.BytesIO()
     wb.save(buffer)
