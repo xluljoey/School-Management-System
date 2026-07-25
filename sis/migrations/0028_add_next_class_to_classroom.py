@@ -7,7 +7,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('sis', '0027_timetableslot'),
+        ('sis', '0026_alter_gradeverification_unique_together_and_more'),
     ]
 
     operations = [

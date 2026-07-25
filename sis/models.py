@@ -219,19 +219,17 @@ class Student(models.Model):
         super().save(*args, **kwargs)
         if hasattr(self, '_temp_current_class') and self._temp_current_class:
             from .models import Enrollment
-            # Find current active term if available
             from .models import Term, AcademicSession
             current_session = AcademicSession.objects.filter(is_current=True).first()
             current_term = Term.objects.filter(is_active=True).first() if current_session else None
-            term_name = current_term.term_name if current_term else "Term 1"
-            acad_year = current_session.academic_year if current_session else "2025/2026"
             
-            Enrollment.objects.get_or_create(
-                student=self,
-                classroom=self._temp_current_class,
-                term=term_name,
-                academic_year=acad_year,
-            )
+            if current_session and current_term:
+                Enrollment.objects.get_or_create(
+                    student=self,
+                    classroom=self._temp_current_class,
+                    academic_session=current_session,
+                    academic_term=current_term,
+                )
             del self._temp_current_class
 
     def __str__(self):
@@ -248,12 +246,10 @@ class Student(models.Model):
 class SubjectAssessment(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE)
     subject = models.ForeignKey('Subject', on_delete=models.CASCADE)
-    term = models.IntegerField()
-    academic_year = models.CharField(max_length=9)
+    academic_session = models.ForeignKey('AcademicSession', on_delete=models.PROTECT)
+    academic_term = models.ForeignKey('Term', on_delete=models.PROTECT)
     class_score = models.DecimalField(max_digits=5, decimal_places=2)
     exam_score = models.DecimalField(max_digits=5, decimal_places=2)
-    academic_session = models.ForeignKey('AcademicSession', on_delete=models.PROTECT, null=True, blank=True)
-    academic_term = models.ForeignKey('Term', on_delete=models.PROTECT, null=True, blank=True)
 
     class Meta:
         unique_together = ('student', 'subject', 'academic_session', 'academic_term')
@@ -287,37 +283,6 @@ class SubjectAssessment(models.Model):
         return f"Assessment for {self.student}"
 
 
-class SubjectAssignment(models.Model):
-    student = models.ForeignKey(Student, on_delete=models.CASCADE)
-    subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
-    term = models.IntegerField() # 1, 2, or 3
-    academic_year = models.CharField(max_length=9) # e.g., "2025-2026"
-    class_score = models.DecimalField(max_digits=5, decimal_places=2) # Out of 30/40
-    exam_score = models.DecimalField(max_digits=5, decimal_places=2) # Out of 60/70
-
-    class Meta:
-        verbose_name = "Student Subject Record"
-        verbose_name_plural = "Student Subject Records"
-
-    @property
-    def total_score(self):
-        """Adds class score and exam score together dynamically."""
-        return float(self.class_score or 0) + float(self.exam_score or 0)
-
-    @property
-    def grade_and_remark(self):
-        """Returns standard Ghanaian basic school grading tier (1 to 9)."""
-        total = self.total_score
-        if total >= 80: return ("1", "Highest Distinction")
-        elif total >= 75: return ("2", "Distinction")
-        elif total >= 70: return ("3", "Excellent")
-        elif total >= 65: return ("4", "Very Good")
-        elif total >= 60: return ("5", "Good")
-        elif total >= 55: return ("6", "Credit")
-        elif total >= 50: return ("7", "Satisfactory")
-        elif total >= 40: return ("8", "Pass")
-        else: return ("9", "Fail")
-
 
 class StaffClassSubject(models.Model):
     staff = models.ForeignKey('StaffProfile', on_delete=models.CASCADE, related_name='assigned_classes_subjects')
@@ -336,15 +301,15 @@ class StaffClassSubject(models.Model):
 class Enrollment(models.Model):
     student = models.ForeignKey('Student', on_delete=models.CASCADE, related_name='enrollments')
     classroom = models.ForeignKey('ClassRoom', on_delete=models.PROTECT, related_name='enrollments')
-    term = models.CharField(max_length=20, default="Term 1")
-    academic_year = models.CharField(max_length=20, default="2025/2026")
+    academic_session = models.ForeignKey('AcademicSession', on_delete=models.PROTECT)
+    academic_term = models.ForeignKey('Term', on_delete=models.PROTECT)
     date_enrolled = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ('student', 'classroom', 'term', 'academic_year')
+        unique_together = ('student', 'classroom', 'academic_session', 'academic_term')
 
     def __str__(self):
-        return f"{self.student} -> {self.classroom} ({self.term} {self.academic_year})"
+        return f"{self.student} -> {self.classroom} ({self.academic_term} {self.academic_session})"
 
 
 class AcademicSession(models.Model):
@@ -402,10 +367,8 @@ class GradeVerification(models.Model):
     classroom = models.ForeignKey(ClassRoom, on_delete=models.CASCADE, related_name='grade_verifications')
     verified_by = models.ForeignKey(StaffProfile, on_delete=models.SET_NULL, null=True, blank=True, related_name='verifications')
     verified_at = models.DateTimeField(auto_now_add=True)
-    term = models.IntegerField()
-    academic_year = models.CharField(max_length=9)
-    academic_session = models.ForeignKey('AcademicSession', on_delete=models.PROTECT, null=True, blank=True)
-    academic_term = models.ForeignKey('Term', on_delete=models.PROTECT, null=True, blank=True)
+    academic_session = models.ForeignKey('AcademicSession', on_delete=models.PROTECT)
+    academic_term = models.ForeignKey('Term', on_delete=models.PROTECT)
 
     class Meta:
         unique_together = ('classroom', 'academic_session', 'academic_term')
@@ -413,7 +376,7 @@ class GradeVerification(models.Model):
         verbose_name_plural = 'Grade Verifications'
 
     def __str__(self):
-        return f"{self.classroom.class_name} - Term {self.term} ({self.academic_year}) verified"
+        return f"{self.classroom.class_name} - {self.academic_term} ({self.academic_session}) verified"
 
 
 class MidTermRecord(models.Model):
@@ -459,6 +422,36 @@ class Notification(models.Model):
         self.save(update_fields=['is_read'])
 
 
+class Timetable(models.Model):
+    student_class = models.ForeignKey(ClassRoom, on_delete=models.CASCADE, related_name='timetables')
+    title = models.CharField(max_length=200)
+    academic_term = models.ForeignKey(Term, on_delete=models.PROTECT, related_name='timetables')
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-updated_at']
+        unique_together = ('student_class', 'academic_term')
+
+    def __str__(self):
+        return self.title
+
+    @property
+    def slot_count(self):
+        return self.slots.count()
+
+    @property
+    def days_active(self):
+        days = self.slots.values_list('day_of_week', flat=True).distinct()
+        day_map = {'MON': 'Mon', 'TUE': 'Tue', 'WED': 'Wed', 'THU': 'Thu', 'FRI': 'Fri'}
+        ordered = ['MON', 'TUE', 'WED', 'THU', 'FRI']
+        active = [day_map[d] for d in ordered if d in days]
+        if len(active) == 5:
+            return 'Mon - Fri'
+        return ', '.join(active) if active else 'None'
+
+
 class TimetableSlot(models.Model):
     DAY_CHOICES = [
         ('MON', 'Monday'),
@@ -468,18 +461,18 @@ class TimetableSlot(models.Model):
         ('FRI', 'Friday'),
     ]
 
-    academic_term = models.ForeignKey(Term, on_delete=models.PROTECT, related_name='timetable_slots')
-    class_assigned = models.ForeignKey(ClassRoom, on_delete=models.CASCADE, related_name='timetable_slots')
+    timetable = models.ForeignKey(Timetable, on_delete=models.CASCADE, related_name='slots')
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name='timetable_slots')
     teacher = models.ForeignKey(StaffProfile, on_delete=models.SET_NULL, null=True, blank=True, related_name='timetable_slots')
     day_of_week = models.CharField(max_length=3, choices=DAY_CHOICES)
     start_time = models.TimeField()
     end_time = models.TimeField()
+    room_or_note = models.CharField(max_length=200, blank=True, default='')
 
     class Meta:
         ordering = ['day_of_week', 'start_time']
         verbose_name = 'Timetable Slot'
-        unique_together = ('academic_term', 'class_assigned', 'day_of_week', 'start_time')
+        unique_together = ('timetable', 'day_of_week', 'start_time')
 
     def __str__(self):
-        return f"{self.class_assigned.class_name} - {self.subject.subject_name} ({self.get_day_of_week_display()} {self.start_time})"
+        return f"{self.timetable.student_class.class_name} - {self.subject.subject_name} ({self.get_day_of_week_display()} {self.start_time})"

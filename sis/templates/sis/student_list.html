@@ -4,14 +4,70 @@
 {% block title %}Student Directory{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="d-flex justify-content-between align-items-center mb-4" style="flex-wrap: wrap; gap: 12px;">
     <div>
         <h4 class="fw-bold mb-1" style="color: #000000;">All Students</h4>
-        <span style="color: #8E8D93; font-size: 0.85rem;">{{ students|length }} students total</span>
+        <span style="color: #8E8D93; font-size: 0.85rem;">{{ total_count }} student{{ total_count|pluralize }} total</span>
     </div>
-    <div>
+    <div class="d-flex align-items-center gap-2" style="flex-wrap: wrap;">
+        <form method="GET" id="filterForm" class="d-flex align-items-center gap-2" style="flex-wrap: wrap;">
+            <div style="position: relative;">
+                <select name="gender" onchange="document.getElementById('filterForm').submit()"
+                    style="appearance: none; -webkit-appearance: none; -moz-appearance: none;
+                           border-radius: 50px; background-color: #f4f4f5; color: #111;
+                           border: 1px solid #e4e4e7; padding: 10px 40px 10px 20px;
+                           font-size: 13px; font-weight: 500; cursor: pointer; outline: none;">
+                    <option value="all" {% if selected_gender == 'all' %}selected{% endif %}>All Genders</option>
+                    <option value="Male" {% if selected_gender == 'Male' %}selected{% endif %}>Male</option>
+                    <option value="Female" {% if selected_gender == 'Female' %}selected{% endif %}>Female</option>
+                </select>
+                <span style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); pointer-events: none; font-size: 10px; color: #666;">&#9662;</span>
+            </div>
+
+            <div style="position: relative;">
+                <select name="class_id" onchange="document.getElementById('filterForm').submit()"
+                    style="appearance: none; -webkit-appearance: none; -moz-appearance: none;
+                           border-radius: 50px; background-color: #f4f4f5; color: #111;
+                           border: 1px solid #e4e4e7; padding: 10px 40px 10px 20px;
+                           font-size: 13px; font-weight: 500; cursor: pointer; outline: none;">
+                    <option value="all" {% if selected_class == 'all' %}selected{% endif %}>All Classes</option>
+                    {% for classroom in classrooms %}
+                    <option value="{{ classroom.id }}" {% if selected_class == classroom.id|stringformat:"d" %}selected{% endif %}>{{ classroom.class_name }}</option>
+                    {% endfor %}
+                </select>
+                <span style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); pointer-events: none; font-size: 10px; color: #666;">&#9662;</span>
+            </div>
+
+            <div style="position: relative;">
+                <select name="status" onchange="document.getElementById('filterForm').submit()"
+                    style="appearance: none; -webkit-appearance: none; -moz-appearance: none;
+                           border-radius: 50px; background-color: #f4f4f5; color: #111;
+                           border: 1px solid #e4e4e7; padding: 10px 40px 10px 20px;
+                           font-size: 13px; font-weight: 500; cursor: pointer; outline: none;">
+                    <option value="all" {% if selected_status == 'all' %}selected{% endif %}>All Statuses</option>
+                    <option value="Day" {% if selected_status == 'Day' %}selected{% endif %}>Day</option>
+                    <option value="Boarder" {% if selected_status == 'Boarder' %}selected{% endif %}>Boarder</option>
+                </select>
+                <span style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); pointer-events: none; font-size: 10px; color: #666;">&#9662;</span>
+            </div>
+
+            {% if selected_gender != 'all' or selected_class != 'all' or selected_status != 'all' %}
+            <a href="{% url 'student_list' %}"
+               style="border-radius: 50px; background-color: #fff; color: #111;
+                      border: 1px solid #e4e4e7; padding: 10px 20px;
+                      font-size: 13px; font-weight: 500; text-decoration: none;
+                      display: inline-flex; align-items: center; gap: 6px;
+                      white-space: nowrap; transition: background 0.15s;"
+               onmouseover="this.style.backgroundColor='#f4f4f5'"
+               onmouseout="this.style.backgroundColor='#fff'">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                Clear Filters
+            </a>
+            {% endif %}
+        </form>
+
         {% if is_admin %}
-        <a href="{% url 'student_registration' %}" style="background-color: #000000; color: #ffffff; border: none; border-radius: 25px; padding: 10px 24px; font-weight: 600; font-size: 0.9rem; text-decoration: none; display: inline-block; cursor: pointer;">+ Add Student</a>
+        <a href="{% url 'student_registration' %}" style="background-color: #000000; color: #ffffff; border: none; border-radius: 25px; padding: 10px 24px; font-weight: 600; font-size: 0.9rem; text-decoration: none; display: inline-block; cursor: pointer; white-space: nowrap;">+ Add Student</a>
         {% endif %}
     </div>
 </div>
@@ -50,7 +106,13 @@
             </tr>
             {% empty %}
             <tr>
-                <td colspan="4" class="text-center py-5" style="color: #8E8D93;">No students registered yet.</td>
+                <td colspan="4" class="text-center py-5" style="color: #8E8D93;">
+                    {% if selected_gender != 'all' or selected_class != 'all' or selected_status != 'all' %}
+                    No students match the selected filters.
+                    {% else %}
+                    No students registered yet.
+                    {% endif %}
+                </td>
             </tr>
             {% endfor %}
         </tbody>

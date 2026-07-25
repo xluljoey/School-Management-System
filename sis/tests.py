@@ -6,7 +6,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from .forms import StaffRegistrationForm, StudentRegistrationForm
-from .models import ClassRoom, Department, Designation, Parent, Student, Subject, SubjectAssessment, StaffProfile
+from .models import ClassRoom, Department, Designation, Parent, Student, Subject, SubjectAssessment, StaffProfile, AcademicSession, Term, ClassSubject
 
 
 class StudentRegistrationTests(TestCase):
@@ -17,7 +17,7 @@ class StudentRegistrationTests(TestCase):
 
     def test_e_path_redirects_to_students(self):
         response = self.client.get("/e")
-        self.assertRedirects(response, reverse("student_list"))
+        self.assertRedirects(response, reverse("dashboard"))
 
     def test_registration_page_renders(self):
         response = self.client.get(reverse("student_registration"))
@@ -118,6 +118,8 @@ class StudentRegistrationTests(TestCase):
 
     def test_class_report_page_renders(self):
         classroom = ClassRoom.objects.create(class_name="JHS 1")
+        session = AcademicSession.objects.create(academic_year="2025/2026", is_current=True)
+        term = Term.objects.create(session=session, term_name="Term 1", is_active=True)
         student = Student.objects.create(
             admission_number="001",
             first_name="Ada",
@@ -128,11 +130,12 @@ class StudentRegistrationTests(TestCase):
             current_class=classroom,
         )
         subject = Subject.objects.create(subject_name="Mathematics")
+        ClassSubject.objects.create(classroom=classroom, subject=subject)
         SubjectAssessment.objects.create(
             student=student,
             subject=subject,
-            term=1,
-            academic_year="2025-2026",
+            academic_session=session,
+            academic_term=term,
             class_score=20,
             exam_score=30,
         )
@@ -309,6 +312,8 @@ class StudentRegistrationTests(TestCase):
     def test_bulk_grade_entry_saves_and_redirects_to_same_view(self):
         classroom = ClassRoom.objects.create(class_name="Class E")
         subject = Subject.objects.create(subject_name="Science")
+        session = AcademicSession.objects.create(academic_year="2025/2026", is_current=True)
+        term = Term.objects.create(session=session, term_name="Term 1", is_active=True)
         student = Student.objects.create(
             admission_number="1005",
             first_name="Alice",
@@ -349,6 +354,8 @@ class StudentRegistrationTests(TestCase):
 
     def test_class_report_with_grades_displays_table(self):
         classroom = ClassRoom.objects.create(class_name="Class Graded")
+        session = AcademicSession.objects.create(academic_year="2025/2026", is_current=True)
+        term = Term.objects.create(session=session, term_name="Term 1", is_active=True)
         student = Student.objects.create(
             admission_number="1006",
             first_name="Evelyn",
@@ -359,11 +366,12 @@ class StudentRegistrationTests(TestCase):
             current_class=classroom,
         )
         subject = Subject.objects.create(subject_name="English")
+        ClassSubject.objects.create(classroom=classroom, subject=subject)
         SubjectAssessment.objects.create(
             student=student,
             subject=subject,
-            term=1,
-            academic_year="2025-2026",
+            academic_session=session,
+            academic_term=term,
             class_score=30,
             exam_score=50,
         )

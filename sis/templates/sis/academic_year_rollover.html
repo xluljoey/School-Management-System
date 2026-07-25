@@ -110,13 +110,35 @@
                     Execute Academic Year Rollover
                 </h6>
                 <p style="font-size: 13px; color: #7f1d1d; margin-bottom: 14px;">
-                    This action is <strong>irreversible</strong>. All approved students will be moved to their target classes, graduated students marked as alumni, and all promotion statuses cleared.
+                    This action is <strong>irreversible</strong>. All approved students will be moved to their target classes, JHS 3 graduates marked as alumni, and all promotion statuses cleared.
                 </p>
+
+                <div style="margin-bottom: 16px;">
+                    <label for="target_session_id" class="fw-semibold" style="font-size: 13px; color: #991b1b; display: block; margin-bottom: 6px;">
+                        Target Academic Session (for promoted + held-back students)
+                    </label>
+                    <select name="target_session_id" id="target_session_id" required
+                        style="width: 100%; border-radius: 50px; background-color: #fff; color: #111;
+                               border: 1px solid #fecaca; padding: 12px 44px 12px 22px;
+                               font-size: 14px; font-weight: 500; cursor: pointer; outline: none;
+                               appearance: none; -webkit-appearance: none; -moz-appearance: none;">
+                        <option value="">-- Select Target Session --</option>
+                        {% for s in available_sessions %}
+                        <option value="{{ s.id }}">{{ s.academic_year }}</option>
+                        {% empty %}
+                        <option value="" disabled>No other sessions available — create one in Academic Settings first</option>
+                        {% endfor %}
+                    </select>
+                    <div style="font-size: 12px; color: #7f1d1d; margin-top: 6px;">
+                        Promoted and held-back students will be enrolled in Term 1 of this session. Term 1 will be created automatically if it doesn't exist.
+                    </div>
+                </div>
+
                 <div class="d-flex align-items-center gap-3" style="flex-wrap: wrap;">
                     <input type="text" name="confirm_rollover" id="confirmInput"
                            placeholder="Type YES_EXECUTE_ROLLOVER"
                            style="border-radius: 50px; border: 1px solid #fecaca; padding: 10px 20px; font-size: 13px; width: 280px; outline: none; font-family: monospace;"
-                           oninput="document.getElementById('rolloverBtn').disabled = (this.value !== 'YES_EXECUTE_ROLLOVER')">
+                           oninput="validateRollover()">
                     <button type="submit" id="rolloverBtn" disabled
                             style="border-radius: 50px; padding: 10px 28px; font-weight: 600; font-size: 14px; border: none; cursor: not-allowed; transition: all 0.2s;"
                             class="btn btn-danger">
@@ -125,6 +147,15 @@
                 </div>
             </div>
         </form>
+
+        <script>
+        function validateRollover() {
+            var confirmVal = document.getElementById('confirmInput').value;
+            var sessionVal = document.getElementById('target_session_id').value;
+            document.getElementById('rolloverBtn').disabled = !(confirmVal === 'YES_EXECUTE_ROLLOVER' && sessionVal !== '');
+        }
+        document.getElementById('target_session_id').addEventListener('change', validateRollover);
+        </script>
 
         {% else %}
         <div class="text-center py-5" style="min-height: 300px;">

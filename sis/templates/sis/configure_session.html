@@ -4,107 +4,220 @@
 {% block title %}Academic Session Configuration{% endblock %}
 
 {% block content %}
-<div class="d-flex align-items-center justify-content-between mb-4 border-bottom pb-3" style="border-color: #f4f4f5 !important;">
+<div class="d-flex align-items-center justify-content-between mb-4" style="flex-wrap: wrap; gap: 12px;">
     <div>
         <h4 class="fw-bold text-dark mb-1" style="font-size: 22px; letter-spacing: -0.5px;">Academic Environment Settings</h4>
-        <div class="d-flex align-items-center gap-2 text-muted" style="font-size: 13px;">
+        <div class="d-flex align-items-center gap-2 text-muted" style="font-size: 13px; flex-wrap: wrap;">
             <span>Manage active sessions and database tracking contexts.</span>
             <span style="color: #e4e4e7;">|</span>
             <span class="d-flex align-items-center gap-1 bg-light px-2 py-0.5 rounded text-dark fw-medium" style="font-size: 12px; border: 1px solid #e4e4e7;">
-                <span class="text-success me-1" style="font-size: 8px;">●</span> Active: {{ current_session|default:"None" }} – {{ current_term|default:"None" }}
+                <span class="text-success me-1" style="font-size: 8px;">&#9679;</span> Active: {{ current_session|default:"None" }} &ndash; {{ current_term|default:"None" }}
             </span>
         </div>
     </div>
-    <a href="{% url 'promotion_portal' %}" class="btn btn-light rounded-pill px-4 py-2 d-flex align-items-center gap-2" style="font-size: 14px; border: 1px solid #e4e4e7; font-weight: 500;">
-        <i class="bi bi-arrow-left-short fs-5"></i> Back to Promotion Portal
-    </a>
 </div>
 
-<div class="card border-0 p-4" style="border-radius: 16px; background-color: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.02); margin-bottom: 24px;">
-    <form method="POST" action="" style="max-width: 600px;">
-        {% csrf_token %}
+<div style="max-width: 640px; margin: 0 auto;">
+    <div style="background-color: #ffffff; border: 1px solid #f0f0f0; border-radius: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); padding: 40px;">
+        <form method="POST" action="">
+            {% csrf_token %}
 
-        <div class="mb-4">
-            <label for="academic_session" class="form-label fw-semibold text-dark mb-1" style="font-size: 14px;">Academic Session</label>
-            <select name="academic_session" id="academic_session" class="form-select">
-                <option value="">-- Select Session --</option>
-                {% for s in sessions %}
-                <option value="{{ s.id }}" {% if current_session and current_session.id == s.id %}selected{% endif %}>
-                    {{ s.academic_year }}
-                </option>
-                {% empty %}
-                <option value="" disabled>No sessions created yet</option>
-                {% endfor %}
-            </select>
-            <div class="form-text text-muted" style="font-size: 12px;">Setting a session marks it as the current active year and deactivates all others.</div>
-        </div>
+            <div style="margin-bottom: 28px;">
+                <label for="academic_session" class="fw-semibold text-dark" style="font-size: 14px; display: block; margin-bottom: 8px;">Academic Session</label>
+                <div style="position: relative;">
+                    <select name="academic_session" id="academic_session"
+                        style="width: 100%; appearance: none; -webkit-appearance: none; -moz-appearance: none;
+                               border-radius: 50px; background-color: #f9fafb; color: #111;
+                               border: 1px solid #e4e4e7; padding: 14px 44px 14px 22px;
+                               font-size: 14px; font-weight: 500; cursor: pointer; outline: none;
+                               transition: background 0.2s, border-color 0.2s;"
+                        onfocus="this.style.backgroundColor='#fff'; this.style.borderColor='#111';"
+                        onblur="this.style.backgroundColor='#f9fafb'; this.style.borderColor='#e4e4e7';">
+                        <option value="">-- Select Session --</option>
+                        {% for s in sessions %}
+                        <option value="{{ s.id }}" {% if current_session and current_session.id == s.id %}selected{% endif %}>
+                            {{ s.academic_year }}
+                        </option>
+                        {% empty %}
+                        <option value="" disabled>No sessions created yet</option>
+                        {% endfor %}
+                    </select>
+                    <span style="position: absolute; right: 20px; top: 50%; transform: translateY(-50%); pointer-events: none; font-size: 10px; color: #999;">&#9662;</span>
+                </div>
+                <div style="font-size: 12px; color: #9ca3af; margin-top: 8px;">Setting a session marks it as the current active year and deactivates all others.</div>
+            </div>
 
-        <div class="mb-4">
-            <label for="term" class="form-label fw-semibold text-dark mb-1" style="font-size: 14px;">Active Term</label>
-            <select name="term" id="term" class="form-select">
-                <option value="">-- Select Term --</option>
-                {% for t in terms %}
-                <option value="{{ t.id }}" {% if current_term and current_term.id == t.id %}selected{% endif %}>
-                    {{ t.term_name }} ({{ t.session.academic_year }})
-                </option>
-                {% empty %}
-                <option value="" disabled>No terms created yet</option>
-                {% endfor %}
-            </select>
-            <div class="form-text text-muted" style="font-size: 12px;">Setting a term marks it as the active grading period and deactivates all others.</div>
-        </div>
+            <div style="margin-bottom: 32px;">
+                <label for="term" class="fw-semibold text-dark" style="font-size: 14px; display: block; margin-bottom: 8px;">Active Term</label>
+                <div style="position: relative;">
+                    <select name="term" id="term"
+                        style="width: 100%; appearance: none; -webkit-appearance: none; -moz-appearance: none;
+                               border-radius: 50px; background-color: #f9fafb; color: #111;
+                               border: 1px solid #e4e4e7; padding: 14px 44px 14px 22px;
+                               font-size: 14px; font-weight: 500; cursor: pointer; outline: none;
+                               transition: background 0.2s, border-color 0.2s;"
+                        onfocus="this.style.backgroundColor='#fff'; this.style.borderColor='#111';"
+                        onblur="this.style.backgroundColor='#f9fafb'; this.style.borderColor='#e4e4e7';">
+                        <option value="">-- Select Term --</option>
+                        {% for t in terms %}
+                        <option value="{{ t.id }}" data-session-id="{{ t.session_id }}" class="term-option"
+                            {% if current_term and current_term.id == t.id %}selected{% endif %}>
+                            {{ t.term_name }} ({{ t.session.academic_year }})
+                        </option>
+                        {% empty %}
+                        <option value="" disabled>No terms created yet</option>
+                        {% endfor %}
+                    </select>
+                    <span style="position: absolute; right: 20px; top: 50%; transform: translateY(-50%); pointer-events: none; font-size: 10px; color: #999;">&#9662;</span>
+                </div>
+                <div style="font-size: 12px; color: #9ca3af; margin-top: 8px;">Setting a term marks it as the active grading period and deactivates all others.</div>
+            </div>
 
-        <button type="submit" class="btn btn-success rounded-pill px-4 py-2 fw-semibold" style="background-color: #10b981; border: none; font-size: 14px;">
-            Set Active Environment
-        </button>
-    </form>
+            <button type="submit"
+                style="width: 100%; border-radius: 50px; padding: 14px 32px; font-weight: 600; font-size: 14px;
+                       color: #ffffff; background-color: #10b981; border: none; cursor: pointer;
+                       box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+                       transition: background-color 0.2s, box-shadow 0.2s, transform 0.15s;"
+                onmouseover="this.style.backgroundColor='#059669'; this.style.boxShadow='0 4px 14px rgba(16, 185, 129, 0.4)'; this.style.transform='scale(1.01)';"
+                onmouseout="this.style.backgroundColor='#10b981'; this.style.boxShadow='0 2px 8px rgba(16, 185, 129, 0.3)'; this.style.transform='scale(1)';">
+                Set Active Environment
+            </button>
+        </form>
+    </div>
 </div>
 
-<a href="{% url 'academic_year_rollover' %}" class="btn btn-warning rounded-pill shadow-lg d-flex align-items-center gap-2 px-4 py-3 position-fixed" 
-   style="bottom: 100px; right: 32px; z-index: 1050; font-weight: 500; font-size: 14px; background-color: #f59e0b; border: 1px solid #d97706; box-shadow: 0 10px 25px -5px rgba(245, 158, 11, 0.4) !important;">
-    <i class="bi bi-arrow-repeat text-white"></i>
-    <span class="text-white">Execute Rollover</span>
+<a href="{% url 'academic_year_rollover' %}"
+   style="position: fixed; bottom: 100px; right: 40px; z-index: 1050;
+          display: flex; align-items: center; gap: 8px;
+          border-radius: 50px; padding: 14px 28px; font-weight: 600; font-size: 14px;
+          color: #fff; background-color: #f59e0b; border: 1px solid #d97706; text-decoration: none;
+          box-shadow: 0 10px 25px -5px rgba(245, 158, 11, 0.4);
+          transition: transform 0.2s, box-shadow 0.2s;"
+   onmouseover="this.style.transform='scale(1.03)'; this.style.boxShadow='0 14px 30px -5px rgba(245, 158, 11, 0.5)';"
+   onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 10px 25px -5px rgba(245, 158, 11, 0.4)';">
+    <i class="bi bi-arrow-repeat"></i>
+    Execute Rollover
 </a>
 
-<a href="#" data-bs-toggle="modal" data-bs-target="#createSessionModal" class="btn btn-dark rounded-pill shadow-lg d-flex align-items-center gap-2 px-4 py-3 position-fixed" 
-   style="bottom: 32px; right: 32px; z-index: 1050; font-weight: 500; font-size: 14px; background-color: #121214; border: 1px solid #2a2a2e; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3) !important;">
-    <i class="bi bi-plus-lg text-white-50"></i>
-    <span class="text-white">Create New Academic Session</span>
+<a href="#" data-bs-toggle="modal" data-bs-target="#createSessionModal"
+   style="position: fixed; bottom: 32px; right: 40px; z-index: 1050;
+          display: flex; align-items: center; gap: 8px;
+          border-radius: 50px; padding: 14px 28px; font-weight: 600; font-size: 14px;
+          color: #fff; background-color: #121214; border: 1px solid #2a2a2e; text-decoration: none;
+          box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+          transition: transform 0.2s, box-shadow 0.2s;"
+   onmouseover="this.style.transform='scale(1.03)'; this.style.boxShadow='0 14px 30px -5px rgba(0, 0, 0, 0.4)';"
+   onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 10px 25px -5px rgba(0, 0, 0, 0.3)';">
+    <i class="bi bi-plus-lg" style="opacity: 0.6;"></i>
+    Create New Academic Session
 </a>
 
 <div class="modal fade" id="createSessionModal" tabindex="-1" aria-labelledby="createSessionModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content" style="border-radius: 16px; border: none; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);">
+        <div style="background: #fff; border-radius: 20px; width: min(92vw, 480px); max-height: 80vh; overflow: hidden; box-shadow: 0 25px 60px rgba(0,0,0,0.25); display: flex; flex-direction: column;">
             <form method="POST" action="">
                 {% csrf_token %}
-                <div class="modal-header border-0 pb-0">
-                    <h5 class="modal-title fw-bold" id="createSessionModalLabel" style="font-size: 18px; letter-spacing: -0.3px;">Create New Academic Session</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <div style="padding: 28px 32px 0;">
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <h5 class="fw-bold mb-0" style="font-size: 18px; letter-spacing: -0.3px;">Create New Academic Session</h5>
+                        <button type="button" data-bs-dismiss="modal" aria-label="Close"
+                            style="background: none; border: none; padding: 4px; cursor: pointer; color: #999; font-size: 20px; line-height: 1;">&times;</button>
+                    </div>
                 </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="new_academic_year" class="form-label fw-semibold text-dark" style="font-size: 14px;">Academic Year</label>
+                <div style="padding: 24px 32px;">
+                    <div style="margin-bottom: 20px;">
+                        <label for="new_academic_year" class="fw-semibold text-dark" style="font-size: 14px; display: block; margin-bottom: 8px;">Academic Year</label>
                         <input type="text" name="new_academic_year" id="new_academic_year"
-                               class="form-control" placeholder="e.g., 2026/2027" required
-                               style="border-radius: 12px; border: 1px solid #e4e4e7; padding: 10px 16px;">
+                               placeholder="e.g., 2026/2027" required
+                               style="width: 100%; border-radius: 50px; border: 1px solid #e4e4e7; padding: 14px 22px;
+                                      font-size: 14px; outline: none; background: #f9fafb;
+                                      transition: background 0.2s, border-color 0.2s;"
+                               onfocus="this.style.backgroundColor='#fff'; this.style.borderColor='#111';"
+                               onblur="this.style.backgroundColor='#f9fafb'; this.style.borderColor='#e4e4e7';">
                     </div>
-                    <div class="mb-2">
-                        <label for="new_term_name" class="form-label fw-semibold text-dark" style="font-size: 14px;">Starting Term</label>
-                        <select name="new_term_name" id="new_term_name" class="form-select" required
-                                style="border-radius: 12px; border: 1px solid #e4e4e7; padding: 10px 16px;">
-                            <option value="">-- Select Term --</option>
-                            <option value="Term 1">Term 1</option>
-                            <option value="Term 2">Term 2</option>
-                            <option value="Term 3">Term 3</option>
-                        </select>
+                    <div>
+                        <label for="new_term_name" class="fw-semibold text-dark" style="font-size: 14px; display: block; margin-bottom: 8px;">Starting Term</label>
+                        <div style="position: relative;">
+                            <select name="new_term_name" id="new_term_name" required
+                                style="width: 100%; appearance: none; -webkit-appearance: none; -moz-appearance: none;
+                                       border-radius: 50px; border: 1px solid #e4e4e7; padding: 14px 44px 14px 22px;
+                                       font-size: 14px; outline: none; background: #f9fafb; color: #111;
+                                       transition: background 0.2s, border-color 0.2s;"
+                                onfocus="this.style.backgroundColor='#fff'; this.style.borderColor='#111';"
+                                onblur="this.style.backgroundColor='#f9fafb'; this.style.borderColor='#e4e4e7';">
+                                <option value="">-- Select Term --</option>
+                                <option value="Term 1">Term 1</option>
+                                <option value="Term 2">Term 2</option>
+                                <option value="Term 3">Term 3</option>
+                            </select>
+                            <span style="position: absolute; right: 20px; top: 50%; transform: translateY(-50%); pointer-events: none; font-size: 10px; color: #999;">&#9662;</span>
+                        </div>
                     </div>
                 </div>
-                <div class="modal-footer border-0 pt-2">
-                    <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal" style="border: 1px solid #e4e4e7; font-size: 14px;">Cancel</button>
-                    <button type="submit" name="create_new_session" class="btn btn-dark rounded-pill px-4 fw-semibold" style="font-size: 14px;">Create & Activate</button>
+                <div style="padding: 0 32px 24px; display: flex; justify-content: flex-end; gap: 10px;">
+                    <button type="button" data-bs-dismiss="modal"
+                        style="border-radius: 50px; padding: 10px 24px; font-size: 14px; font-weight: 500;
+                               background: #fff; color: #111; border: 1px solid #e4e4e7; cursor: pointer;
+                               transition: background 0.15s;"
+                        onmouseover="this.style.backgroundColor='#f4f4f5'"
+                        onmouseout="this.style.backgroundColor='#fff'">
+                        Cancel
+                    </button>
+                    <button type="submit" name="create_new_session"
+                        style="border-radius: 50px; padding: 10px 24px; font-size: 14px; font-weight: 600;
+                               background: #111; color: #fff; border: none; cursor: pointer;
+                               transition: background 0.15s;"
+                        onmouseover="this.style.backgroundColor='#333'"
+                        onmouseout="this.style.backgroundColor='#111'">
+                        Create & Activate
+                    </button>
                 </div>
             </form>
         </div>
     </div>
 </div>
+
+<script>
+(function() {
+    var sessionSelect = document.getElementById('academic_session');
+    var termSelect = document.getElementById('term');
+    var currentTermId = '{{ current_term.id|default:"" }}';
+
+    function filterTerms() {
+        var selectedSessionId = sessionSelect.value;
+        var options = termSelect.querySelectorAll('.term-option');
+        var firstVisible = null;
+
+        for (var i = 0; i < options.length; i++) {
+            var opt = options[i];
+            if (!selectedSessionId || opt.getAttribute('data-session-id') === selectedSessionId) {
+                opt.style.display = '';
+                if (!firstVisible) firstVisible = opt;
+            } else {
+                opt.style.display = 'none';
+                if (opt.selected) opt.selected = false;
+            }
+        }
+
+        if (firstVisible && !termSelect.querySelector('.term-option:checked')) {
+            firstVisible.selected = true;
+        }
+    }
+
+    sessionSelect.addEventListener('change', filterTerms);
+    filterTerms();
+
+    document.querySelector('form').addEventListener('submit', function(e) {
+        var sessionId = sessionSelect.value;
+        var termId = termSelect.value;
+        if (sessionId && termId) {
+            var selectedTerm = termSelect.querySelector('[value="' + termId + '"]');
+            if (selectedTerm && selectedTerm.getAttribute('data-session-id') !== sessionId) {
+                e.preventDefault();
+                alert('The selected term does not belong to the selected session. Please choose a matching term.');
+            }
+        }
+    });
+})();
+</script>
 {% endblock %}

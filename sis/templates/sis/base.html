@@ -1,4 +1,4 @@
-{% load static %}
+{% load static custom_filters %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -358,33 +358,38 @@
                     <a href="{% url 'dashboard' %}" class="{% if request.path == '/' or request.path == '/dashboard/' %}active{% endif %}">
                         <i class="bi bi-speedometer2"></i> Dashboard
                     </a>
-                    <a href="{% url 'staff_list' %}" class="{% if request.path == '/staff/list/' %}active{% endif %}">
+                    <a href="{% url 'staff_list' %}" class="{% if request.path|startswith:'/staff/' and request.path != '/staff/register/' %}active{% endif %}">
                         <i class="bi bi-people"></i> Staff
                     </a>
-                    <a href="{% url 'student_list' %}" class="{% if request.path == '/students/' %}active{% endif %}">
+                    <a href="{% url 'student_list' %}" class="{% if request.path|startswith:'/students/' and request.path != '/students/register/' %}active{% endif %}">
                         <i class="bi bi-mortarboard"></i> Students
                     </a>
-                    <a href="{% url 'parents_list' %}" class="{% if request.resolver_match.url_name == 'parents_list' %}active{% endif %}">
+                    <a href="{% url 'alumni_list' %}" class="{% if request.path|startswith:'/alumni/' %}active{% endif %}">
+                        <i class="bi bi-mortarboard-fill"></i> Alumni
+                    </a>
+                    <a href="{% url 'parents_list' %}" class="{% if request.path|startswith:'/parents/' %}active{% endif %}">
                         <i class="bi bi-people-fill"></i> Parents
                     </a>
-                    <a href="{% url 'classes_subjects_hub' %}" class="{% if request.resolver_match.url_name == 'classes_subjects_hub' %}active{% endif %}">
+                    <a href="{% url 'classes_subjects_hub' %}" class="{% if request.path|startswith:'/classes-subjects/' %}active{% endif %}">
                         <i class="bi bi-collection-play"></i> Classes & Subjects
                     </a>
-                    <a href="{% url 'timetable_hub' %}" class="{% if request.resolver_match.url_name == 'timetable_hub' %}active{% endif %}">
+                    <a href="{% url 'timetable_hub' %}" class="{% if request.path|startswith:'/timetables/' %}active{% endif %}">
                         <i class="bi bi-calendar3"></i> Timetables
                     </a>
-                    <a href="{% url 'reports' %}" class="{% if request.path == '/reports/' %}active{% endif %}">
+                    <a href="{% url 'reports' %}" class="{% if request.path|startswith:'/reports/' or request.path|startswith:'/class/' or request.path|startswith:'/master-summary/' or request.path|startswith:'/grades/' %}active{% endif %}">
                         <i class="bi bi-bar-chart"></i> Report
                     </a>
-                    <a href="{% url 'midterm_summary' %}" class="{% if request.resolver_match.view_name == 'midterm_summary' %}active{% endif %}">
+                    <a href="{% url 'midterm_summary' %}" class="{% if request.path|startswith:'/midterm/' %}active{% endif %}">
                         <i class="bi bi-journal-check"></i> Mid Term
                     </a>
+                    {% comment "Archived: Add Student & Onboard Staff sidebar links (redundant with Students/Staff list views)" %}
                     <a href="{% url 'register_student' %}" class="{% if request.path == '/students/register/' %}active{% endif %}">
                         <i class="bi bi-person-plus"></i> Add Student
                     </a>
                     <a href="{% url 'register_staff' %}" class="{% if request.path == '/staff/register/' %}active{% endif %}">
                         <i class="bi bi-person-badge"></i> Onboard Staff
                     </a>
+                    {% endcomment %}
                     <a href="{% url 'academic_settings' %}" class="{% if request.path == '/settings/academic-session/' %}active{% endif %}">
                         <i class="bi bi-gear"></i> Academic Settings
                     </a>
@@ -392,25 +397,28 @@
                     <a href="{% url 'dashboard' %}" class="{% if request.path == '/' or request.path == '/dashboard/' %}active{% endif %}">
                         <i class="bi bi-speedometer2"></i> Dashboard
                     </a>
-                    <a href="{% url 'student_list' %}" class="{% if request.path == '/students/' %}active{% endif %}">
+                    <a href="{% url 'student_list' %}" class="{% if request.path|startswith:'/students/' and request.path != '/students/register/' %}active{% endif %}">
                         <i class="bi bi-mortarboard"></i> Students
                     </a>
-                    <a href="{% url 'parents_list' %}" class="{% if request.resolver_match.url_name == 'parents_list' %}active{% endif %}">
+                    <a href="{% url 'alumni_list' %}" class="{% if request.path|startswith:'/alumni/' %}active{% endif %}">
+                        <i class="bi bi-mortarboard-fill"></i> Alumni
+                    </a>
+                    <a href="{% url 'parents_list' %}" class="{% if request.path|startswith:'/parents/' %}active{% endif %}">
                         <i class="bi bi-people-fill"></i> Parents
                     </a>
-                    <a href="{% url 'classes_subjects_hub' %}" class="{% if request.resolver_match.url_name == 'classes_subjects_hub' %}active{% endif %}">
+                    <a href="{% url 'classes_subjects_hub' %}" class="{% if request.path|startswith:'/classes-subjects/' %}active{% endif %}">
                         <i class="bi bi-collection-play"></i> Classes & Subjects
                     </a>
-                    <a href="{% url 'timetable_hub' %}" class="{% if request.resolver_match.url_name == 'timetable_hub' %}active{% endif %}">
+                    <a href="{% url 'timetable_hub' %}" class="{% if request.path|startswith:'/timetables/' %}active{% endif %}">
                         <i class="bi bi-calendar3"></i> Timetables
                     </a>
-                    <a href="{% url 'reports' %}" class="{% if request.path == '/reports/' %}active{% endif %}">
+                    <a href="{% url 'reports' %}" class="{% if request.path|startswith:'/reports/' or request.path|startswith:'/class/' or request.path|startswith:'/master-summary/' or request.path|startswith:'/grades/' %}active{% endif %}">
                         <i class="bi bi-bar-chart"></i> Report
                     </a>
-                    <a href="{% url 'midterm_summary' %}" class="{% if request.resolver_match.view_name == 'midterm_summary' %}active{% endif %}">
+                    <a href="{% url 'midterm_summary' %}" class="{% if request.path|startswith:'/midterm/' %}active{% endif %}">
                         <i class="bi bi-journal-check"></i> Mid Term
                     </a>
-                    <a href="{% url 'promotion_portal' %}" class="{% if request.path == '/enrollment/portal/' %}active{% endif %}" {% if not is_promotional_term %}style="opacity: 0.55;"{% endif %}>
+                    <a href="{% url 'promotion_portal' %}" class="{% if request.path|startswith:'/enrollment/portal/' %}active{% endif %}" {% if not is_promotional_term %}style="opacity: 0.55;"{% endif %}>
                         <i class="bi bi-arrow-up-circle"></i> Promotion Portal
                         {% if not is_promotional_term %}<i class="bi bi-lock-fill" style="font-size: 10px; margin-left: 4px; opacity: 0.7;"></i>{% endif %}
                     </a>

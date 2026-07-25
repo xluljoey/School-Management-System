@@ -65,8 +65,8 @@ class EnrollmentForm(forms.ModelForm):
         instance = super().save(commit=False)
         term_obj = self.cleaned_data.get('term')
         if term_obj:
-            instance.term = term_obj.term_name
-            instance.academic_year = term_obj.session.academic_year
+            instance.academic_session = term_obj.session
+            instance.academic_term = term_obj
         if commit:
             instance.save()
         return instance

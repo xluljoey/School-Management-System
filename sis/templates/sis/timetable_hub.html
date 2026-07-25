@@ -1,7 +1,10 @@
 {% extends 'sis/base.html' %}
+{% load static %}
+
+{% block title %}Master Timetables{% endblock %}
 
 {% block content %}
-<div class="d-flex align-items-center justify-content-between mb-4 border-bottom pb-3" style="border-color: #f4f4f5 !important;">
+<div class="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between mb-4 border-bottom pb-3 gap-3" style="border-color: #f4f4f5 !important;">
     <div>
         <h4 class="fw-bold text-dark mb-1" style="font-size: 22px; letter-spacing: -0.5px;">Master Timetables</h4>
         <p class="text-muted mb-0" style="font-size: 13px;">View and orchestrate daily lecture schedules across class tiers</p>
@@ -9,8 +12,10 @@
 </div>
 
 <div class="row g-4">
+    {% for tt in timetables %}
     <div class="col-12 col-md-6 col-lg-4 col-xl-3">
         <div class="card border-0 p-4 h-100 position-relative timetable-card"
+             onclick="openTimetableDetail({{ tt.id }})"
              style="border-radius: 20px; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.01); background-color: #ffffff; border-top: 4px solid #0f172a !important;">
 
             <div class="d-flex align-items-center justify-content-between mb-3">
@@ -18,16 +23,141 @@
                     <i class="bi bi-calendar4-week fs-5"></i>
                 </div>
                 <span class="badge bg-light border text-dark px-2 py-1 rounded-pill" style="font-size: 11px; font-weight: 500;">
-                    {{ placeholder_timetable.days_active }}
+                    {{ tt.days_active }}
                 </span>
             </div>
 
-            <h5 class="fw-bold text-dark mb-1" style="font-size: 18px; letter-spacing: -0.3px;">{{ placeholder_timetable.class_name }} Timetable</h5>
-            <p class="text-muted mb-3" style="font-size: 13px;">Total Scheduled Slots: <span class="fw-semibold text-dark">{{ placeholder_timetable.slots_count }} daily</span></p>
+            <h5 class="fw-bold text-dark mb-1" style="font-size: 18px; letter-spacing: -0.3px;">{{ tt.student_class.class_name }} Timetable</h5>
+            <p class="text-muted mb-3" style="font-size: 13px;">Total Scheduled Slots: <span class="fw-semibold text-dark">{{ tt.slot_count }}</span></p>
 
             <div class="border-top pt-2 d-flex align-items-center justify-content-between text-muted" style="font-size: 11px;">
-                <span>Status: <span class="text-success fw-medium">Active</span></span>
-                <span>{{ placeholder_timetable.last_updated }}</span>
+                <span>Status: {% if tt.is_active %}<span class="text-success fw-medium">Active</span>{% else %}<span class="text-secondary fw-medium">Inactive</span>{% endif %}</span>
+                <span>{{ tt.academic_term.term_name }}</span>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12 text-center py-5">
+        <div class="text-muted mb-3">
+            <i class="bi bi-calendar-x" style="font-size: 48px; opacity: 0.3;"></i>
+        </div>
+        <p class="text-muted mb-1" style="font-size: 14px;">No timetables created yet.</p>
+        <p class="text-muted" style="font-size: 12px;">Click the <strong>+ Create Timetable</strong> button below to get started.</p>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- FAB: Create Timetable -->
+<button onclick="openCreateModal()" class="fab-button position-fixed d-flex align-items-center gap-2"
+        style="bottom: 32px; right: 32px; z-index: 1050; border-radius: 50px; background-color: #111111; color: #ffffff; border: none; padding: 14px 28px; font-size: 14px; font-weight: 600; box-shadow: 0 4px 14px rgba(0,0,0,0.2); cursor: pointer; transition: all 0.2s ease-in-out;">
+    <i class="bi bi-plus-lg" style="font-size: 16px;"></i>
+    Create Timetable
+</button>
+
+<!-- ========== CREATE MODAL ========== -->
+<div class="modal fade" id="createTimetableModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 24px; overflow: hidden;">
+            <div class="modal-header border-0 px-4 pt-4 pb-2">
+                <div>
+                    <span class="badge rounded-pill px-3 py-1 mb-2" style="background-color: #f0f0f0; color: #555; font-size: 11px; font-weight: 600;">NEW</span>
+                    <h4 class="modal-title fw-bold text-dark mb-0" style="font-size: 20px; letter-spacing: -0.3px;">Create Timetable</h4>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="opacity: 0.4;"></button>
+            </div>
+
+            <div class="modal-body px-4 pb-4">
+                <form id="createForm" onsubmit="return handleCreateSubmit(event)">
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold" style="font-size: 12px; color: #555;">Class *</label>
+                            <select id="createClass" class="form-select" style="border-radius: 10px; border-color: #e4e4e7; font-size: 13px;" required>
+                                <option value="">Select Class</option>
+                                {% for cls in classes %}
+                                <option value="{{ cls.id }}">{{ cls.class_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold" style="font-size: 12px; color: #555;">Title *</label>
+                            <input type="text" id="createTitle" class="form-control" placeholder="e.g. JHS 1 Master Schedule"
+                                   style="border-radius: 10px; border-color: #e4e4e7; font-size: 13px;" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold" style="font-size: 12px; color: #555;">Academic Term *</label>
+                            <select id="createTerm" class="form-select" style="border-radius: 10px; border-color: #e4e4e7; font-size: 13px;" required>
+                                <option value="">Select Term</option>
+                                {% for term in terms %}
+                                <option value="{{ term.id }}" {% if term.is_active %}selected{% endif %}>{{ term.term_name }} ({{ term.session.academic_year }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <h6 class="fw-bold text-dark mb-0" style="font-size: 14px;">Time Slots</h6>
+                        <button type="button" class="btn btn-sm btn-outline-dark rounded-pill px-3 py-1" onclick="addSlotRow()" style="font-size: 12px; font-weight: 500;">
+                            <i class="bi bi-plus"></i> Add Slot
+                        </button>
+                    </div>
+
+                    <div id="slotRows" class="d-flex flex-column gap-2 mb-3">
+                        <!-- Initial slot row added by JS -->
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2 pt-2 border-top" style="border-color: #f0f0f0 !important;">
+                        <button type="button" class="btn btn-light rounded-pill px-4 py-2" data-bs-dismiss="modal" style="font-size: 13px; font-weight: 500;">Cancel</button>
+                        <button type="submit" class="btn btn-dark rounded-pill px-4 py-2" id="createSubmitBtn" style="font-size: 13px; font-weight: 500;">
+                            <span class="spinner-border spinner-border-sm d-none me-1" id="createSpinner" role="status"></span>
+                            Create Timetable
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ========== DETAIL MODAL ========== -->
+<div class="modal fade" id="timetableDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 24px; overflow: hidden;">
+            <div class="modal-header border-0 px-4 pt-4 pb-2">
+                <div>
+                    <span class="badge rounded-pill px-3 py-1 mb-2" style="background-color: #f0f0f0; color: #555; font-size: 11px; font-weight: 600;" id="detailTerm">—</span>
+                    <h4 class="modal-title fw-bold text-dark mb-0" style="font-size: 20px; letter-spacing: -0.3px;" id="detailTitle">—</h4>
+                    <p class="text-muted small mb-0 mt-1" id="detailMeta">—</p>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3 py-1" onclick="handleDeleteTimetable()" id="deleteTimetableBtn" style="font-size: 12px; font-weight: 500;">
+                        <i class="bi bi-trash3"></i> Delete
+                    </button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="opacity: 0.4;"></button>
+                </div>
+            </div>
+
+            <div class="modal-body px-4 pb-4">
+                <div id="detailSpinner" class="text-center py-5">
+                    <div class="spinner-border text-dark" role="status" style="width: 1.6rem; height: 1.6rem; border-width: 2px;"></div>
+                </div>
+                <div id="detailContent" class="d-none">
+                    <div class="table-responsive">
+                        <table class="table table-bordered mb-0" style="border-color: #e4e4e7; font-size: 12px;">
+                            <thead>
+                                <tr>
+                                    <th style="background-color: #fafbfc; border-color: #e4e4e7; width: 100px; font-size: 11px; color: #888;">TIME</th>
+                                    <th style="background-color: #fafbfc; border-color: #e4e4e7; font-size: 11px; color: #888;">MONDAY</th>
+                                    <th style="background-color: #fafbfc; border-color: #e4e4e7; font-size: 11px; color: #888;">TUESDAY</th>
+                                    <th style="background-color: #fafbfc; border-color: #e4e4e7; font-size: 11px; color: #888;">WEDNESDAY</th>
+                                    <th style="background-color: #fafbfc; border-color: #e4e4e7; font-size: 11px; color: #888;">THURSDAY</th>
+                                    <th style="background-color: #fafbfc; border-color: #e4e4e7; font-size: 11px; color: #888;">FRIDAY</th>
+                                </tr>
+                            </thead>
+                            <tbody id="detailGridBody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -41,5 +171,249 @@
     transform: translateY(-3px);
     box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05) !important;
 }
+.fab-button:hover {
+    transform: scale(1.04);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.25) !important;
+}
+.slot-row {
+    background: #fafbfc;
+    border: 1px solid #e4e4e7;
+    border-radius: 12px;
+    padding: 12px 16px;
+    transition: all 0.15s ease;
+}
+.slot-row:hover {
+    border-color: #d1d5db;
+}
+.slot-row select, .slot-row input {
+    border-radius: 8px;
+    border-color: #e4e4e7;
+    font-size: 12px;
+}
+.grid-cell {
+    vertical-align: top;
+    padding: 6px;
+    min-width: 110px;
+}
+.subject-tag {
+    display: inline-block;
+    background-color: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 4px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #0f172a;
+    margin-bottom: 2px;
+}
+.teacher-tag {
+    font-size: 10px;
+    color: #64748b;
+}
+.time-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #555;
+    white-space: nowrap;
+}
 </style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const SUBJECTS = [
+    {% for s in subjects %}{ id: {{ s.id }}, name: "{{ s.subject_name|escapejs }}" }{% if not forloop.last %},{% endif %}{% endfor %}
+];
+const TEACHERS = [
+    {% for t in teachers %}{ id: {{ t.id }}, name: "{{ t.first_name|escapejs }} {{ t.last_name|escapejs }}" }{% if not forloop.last %},{% endif %}{% endfor %}
+];
+const CURRENT_TERM = {{ current_term.id|default:"null" }};
+const TIMETABLE_DELETE_URL = "{% url 'timetable_delete' 0 %}".replace('0', '');
+let currentDetailId = null;
+
+function openCreateModal() {
+    document.getElementById('createTitle').value = '';
+    document.getElementById('createClass').value = '';
+    if (CURRENT_TERM) document.getElementById('createTerm').value = CURRENT_TERM;
+    document.getElementById('slotRows').innerHTML = '';
+    addSlotRow();
+    addSlotRow();
+    addSlotRow();
+    new bootstrap.Modal(document.getElementById('createTimetableModal')).show();
+}
+
+function addSlotRow() {
+    const container = document.getElementById('slotRows');
+    const idx = container.children.length;
+
+    let subjectOpts = '<option value="">Select Subject</option>';
+    SUBJECTS.forEach(s => { subjectOpts += `<option value="${s.id}">${s.name}</option>`; });
+
+    let teacherOpts = '<option value="">Unassigned</option>';
+    TEACHERS.forEach(t => { teacherOpts += `<option value="${t.id}">${t.name}</option>`; });
+
+    const row = document.createElement('div');
+    row.className = 'slot-row d-flex align-items-center gap-2 flex-wrap';
+    row.innerHTML = `
+        <select class="form-select slot-day" style="width: 110px;" required>
+            <option value="MON">Monday</option>
+            <option value="TUE">Tuesday</option>
+            <option value="WED">Wednesday</option>
+            <option value="THU">Thursday</option>
+            <option value="FRI">Friday</option>
+        </select>
+        <input type="time" class="form-control slot-start" style="width: 120px;" value="08:00" required>
+        <input type="time" class="form-control slot-end" style="width: 120px;" value="08:45" required>
+        <select class="form-select slot-subject" style="min-width: 160px;" required>${subjectOpts}</select>
+        <select class="form-select slot-teacher" style="min-width: 150px;">${teacherOpts}</select>
+        <input type="text" class="form-control slot-note" placeholder="Room / Note" style="width: 120px;">
+        <button type="button" class="btn btn-sm text-danger" onclick="this.closest('.slot-row').remove()" style="font-size: 14px;" title="Remove slot">
+            <i class="bi bi-x-lg"></i>
+        </button>
+    `;
+    container.appendChild(row);
+}
+
+function handleCreateSubmit(e) {
+    e.preventDefault();
+    const classId = document.getElementById('createClass').value;
+    const title = document.getElementById('createTitle').value.trim();
+    const termId = document.getElementById('createTerm').value;
+
+    if (!classId || !title || !termId) {
+        alert('Please fill in all required fields.');
+        return false;
+    }
+
+    const slots = [];
+    document.querySelectorAll('#slotRows .slot-row').forEach(row => {
+        const subjectId = row.querySelector('.slot-subject').value;
+        if (!subjectId) return;
+        slots.push({
+            day_of_week: row.querySelector('.slot-day').value,
+            start_time: row.querySelector('.slot-start').value,
+            end_time: row.querySelector('.slot-end').value,
+            subject_id: parseInt(subjectId),
+            teacher_id: row.querySelector('.slot-teacher').value ? parseInt(row.querySelector('.slot-teacher').value) : null,
+            room_or_note: row.querySelector('.slot-note').value,
+        });
+    });
+
+    if (slots.length === 0) {
+        alert('Please add at least one time slot with a subject.');
+        return false;
+    }
+
+    const btn = document.getElementById('createSubmitBtn');
+    const spinner = document.getElementById('createSpinner');
+    btn.disabled = true;
+    spinner.classList.remove('d-none');
+
+    fetch("{% url 'timetable_create' %}", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+        body: JSON.stringify({ class_id: parseInt(classId), title, term_id: parseInt(termId), slots }),
+    })
+    .then(r => r.json())
+    .then(data => {
+        btn.disabled = false;
+        spinner.classList.add('d-none');
+        if (data.error) { alert(data.error); return; }
+        bootstrap.Modal.getInstance(document.getElementById('createTimetableModal')).hide();
+        location.reload();
+    })
+    .catch(() => {
+        btn.disabled = false;
+        spinner.classList.add('d-none');
+        alert('An error occurred. Please try again.');
+    });
+    return false;
+}
+
+function openTimetableDetail(timetableId) {
+    currentDetailId = timetableId;
+    document.getElementById('detailSpinner').classList.remove('d-none');
+    document.getElementById('detailContent').classList.add('d-none');
+    new bootstrap.Modal(document.getElementById('timetableDetailModal')).show();
+
+    fetch(`/timetables/${timetableId}/detail/`)
+        .then(r => r.json())
+        .then(data => {
+            document.getElementById('detailTitle').textContent = data.timetable.title;
+            document.getElementById('detailTerm').textContent = data.timetable.term;
+            document.getElementById('detailMeta').textContent = `${data.timetable.class_name} - Updated ${data.timetable.updated_at}`;
+
+            const days = data.days;
+            const allTimes = new Set();
+            const gridByTime = {};
+
+            days.forEach(day => {
+                (data.grid[day] || []).forEach(slot => {
+                    const key = slot.start_time + '-' + slot.end_time;
+                    allTimes.add(key);
+                    if (!gridByTime[key]) gridByTime[key] = {};
+                    gridByTime[key][day] = slot;
+                });
+            });
+
+            const sortedTimes = Array.from(allTimes).sort();
+            const tbody = document.getElementById('detailGridBody');
+            tbody.innerHTML = '';
+
+            if (sortedTimes.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No slots scheduled.</td></tr>';
+            } else {
+                sortedTimes.forEach(timeKey => {
+                    const [start, end] = timeKey.split('-');
+                    const row = document.createElement('tr');
+                    row.innerHTML = `<td class="time-label">${formatTime(start)} - ${formatTime(end)}</td>`;
+                    days.forEach(day => {
+                        const slot = (gridByTime[timeKey] || {})[day];
+                        const cell = document.createElement('td');
+                        cell.className = 'grid-cell';
+                        if (slot) {
+                            cell.innerHTML = `
+                                <div class="subject-tag">${slot.subject}</div>
+                                <div class="teacher-tag">${slot.teacher}</div>
+                                ${slot.room_or_note ? `<div class="teacher-tag"><i class="bi bi-geo-alt"></i> ${slot.room_or_note}</div>` : ''}
+                            `;
+                        }
+                        row.appendChild(cell);
+                    });
+                    tbody.appendChild(row);
+                });
+            }
+
+            document.getElementById('detailSpinner').classList.add('d-none');
+            document.getElementById('detailContent').classList.remove('d-none');
+        });
+}
+
+function formatTime(t) {
+    const [h, m] = t.split(':');
+    const hr = parseInt(h);
+    const ampm = hr >= 12 ? 'PM' : 'AM';
+    const h12 = hr === 0 ? 12 : hr > 12 ? hr - 12 : hr;
+    return `${h12}:${m} ${ampm}`;
+}
+
+function handleDeleteTimetable() {
+    if (!currentDetailId) return;
+    if (!confirm('Are you sure you want to delete this timetable and all its slots?')) return;
+
+    fetch(TIMETABLE_DELETE_URL.replace('0', currentDetailId), {
+        method: 'POST',
+        headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            bootstrap.Modal.getInstance(document.getElementById('timetableDetailModal')).hide();
+            location.reload();
+        } else {
+            alert(data.error || 'Failed to delete.');
+        }
+    });
+}
+</script>
 {% endblock %}

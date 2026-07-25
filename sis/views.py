@@ -15,7 +15,7 @@ from .models import (
     Parent, Student, Subject, SubjectAssessment, ClassRoom, Enrollment,
     StaffProfile, AcademicSession, Term, ClassSubject, PromotionCriteria,
     StaffClassSubject, Department, Designation, GradeVerification,
-    MidTermRecord, Notification, TimetableSlot,
+    MidTermRecord, Notification, Timetable, TimetableSlot,
 )
 from .forms import (
     ParentForm, StudentRegistrationForm, StaffRegistrationForm, EnrollmentForm,
@@ -103,20 +103,57 @@ def student_list_view(request):
     is_admin = _is_admin(request.user)
 
     if is_admin:
-        students = Student.objects.all().select_related('classroom')
+        students = Student.objects.filter(is_alumni=False).select_related('classroom')
     else:
         taught_class_ids = StaffClassSubject.objects.filter(
             staff=request.user.staff_profile
         ).values_list('classroom_id', flat=True).distinct()
         students = Student.objects.filter(
-            classroom_id__in=taught_class_ids
+            classroom_id__in=taught_class_ids, is_alumni=False
         ).select_related('classroom').distinct()
+
+    gender = request.GET.get('gender', '').strip()
+    class_id = request.GET.get('class_id', '').strip()
+    status = request.GET.get('status', '').strip()
+
+    if gender and gender != 'all':
+        students = students.filter(gender__iexact=gender)
+    if class_id and class_id != 'all':
+        students = students.filter(classroom_id=class_id)
+    if status and status != 'all':
+        students = students.filter(status__iexact=status)
 
     classrooms = ClassRoom.objects.all()
     return render(request, 'sis/student_list.html', {
         'students': students,
         'classrooms': classrooms,
         'is_admin': is_admin,
+        'selected_gender': gender or 'all',
+        'selected_class': class_id or 'all',
+        'selected_status': status or 'all',
+        'total_count': students.count(),
+    })
+
+
+@login_required
+def alumni_list_view(request):
+    if not _is_staff_or_admin(request.user):
+        raise PermissionDenied
+
+    students = Student.objects.filter(is_alumni=True).select_related('classroom').order_by('last_name', 'first_name')
+
+    q = request.GET.get('q', '').strip()
+    if q:
+        students = students.filter(
+            Q(first_name__icontains=q) |
+            Q(last_name__icontains=q) |
+            Q(admission_number__icontains=q)
+        )
+
+    return render(request, 'sis/alumni_list.html', {
+        'students': students,
+        'search_query': q,
+        'total_count': students.count(),
     })
 
 
@@ -250,8 +287,6 @@ def bulk_grade_entry_view(request, class_id, subject_id):
     # static anchors for current tracking context
     current_session = AcademicSession.objects.filter(is_current=True).first()
     current_term_obj = Term.objects.filter(is_active=True).first()
-    current_term = int(current_term_obj.term_name.split()[-1]) if current_term_obj else 1
-    current_academic_year = current_session.academic_year if current_session else "2025-2026"
 
     if request.method == 'POST':
         for student in students:
@@ -268,8 +303,6 @@ def bulk_grade_entry_view(request, class_id, subject_id):
                     defaults={
                         'class_score': class_val,
                         'exam_score': exam_val,
-                        'term': current_term,
-                        'academic_year': current_academic_year,
                     }
                 )
         messages.success(request, f"Grades for {subject.subject_name} saved successfully!")
@@ -318,13 +351,13 @@ def class_report_card_view(request, class_id):
 
     is_master = request.GET.get('master') == '1'
 
-    if request.user.is_superuser:
-        assigned_subjects = Subject.objects.filter(offered_in_classes__classroom=classroom).distinct()
-    elif staff:
+    if staff:
         assigned_ids = StaffClassSubject.objects.filter(staff=staff, classroom=classroom).values_list('subject_id', flat=True).distinct()
         assigned_subjects = Subject.objects.filter(id__in=assigned_ids) if assigned_ids else Subject.objects.none()
     else:
         assigned_subjects = Subject.objects.none()
+
+    has_class_subject_assignment = request.user.is_superuser or assigned_subjects.exists()
 
     subjects_for_class = Subject.objects.filter(offered_in_classes__classroom=classroom).distinct().order_by('subject_name')
 
@@ -346,9 +379,12 @@ def class_report_card_view(request, class_id):
         academic_session=current_session, academic_term=current_term,
         student__in=students, subject__in=subjects_for_class,
     )
-    if not has_full_access and staff:
-        assigned_subject_ids = StaffClassSubject.objects.filter(staff=staff, classroom=classroom).values_list('subject_id', flat=True).distinct()
-        all_assessments = all_assessments.filter(subject_id__in=assigned_subject_ids)
+    if is_master or request.user.is_superuser:
+        pass
+    elif has_class_subject_assignment:
+        all_assessments = all_assessments.filter(subject_id__in=assigned_subjects.values_list('id', flat=True))
+    else:
+        all_assessments = SubjectAssessment.objects.none()
 
     assessment_map = {}
     for a in all_assessments:
@@ -429,6 +465,8 @@ def class_report_card_view(request, class_id):
     else:
         assigned_ids = StaffClassSubject.objects.filter(staff=staff).values_list('classroom_id', flat=True).distinct()
         classrooms = ClassRoom.objects.filter(id__in=assigned_ids) if assigned_ids else ClassRoom.objects.none()
+        if staff and staff.form_class and staff.form_class_id not in classrooms.values_list('id', flat=True):
+            classrooms = ClassRoom.objects.filter(Q(id__in=classrooms) | Q(id=staff.form_class_id)).distinct()
     has_graded_records = bool(assessment_map)
 
     can_modify_grades = False
@@ -438,17 +476,14 @@ def class_report_card_view(request, class_id):
                 staff=staff, classroom=classroom, subject_id=current_subject_id
             ).exists()
         else:
-            can_modify_grades = is_form_teacher or assigned_subjects.exists()
+            can_modify_grades = assigned_subjects.exists()
 
     all_subject_ids = set(subjects_for_class.values_list('id', flat=True))
     assigned_subject_ids_set = set(assigned_subjects.values_list('id', flat=True))
     can_edit_master = bool(assigned_subject_ids_set)
 
-    term_number = int(current_term.term_name.split()[-1]) if current_term else 1
-    year_label = current_term.session.academic_year if current_term and current_term.session else "2025/2026"
-
     verification = GradeVerification.objects.filter(
-        classroom=classroom, term=term_number, academic_year=year_label
+        classroom=classroom, academic_session=current_session, academic_term=current_term
     ).first()
 
     assessment_json = {}
@@ -474,6 +509,7 @@ def class_report_card_view(request, class_id):
         'is_form_teacher': is_form_teacher,
         'is_master': is_master,
         'has_full_access': has_full_access,
+        'has_class_subject_assignment': has_class_subject_assignment,
         'verification': verification,
         'assigned_subjects': assigned_subjects,
         'subjects_for_class': subjects_for_class,
@@ -600,9 +636,6 @@ def api_edit_assessment(request):
     if not current_session or not current_term:
         return JsonResponse({'error': 'No active academic session/term'}, status=400)
 
-    term_number = int(current_term.term_name.split()[-1]) if current_term else 1
-    year_label = current_session.academic_year
-
     assessment, created = SubjectAssessment.objects.update_or_create(
         student=student,
         subject=subject,
@@ -611,8 +644,6 @@ def api_edit_assessment(request):
         defaults={
             'class_score': class_score if class_score is not None else 0,
             'exam_score': exam_score if exam_score is not None else 0,
-            'term': term_number,
-            'academic_year': year_label,
         },
     )
 
@@ -645,8 +676,6 @@ def generate_report_cards_view(request, class_id):
 
     current_session = AcademicSession.objects.filter(is_current=True).first()
     current_term = Term.objects.filter(is_active=True).first()
-    term_number = int(current_term.term_name.split()[-1]) if current_term else 1
-    year_label = current_term.session.academic_year if current_term and current_term.session else "2025/2026"
 
     subjects_for_class = Subject.objects.filter(offered_in_classes__classroom=classroom).distinct().order_by('subject_name')
     students = Student.objects.filter(enrollments__classroom=classroom).distinct()
@@ -720,7 +749,7 @@ def generate_report_cards_view(request, class_id):
             subject_positions.setdefault(subj.id, {})[sid] = idx + 1
 
     verification = GradeVerification.objects.filter(
-        classroom=classroom, term=term_number, academic_year=year_label
+        classroom=classroom, academic_session=current_session, academic_term=current_term
     ).first()
 
     parent_emails = []
@@ -738,8 +767,8 @@ def generate_report_cards_view(request, class_id):
         'subject_positions': subject_positions,
         'current_session': current_session,
         'current_term': current_term,
-        'term_number': term_number,
-        'year_label': year_label,
+        'term_number': int(current_term.term_name.split()[-1]) if current_term else 1,
+        'year_label': current_session.academic_year if current_session else '',
         'verification': verification,
         'parent_emails': parent_emails,
         'student_count': len(report_data),
@@ -765,7 +794,7 @@ def export_excel_view(request, class_id):
     current_session = AcademicSession.objects.filter(is_current=True).first()
     current_term = Term.objects.filter(is_active=True).first()
     term_number = int(current_term.term_name.split()[-1]) if current_term else 1
-    year_label = current_term.session.academic_year if current_term and current_term.session else "2025/2026"
+    year_label = current_session.academic_year if current_session else ''
 
     subjects_for_class = Subject.objects.filter(offered_in_classes__classroom=classroom).distinct().order_by('subject_name')
     students = Student.objects.filter(enrollments__classroom=classroom).distinct()
@@ -984,8 +1013,36 @@ def register_staff_view(request):
 
 @login_required
 def staff_list_view(request):
-    staff_members = StaffProfile.objects.select_related('user').all()
-    return render(request, 'sis/staff_list.html', {'staff_members': staff_members})
+    queryset = StaffProfile.objects.select_related('user', 'designation', 'department', 'form_class').all()
+
+    designation = request.GET.get('designation', '').strip()
+    department_id = request.GET.get('department', '').strip()
+    form_class_id = request.GET.get('form_class', '').strip()
+
+    if designation and designation != 'all':
+        queryset = queryset.filter(designation__name__iexact=designation)
+    if department_id and department_id != 'all':
+        queryset = queryset.filter(department_id=department_id)
+    if form_class_id and form_class_id != 'all':
+        if form_class_id == 'none':
+            queryset = queryset.filter(form_class__isnull=True)
+        else:
+            queryset = queryset.filter(form_class_id=form_class_id)
+
+    designations = Designation.objects.all()
+    departments = Department.objects.all()
+    classes = ClassRoom.objects.all()
+
+    return render(request, 'sis/staff_list.html', {
+        'staff_members': queryset,
+        'designations': designations,
+        'departments': departments,
+        'classes': classes,
+        'selected_designation': designation or 'all',
+        'selected_department': department_id or 'all',
+        'selected_form_class': form_class_id or 'all',
+        'total_count': queryset.count(),
+    })
 
 
 @login_required
@@ -1123,7 +1180,6 @@ def enroll_student_view(request, student_id):
         if form.is_valid():
             enrollment = form.save(commit=False)
             enrollment.student = student
-            enrollment.academic_year = form.cleaned_data['term'].session.academic_year
             enrollment.save()
             student.classroom = enrollment.classroom
             student.save(update_fields=['classroom'])
@@ -1235,12 +1291,8 @@ def class_enrollment_portal_view(request):
         promotion_criteria = criteria_qs.first()
         min_score = float(promotion_criteria.min_grand_total) if promotion_criteria else 50.00
 
-        term_label = current_term.term_name if current_term else "Term 1"
-        term_number = int(term_label.split()[-1])
-        year_label = current_session.academic_year if current_session else "2025/2026"
-
         enrolled_ids = Enrollment.objects.filter(
-            classroom=source_class, term=term_label, academic_year=year_label
+            classroom=source_class, academic_session=current_session, academic_term=current_term
         ).values_list('student_id', flat=True)
 
         students = Student.objects.filter(pk__in=enrolled_ids)
@@ -1259,7 +1311,7 @@ def class_enrollment_portal_view(request):
 
         for student in students:
             assessments = SubjectAssessment.objects.filter(
-                student=student, term=term_number, academic_year=year_label
+                student=student, academic_session=current_session, academic_term=current_term
             )
             grand_total = sum(a.total_score for a in assessments)
             eligible = grand_total >= min_score
@@ -1357,19 +1409,20 @@ def configure_session_view(request):
             term_name = request.POST.get('new_term_name', '').strip()
 
             if year_string and term_name:
-                session, created = AcademicSession.objects.get_or_create(
-                    academic_year=year_string
-                )
-                AcademicSession.objects.update(is_current=False)
-                session.is_current = True
-                session.save()
+                with transaction.atomic():
+                    session, created = AcademicSession.objects.get_or_create(
+                        academic_year=year_string
+                    )
+                    AcademicSession.objects.update(is_current=False)
+                    session.is_current = True
+                    session.save()
 
-                term_obj, term_created = Term.objects.get_or_create(
-                    session=session, term_name=term_name
-                )
-                Term.objects.update(is_active=False)
-                term_obj.is_active = True
-                term_obj.save()
+                    term_obj, term_created = Term.objects.get_or_create(
+                        session=session, term_name=term_name
+                    )
+                    Term.objects.update(is_active=False)
+                    term_obj.is_active = True
+                    term_obj.save()
 
                 messages.success(request, f"Academic session '{year_string}' created and activated with {term_name}.")
             else:
@@ -1380,17 +1433,38 @@ def configure_session_view(request):
         session_id = request.POST.get('academic_session')
         term_id = request.POST.get('term')
 
-        if session_id:
+        if not session_id:
+            messages.error(request, "Please select an Academic Session.")
+            return redirect('configure_session')
+
+        selected_session = AcademicSession.objects.filter(pk=session_id).first()
+        if not selected_session:
+            messages.error(request, "Invalid session selected.")
+            return redirect('configure_session')
+
+        if term_id:
+            selected_term = Term.objects.filter(pk=term_id).first()
+            if not selected_term:
+                messages.error(request, "Invalid term selected.")
+                return redirect('configure_session')
+
+            if selected_term.session_id != selected_session.pk:
+                messages.error(
+                    request,
+                    f"'{selected_term.term_name}' belongs to {selected_term.session.academic_year}, "
+                    f"not {selected_session.academic_year}. Please select a term from the correct session."
+                )
+                return redirect('configure_session')
+
+        with transaction.atomic():
             AcademicSession.objects.update(is_current=False)
-            selected_session = get_object_or_404(AcademicSession, pk=session_id)
             selected_session.is_current = True
             selected_session.save()
 
-        if term_id:
-            Term.objects.update(is_active=False)
-            selected_term = get_object_or_404(Term, pk=term_id)
-            selected_term.is_active = True
-            selected_term.save()
+            if term_id:
+                Term.objects.update(is_active=False)
+                selected_term.is_active = True
+                selected_term.save()
 
         messages.success(request, "Academic environment successfully updated!")
         return redirect('configure_session')
@@ -1424,22 +1498,38 @@ def academic_year_rollover_view(request):
 
     if request.method == 'POST':
         confirm = request.POST.get('confirm_rollover')
+        target_session_id = request.POST.get('target_session_id')
+
         if confirm != 'YES_EXECUTE_ROLLOVER':
             messages.error(request, "Confirmation text did not match. Type YES_EXECUTE_ROLLOVER to proceed.")
             return redirect('academic_year_rollover')
+
+        if not target_session_id:
+            messages.error(request, "Please select a Target Academic Session for promoted students.")
+            return redirect('academic_year_rollover')
+
+        target_session = AcademicSession.objects.filter(pk=target_session_id).first()
+        if not target_session:
+            messages.error(request, "Invalid target session selected.")
+            return redirect('academic_year_rollover')
+
+        if current_session and target_session.pk == current_session.pk:
+            messages.error(request, "Target session cannot be the same as the current session.")
+            return redirect('academic_year_rollover')
+
+        target_term, _ = Term.objects.get_or_create(session=target_session, term_name='Term 1')
 
         with transaction.atomic():
             graduated_count = Student.objects.filter(
                 promotion_status='APPROVED',
                 pending_next_class__isnull=True,
                 classroom__next_class__isnull=True,
-            ).update(is_active=False, is_alumni=True, promotion_status='NEUTRAL')
+            ).update(is_alumni=True, promotion_status='NEUTRAL')
 
             promoted_count = 0
             for student in Student.objects.filter(
                 promotion_status='APPROVED', pending_next_class__isnull=False
             ).select_related('pending_next_class'):
-                old_class = student.classroom
                 new_class = student.pending_next_class
 
                 student.classroom = new_class
@@ -1449,22 +1539,32 @@ def academic_year_rollover_view(request):
 
                 Enrollment.objects.update_or_create(
                     student=student,
-                    term='Term 1',
-                    academic_year=current_session.academic_year if current_session else '2025/2026',
-                    defaults={'classroom': new_class},
+                    classroom=new_class,
+                    academic_session=target_session,
+                    academic_term=target_term,
                 )
                 promoted_count += 1
 
-            held_count = Student.objects.filter(promotion_status='HELD_BACK').update(
-                promotion_status='NEUTRAL'
-            )
+            held_back_students_qs = Student.objects.filter(promotion_status='HELD_BACK')
+            for student in held_back_students_qs:
+                if student.classroom:
+                    Enrollment.objects.update_or_create(
+                        student=student,
+                        classroom=student.classroom,
+                        academic_session=target_session,
+                        academic_term=target_term,
+                    )
+            held_count = held_back_students_qs.update(promotion_status='NEUTRAL')
 
         messages.success(
             request,
             f"Academic year rollover complete: {promoted_count} promoted, "
-            f"{graduated_count} graduated, {held_count} held back (status cleared)."
+            f"{graduated_count} graduated to alumni, {held_count} held back. "
+            f"All students enrolled in {target_session.academic_year} Term 1."
         )
         return redirect('configure_session')
+
+    available_sessions = AcademicSession.objects.exclude(pk=current_session.pk).order_by('academic_year') if current_session else AcademicSession.objects.all().order_by('academic_year')
 
     context = {
         'current_session': current_session,
@@ -1473,6 +1573,7 @@ def academic_year_rollover_view(request):
         'held_back_students': held_back_students,
         'graduated_students': graduated_students,
         'total_pending': approved_students.count() + held_back_students.count(),
+        'available_sessions': available_sessions,
     }
     return render(request, 'sis/academic_year_rollover.html', context)
 
@@ -1488,7 +1589,7 @@ def global_search_view(request):
     results = []
 
     if scope == 'students':
-        for s in Student.objects.filter(full_name_q | Q(admission_number__icontains=q))[:8]:
+        for s in Student.objects.filter(full_name_q | Q(admission_number__icontains=q)).exclude(is_alumni=True)[:8]:
             results.append({
                 'id': s.id,
                 'name': f"{s.first_name} {s.last_name}",
@@ -1541,19 +1642,19 @@ def global_search_view(request):
 
     elif scope == 'timetables':
         for slot in TimetableSlot.objects.filter(
-            Q(class_assigned__class_name__icontains=q) |
+            Q(timetable__student_class__class_name__icontains=q) |
             Q(subject__subject_name__icontains=q) |
             Q(teacher__first_name__icontains=q) |
             Q(teacher__last_name__icontains=q)
-        ).select_related('class_assigned', 'subject', 'teacher').distinct()[:8]:
+        ).select_related('timetable__student_class', 'subject', 'teacher').distinct()[:8]:
             teacher_name = f"{slot.teacher.first_name} {slot.teacher.last_name}" if slot.teacher else 'Unassigned'
             results.append({
                 'id': slot.id,
-                'name': f"{slot.class_assigned.class_name} — {slot.subject.subject_name}",
+                'name': f"{slot.timetable.student_class.class_name} — {slot.subject.subject_name}",
                 'extra': f"{slot.get_day_of_week_display()} {slot.start_time.strftime('%H:%M')}",
                 'type': 'Timetable',
                 'url': '#',
-                'action': f"openTimetable('{slot.class_assigned.class_name}')",
+                'action': f"openTimetable('{slot.timetable.student_class.class_name}')",
             })
 
     elif scope == 'reports':
@@ -1684,8 +1785,6 @@ def compile_grades_view(request):
                     defaults={
                         'class_score': cs or 0,
                         'exam_score': es or 0,
-                        'term': current_term.term_name.split()[-1] if current_term else 1,
-                        'academic_year': current_session.academic_year if current_session else '2025/2026',
                     }
                 )
         _notify_form_teacher(request, classroom, selected_subject, False)
@@ -2050,13 +2149,9 @@ def verify_class_rankings_view(request, class_id):
 
     if request.method == 'POST':
         if not verification:
-            term_number = int(current_term.term_name.split()[-1]) if current_term else 1
-            year_label = current_session.academic_year if current_session else "2025/2026"
             GradeVerification.objects.create(
                 classroom=classroom,
                 verified_by=staff,
-                term=term_number,
-                academic_year=year_label,
                 academic_session=current_session,
                 academic_term=current_term,
             )
@@ -2162,16 +2257,127 @@ def classes_subjects_hub(request):
     })
 
 
+@login_required
 def timetable_hub(request):
-    mock_timetable = {
-        'class_name': 'JHS 1',
-        'slots_count': 5,
-        'days_active': 'Mon - Fri',
-        'last_updated': 'Just now',
-    }
+    timetables = Timetable.objects.select_related('student_class', 'academic_term').all()
+    classes = ClassRoom.objects.all().order_by('order')
+    subjects = Subject.objects.all().order_by('subject_name')
+    teachers = StaffProfile.objects.select_related('user').all()
+    terms = Term.objects.select_related('session').order_by('-session__academic_year', 'term_name')
+    current_term = Term.objects.filter(is_active=True).first()
     return render(request, 'sis/timetable_hub.html', {
-        'placeholder_timetable': mock_timetable,
+        'timetables': timetables,
+        'classes': classes,
+        'subjects': subjects,
+        'teachers': teachers,
+        'terms': terms,
+        'current_term': current_term,
     })
+
+
+@login_required
+@require_POST
+def timetable_create(request):
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    class_id = data.get('class_id')
+    title = data.get('title', '').strip()
+    term_id = data.get('term_id')
+    slots = data.get('slots', [])
+
+    if not class_id or not title or not term_id:
+        return JsonResponse({'error': 'Class, title, and term are required.'}, status=400)
+
+    try:
+        classroom = ClassRoom.objects.get(pk=class_id)
+        term = Term.objects.get(pk=term_id)
+    except (ClassRoom.DoesNotExist, Term.DoesNotExist):
+        return JsonResponse({'error': 'Invalid class or term.'}, status=400)
+
+    if Timetable.objects.filter(student_class=classroom, academic_term=term).exists():
+        return JsonResponse({'error': f'A timetable already exists for {classroom.class_name} in this term.'}, status=400)
+
+    timetable = Timetable.objects.create(
+        student_class=classroom,
+        title=title,
+        academic_term=term,
+    )
+
+    created_slots = 0
+    for slot_data in slots:
+        try:
+            subject = Subject.objects.get(pk=slot_data['subject_id'])
+            teacher = StaffProfile.objects.get(pk=slot_data['teacher_id']) if slot_data.get('teacher_id') else None
+            TimetableSlot.objects.create(
+                timetable=timetable,
+                subject=subject,
+                teacher=teacher,
+                day_of_week=slot_data['day_of_week'],
+                start_time=slot_data['start_time'],
+                end_time=slot_data['end_time'],
+                room_or_note=slot_data.get('room_or_note', ''),
+            )
+            created_slots += 1
+        except (Subject.DoesNotExist, StaffProfile.DoesNotExist, KeyError):
+            continue
+
+    return JsonResponse({
+        'success': True,
+        'timetable_id': timetable.id,
+        'title': timetable.title,
+        'slots_created': created_slots,
+    })
+
+
+@login_required
+def timetable_detail_api(request, timetable_id):
+    try:
+        timetable = Timetable.objects.select_related('student_class', 'academic_term').get(pk=timetable_id)
+    except Timetable.DoesNotExist:
+        return JsonResponse({'error': 'Timetable not found'}, status=404)
+
+    slots = timetable.slots.select_related('subject', 'teacher').order_by('day_of_week', 'start_time')
+
+    grid = {}
+    for slot in slots:
+        day = slot.day_of_week
+        if day not in grid:
+            grid[day] = []
+        grid[day].append({
+            'id': slot.id,
+            'subject': slot.subject.subject_name,
+            'teacher': f"{slot.teacher.first_name} {slot.teacher.last_name}" if slot.teacher else 'Unassigned',
+            'start_time': slot.start_time.strftime('%H:%M'),
+            'end_time': slot.end_time.strftime('%H:%M'),
+            'room_or_note': slot.room_or_note,
+        })
+
+    return JsonResponse({
+        'timetable': {
+            'id': timetable.id,
+            'title': timetable.title,
+            'class_name': timetable.student_class.class_name,
+            'term': timetable.academic_term.term_name,
+            'is_active': timetable.is_active,
+            'updated_at': timetable.updated_at.strftime('%b %d, %Y %H:%M'),
+        },
+        'grid': grid,
+        'days': ['MON', 'TUE', 'WED', 'THU', 'FRI'],
+    })
+
+
+@login_required
+@require_POST
+def timetable_delete(request, timetable_id):
+    try:
+        timetable = Timetable.objects.get(pk=timetable_id)
+    except Timetable.DoesNotExist:
+        return JsonResponse({'error': 'Timetable not found'}, status=404)
+    timetable.delete()
+    return JsonResponse({'success': True})
 
 
 @login_required

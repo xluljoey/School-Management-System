@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import ClassRoom, Subject, StaffProfile, Student, SubjectAssignment, AcademicSession, Term, ClassSubject, Parent, Department, Designation, StaffClassSubject, MidTermRecord
+from .models import ClassRoom, Subject, StaffProfile, Student, AcademicSession, Term, ClassSubject, Parent, Department, Designation, StaffClassSubject, MidTermRecord, Timetable, TimetableSlot
 
 class PermissiveModelAdmin(admin.ModelAdmin):
     """
@@ -68,8 +68,8 @@ class ClassSubjectAdmin(PermissiveModelAdmin):
 
 @admin.register(Student)
 class StudentAdmin(PermissiveModelAdmin):
-    list_display = ('admission_number', 'first_name', 'last_name', 'gender', 'classroom')
-    list_filter = ('classroom', 'gender', 'status')
+    list_display = ('admission_number', 'first_name', 'last_name', 'gender', 'classroom', 'is_alumni')
+    list_filter = ('classroom', 'gender', 'status', 'is_alumni')
     search_fields = ('admission_number', 'first_name', 'last_name')
 
 admin.site.register(ClassRoom, type('ClassRoomAdmin', (PermissiveModelAdmin,), {
@@ -77,7 +77,6 @@ admin.site.register(ClassRoom, type('ClassRoomAdmin', (PermissiveModelAdmin,), {
     'search_fields': ('class_name',),
 }))
 admin.site.register(Subject, PermissiveModelAdmin)
-admin.site.register(SubjectAssignment, PermissiveModelAdmin)
 admin.site.register(AcademicSession, PermissiveModelAdmin)
 admin.site.register(Term, PermissiveModelAdmin)
 admin.site.register(ClassSubject, ClassSubjectAdmin)
@@ -86,3 +85,24 @@ admin.site.register(Department, PermissiveModelAdmin)
 admin.site.register(Designation, PermissiveModelAdmin)
 admin.site.register(StaffClassSubject, PermissiveModelAdmin)
 admin.site.register(MidTermRecord, PermissiveModelAdmin)
+
+
+class TimetableSlotInline(admin.TabularInline):
+    model = TimetableSlot
+    extra = 1
+    fields = ('day_of_week', 'start_time', 'end_time', 'subject', 'teacher', 'room_or_note')
+
+
+@admin.register(Timetable)
+class TimetableAdmin(PermissiveModelAdmin):
+    list_display = ('title', 'student_class', 'academic_term', 'is_active', 'updated_at')
+    list_filter = ('is_active', 'academic_term', 'student_class')
+    search_fields = ('title', 'student_class__class_name')
+    inlines = [TimetableSlotInline]
+
+
+@admin.register(TimetableSlot)
+class TimetableSlotAdmin(PermissiveModelAdmin):
+    list_display = ('timetable', 'day_of_week', 'start_time', 'end_time', 'subject', 'teacher')
+    list_filter = ('day_of_week', 'timetable__student_class')
+    search_fields = ('subject__subject_name', 'teacher__first_name', 'teacher__last_name')
