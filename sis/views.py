@@ -6,7 +6,7 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.models import User
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
-from django.db.models import Q, Count
+from django.db.models import Q, Count, Prefetch
 from django.http import JsonResponse
 from django.urls import reverse
 from django.views.decorators.http import require_POST
@@ -2691,8 +2691,19 @@ def view_account(request):
 def parents_list(request):
     user = request.user
 
+    children_prefetch = Prefetch(
+        'father_of',
+        queryset=Student.objects.select_related('classroom').filter(is_alumni=False),
+        to_attr='father_children'
+    )
+    mother_prefetch = Prefetch(
+        'mother_of',
+        queryset=Student.objects.select_related('classroom').filter(is_alumni=False),
+        to_attr='mother_children'
+    )
+
     if user.is_superuser:
-        parents = Parent.objects.all().order_by('name')
+        parents = Parent.objects.prefetch_related(children_prefetch, mother_prefetch).order_by('name')
     elif hasattr(user, 'staff_profile'):
         staff = user.staff_profile
         classroom_ids = StaffClassSubject.objects.filter(
@@ -2701,7 +2712,7 @@ def parents_list(request):
         parents = Parent.objects.filter(
             Q(father_of__classroom_id__in=classroom_ids) |
             Q(mother_of__classroom_id__in=classroom_ids)
-        ).distinct().order_by('name')
+        ).distinct().prefetch_related(children_prefetch, mother_prefetch).order_by('name')
     else:
         parents = Parent.objects.none()
 

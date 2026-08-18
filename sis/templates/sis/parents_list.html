@@ -46,14 +46,32 @@
                     {{ parent.occupation|default:"&mdash;" }}
                 </td>
                 <td style="padding: 14px 16px; border-bottom: 1px solid #f5f5f5;">
-                    {% with father_count=parent.father_of.count mother_count=parent.mother_of.count %}
-                    {% if father_count or mother_count %}
-                    <span style="background-color: #E8F5E9; color: #2E7D32; border-radius: 12px; padding: 4px 12px; font-weight: 500; font-size: 0.8rem; display: inline-block;">
-                        {{ father_count|add:mother_count }} student{{ father_count|add:mother_count|pluralize }}
-                    </span>
+                    {% with father_children=parent.father_children mother_children=parent.mother_children %}
+                    {% with all_children=father_children|add:mother_children %}
+                    {% if all_children %}
+                    <div style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center;">
+                        {% for student in all_children %}
+                        <a href="{% url 'student_detail' student.id %}"
+                           onclick="event.stopPropagation();"
+                           style="display: inline-flex; align-items: center; gap: 4px;
+                                  padding: 4px 10px; border-radius: 50px;
+                                  font-size: 0.75rem; font-weight: 500;
+                                  background-color: #E8F5E9; color: #2E7D32;
+                                  border: 1px solid rgba(46, 125, 50, 0.15);
+                                  text-decoration: none; transition: background-color 0.15s;"
+                           onmouseover="this.style.backgroundColor='#C8E6C9'"
+                           onmouseout="this.style.backgroundColor='#E8F5E9'">
+                            <span>{{ student.first_name }} {{ student.last_name }}</span>
+                            {% if student.classroom %}
+                            <span style="font-size: 10px; opacity: 0.75; font-weight: 600;">({{ student.classroom.class_name }})</span>
+                            {% endif %}
+                        </a>
+                        {% endfor %}
+                    </div>
                     {% else %}
                     <span style="color: #8E8D93; font-size: 0.85rem;">&mdash;</span>
                     {% endif %}
+                    {% endwith %}
                     {% endwith %}
                 </td>
             </tr>
