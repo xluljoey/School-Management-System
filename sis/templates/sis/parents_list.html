@@ -51,6 +51,7 @@
                     {% if all_children %}
                     <div style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center;">
                         {% for student in all_children %}
+                        {% if forloop.counter <= 2 %}
                         <a href="{% url 'student_detail' student.id %}"
                            onclick="event.stopPropagation();"
                            style="display: inline-flex; align-items: center; gap: 4px;
@@ -66,7 +67,19 @@
                             <span style="font-size: 10px; opacity: 0.75; font-weight: 600;">({{ student.classroom.class_name }})</span>
                             {% endif %}
                         </a>
+                        {% endif %}
                         {% endfor %}
+                        {% if all_children|length > 2 %}
+                        <span title="{% for student in all_children %}{% if forloop.counter > 2 %}{{ student.first_name }} {{ student.last_name }}{% if not forloop.last %}, {% endif %}{% endif %}{% endfor %}"
+                              style="display: inline-flex; align-items: center;
+                                     padding: 4px 10px; border-radius: 50px;
+                                     font-size: 0.75rem; font-weight: 500;
+                                     background-color: #F3F4F6; color: #6B7280;
+                                     border: 1px solid rgba(107, 114, 128, 0.15);
+                                     cursor: default;">
+                            +{{ all_children|length|add:"-2" }} more
+                        </span>
+                        {% endif %}
                     </div>
                     {% else %}
                     <span style="color: #8E8D93; font-size: 0.85rem;">&mdash;</span>
