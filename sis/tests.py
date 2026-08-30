@@ -409,9 +409,49 @@ class StudentRegistrationTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertFalse(response.context["has_graded_records"])
         self.assertTrue(response.context["has_class_subject_assignment"])
+        self.assertTrue(response.context["is_admin_landing"])
         self.assertContains(response, "Group%208381.svg")
         self.assertContains(response, "View Master Records")
         self.assertContains(response, "No student grade records compiled for this class yet")
+
+    def test_admin_report_landing_with_data_still_shows_empty_design_then_master(self):
+        from django.contrib.auth.models import User
+
+        self.client.logout()
+        User.objects.create_superuser(username="repadmin2", password="password")
+        self.client.login(username="repadmin2", password="password")
+        classroom = ClassRoom.objects.create(class_name="Class Admin Data")
+        session = AcademicSession.objects.create(academic_year="2025/2026", is_current=True)
+        term = Term.objects.create(session=session, term_name="Term 1", is_active=True)
+        student = Student.objects.create(
+            admission_number="ADM-1",
+            first_name="Data",
+            last_name="Kid",
+            gender="Female",
+            dob="2011-01-01",
+            status="Day",
+            current_class=classroom,
+        )
+        subject = Subject.objects.create(subject_name="Maths")
+        ClassSubject.objects.create(classroom=classroom, subject=subject)
+        SubjectAssessment.objects.create(
+            student=student, subject=subject,
+            academic_session=session, academic_term=term,
+            class_score=20, exam_score=40,
+        )
+        url = reverse("class_report", kwargs={"class_id": classroom.id})
+
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["has_graded_records"])
+        self.assertTrue(response.context["is_admin_landing"])
+        self.assertContains(response, "View Master Records")
+
+        master = self.client.get(url + "?master=1")
+        self.assertEqual(master.status_code, 200)
+        self.assertFalse(master.context["is_admin_landing"])
+        self.assertTrue(master.context["is_master"])
+        self.assertContains(master, "Data Kid")
 
     def test_class_report_with_grades_displays_table(self):
         classroom = ClassRoom.objects.create(class_name="Class Graded")
@@ -440,8 +480,14 @@ class StudentRegistrationTests(TestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.context["has_graded_records"])
-        self.assertContains(response, "Evelyn Standings")
-        self.assertNotContains(response, "No student grade records compiled for this class yet")
+        self.assertTrue(response.context["is_admin_landing"])
+        self.assertContains(response, "No student grade records compiled for this class yet")
+
+        master = self.client.get(url + "?master=1")
+        self.assertEqual(master.status_code, 200)
+        self.assertTrue(master.context["has_graded_records"])
+        self.assertFalse(master.context["is_admin_landing"])
+        self.assertContains(master, "Evelyn Standings")
 
 
 class FormMasterStudentVisibilityTests(TestCase):

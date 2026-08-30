@@ -641,9 +641,12 @@ def class_report_card_view(request, class_id):
     students_json = [{'id': s.id, 'name': f"{s.first_name} {s.last_name}"} for s in students]
     subjects_json = [{'id': s.id, 'name': s.subject_name} for s in subjects_for_class]
 
+    is_admin_landing = request.user.is_superuser and not is_master and not active_subject
+
     return render(request, 'sis/class_report.html', {
         'classroom': classroom,
         'report_data': report_data,
+        'is_admin_landing': is_admin_landing,
         'classrooms': classrooms,
         'assigned_classes': classrooms,
         'current_class_id': classroom.id,
