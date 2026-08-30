@@ -534,3 +534,88 @@ class FormMasterStudentVisibilityTests(TestCase):
         response = self.client.get(reverse("student_list"))
         self.assertContains(response, "Kofi  Mensah")
         self.assertNotContains(response, "Ama  Serwaa")
+
+
+class ExportStaffExcelTests(TestCase):
+    def setUp(self):
+        import io
+
+        from django.contrib.auth.models import User
+
+        self._io = io
+        self.user = User.objects.create_superuser(username="staffexport", password="password")
+        self.client.login(username="staffexport", password="password")
+
+    def test_export_staff_excel_includes_staff_rows(self):
+        from django.contrib.auth.models import User
+
+        dept = Department.objects.create(name="Sciences")
+        des = Designation.objects.create(name="Head of Maths")
+        cls = ClassRoom.objects.create(class_name="JHS 2", order=2)
+        subject = Subject.objects.create(subject_name="Physics")
+        s_user = User.objects.create_user(username="t1", email="t1@example.com", password="x")
+        staff = StaffProfile.objects.create(
+            staff_id="STF-100",
+            title="Mr.",
+            first_name="Kwesi",
+            other_names="Kofi",
+            last_name="Antwi",
+            gender="Male",
+            email="kwesi@example.com",
+            phone_number="0244001234",
+            department=dept,
+            designation=des,
+            form_class=cls,
+            user=s_user,
+        )
+        staff.subject_areas.add(subject)
+
+        response = self.client.get(reverse("export_staff_excel"))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response["Content-Type"],
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        self.assertIn("Staff_Directory", response["Content-Disposition"])
+
+        from openpyxl import load_workbook
+
+        ws = load_workbook(self._io.BytesIO(response.content)).active
+        header_row = [c.value for c in ws[3]]
+        self.assertIn("Staff ID", header_row)
+        self.assertIn("Designation", header_row)
+        self.assertIn("Department", header_row)
+        self.assertIn("Form Class", header_row)
+        self.assertIn("Subject Areas", header_row)
+
+        cell_values = [c.value for row in ws.iter_rows(min_row=4) for c in row if c.value is not None]
+        self.assertIn("STF-100", cell_values)
+        self.assertIn("Kwesi", cell_values)
+        self.assertIn("Antwi", cell_values)
+        self.assertIn("Sciences", cell_values)
+        self.assertIn("Physics", cell_values)
+
+    def test_export_staff_fab_only_for_superuser(self):
+        response = self.client.get(reverse("staff_list"))
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["can_export"])
+        self.assertContains(response, "Export to Excel")
+
+        self.client.logout()
+        from django.contrib.auth.models import User
+
+        User.objects.create_user(username="plainstaff", password="password")
+        self.client.login(username="plainstaff", password="password")
+        response = self.client.get(reverse("staff_list"))
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.context["can_export"])
+        self.assertNotContains(response, "Export to Excel")
+
+    def test_export_staff_excel_requires_superuser(self):
+        self.client.logout()
+        from django.contrib.auth.models import User
+
+        User.objects.create_user(username="plainstaff2", password="password")
+        self.client.login(username="plainstaff2", password="password")
+        response = self.client.get(reverse("export_staff_excel"))
+        self.assertEqual(response.status_code, 403)

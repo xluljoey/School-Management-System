@@ -1315,7 +1315,102 @@ def staff_list_view(request):
         'selected_department': department_id or 'all',
         'selected_form_class': form_class_id or 'all',
         'total_count': queryset.count(),
+        'can_export': request.user.is_superuser,
     })
+
+
+@login_required
+def export_staff_excel(request):
+    from datetime import datetime
+    import io
+    from django.http import HttpResponse
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
+
+    if not _is_admin(request.user):
+        raise PermissionDenied
+
+    staff_members = StaffProfile.objects.select_related(
+        'user', 'designation', 'department', 'form_class'
+    ).prefetch_related('subject_areas').order_by('last_name', 'first_name')
+
+    columns = [
+        "Staff ID", "Title", "First Name", "Other Names", "Last Name", "Gender",
+        "Date of Birth", "Designation", "Department", "Form Class", "Email",
+        "Phone Number", "Employment Type", "Date of Appointment",
+        "Year of Last Promotion", "Qualification", "Certificate",
+        "Institution Completed", "Year Completed", "Subject Areas",
+    ]
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Staff Directory"
+
+    header_font = Font(bold=True, size=14)
+    sub_header_font = Font(bold=True, size=10)
+    border = Border(
+        left=Side(style='thin'), right=Side(style='thin'),
+        top=Side(style='thin'), bottom=Side(style='thin')
+    )
+    header_fill = PatternFill(start_color="E8E8E8", end_color="E8E8E8", fill_type="solid")
+
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=len(columns))
+    ws.cell(row=1, column=1, value="STAFF DIRECTORY").font = header_font
+
+    for col_idx, name in enumerate(columns, 1):
+        cell = ws.cell(row=3, column=col_idx, value=name)
+        cell.font = sub_header_font
+        cell.border = border
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal='center', wrap_text=True)
+
+    row = 4
+    for s in staff_members:
+        subject_areas = ", ".join(
+            sub.subject_name for sub in s.subject_areas.all()
+        )
+        values = [
+            s.staff_id, s.title, s.first_name, s.other_names or '', s.last_name, s.gender,
+            s.dob.strftime('%Y-%m-%d') if s.dob else '',
+            s.designation.name if s.designation else '',
+            s.department.name if s.department else '',
+            s.form_class.class_name if s.form_class else '',
+            s.email, s.phone_number or '', s.employment_type,
+            s.date_of_appointment.strftime('%Y-%m-%d') if s.date_of_appointment else '',
+            s.year_of_last_promotion if s.year_of_last_promotion is not None else '',
+            s.qualification, s.certificate,
+            s.name_of_institution_completed, s.year_completed,
+            subject_areas,
+        ]
+        for col_idx, val in enumerate(values, 1):
+            cell = ws.cell(row=row, column=col_idx, value=val)
+            cell.border = border
+        row += 1
+
+    for col in ws.columns:
+        max_length = 0
+        col_letter = None
+        for cell in col:
+            if not hasattr(cell, 'column_letter'):
+                continue
+            if col_letter is None:
+                col_letter = cell.column_letter
+            if cell.value:
+                max_length = max(max_length, len(str(cell.value)))
+        if col_letter:
+            ws.column_dimensions[col_letter].width = min(max_length + 4, 30)
+
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+
+    response = HttpResponse(
+        buffer.getvalue(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    filename = f"Staff_Directory_{datetime.now().strftime('%Y-%m-%d')}.xlsx"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
 
 
 @login_required
