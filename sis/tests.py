@@ -619,3 +619,79 @@ class ExportStaffExcelTests(TestCase):
         self.client.login(username="plainstaff2", password="password")
         response = self.client.get(reverse("export_staff_excel"))
         self.assertEqual(response.status_code, 403)
+
+
+class ExportExcelTests(TestCase):
+    def setUp(self):
+        import io
+
+        from django.contrib.auth.models import User
+
+        self._io = io
+        self.user = User.objects.create_superuser(username="exportadmin", password="password")
+        self.client.login(username="exportadmin", password="password")
+
+    def test_export_students_excel_includes_linked_parents(self):
+        classroom = ClassRoom.objects.create(class_name="JHS 1")
+        father = Parent.objects.create(name="Kwame Mensah", telephone_number="0244000001")
+        mother = Parent.objects.create(name="Ama Mensah", email="ama@example.com")
+        Student.objects.create(
+            admission_number="EX-001",
+            first_name="Kofi",
+            last_name="Mensah",
+            gender="Male",
+            dob="2011-01-01",
+            status="Day",
+            classroom=classroom,
+            father=father,
+            mother=mother,
+        )
+
+        response = self.client.get(reverse("export_students_excel"))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response["Content-Type"],
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        self.assertIn("Students_Directory", response["Content-Disposition"])
+
+        from openpyxl import load_workbook
+
+        ws = load_workbook(self._io.BytesIO(response.content)).active
+        header_row = [c.value for c in ws[3]]
+        self.assertIn("Father Name", header_row)
+        self.assertIn("Mother Phone", header_row)
+
+        cell_values = [c.value for row in ws.iter_rows(min_row=4) for c in row if c.value is not None]
+        self.assertIn("EX-001", cell_values)
+        self.assertIn("Kwame Mensah", cell_values)
+        self.assertIn("ama@example.com", cell_values)
+
+    def test_export_parents_excel_includes_linked_students(self):
+        classroom = ClassRoom.objects.create(class_name="JHS 1")
+        parent = Parent.objects.create(name="Kwame Mensah", telephone_number="0244000001")
+        Student.objects.create(
+            admission_number="EX-002",
+            first_name="Kofi",
+            last_name="Mensah",
+            gender="Male",
+            dob="2011-01-01",
+            status="Day",
+            classroom=classroom,
+            father=parent,
+        )
+
+        response = self.client.get(reverse("export_parents_excel"))
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Parents_Directory", response["Content-Disposition"])
+
+        from openpyxl import load_workbook
+
+        ws = load_workbook(self._io.BytesIO(response.content)).active
+        header_row = [c.value for c in ws[3]]
+        self.assertIn("Parent Name", header_row)
+        self.assertIn("Children (Name - Class)", header_row)
+
+        cell_values = [c.value for row in ws.iter_rows(min_row=4) for c in row if c.value is not None]
+        self.assertIn("Kwame Mensah", cell_values)
+        self.assertIn("Kofi Mensah - JHS 1", cell_values)
