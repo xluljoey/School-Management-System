@@ -389,6 +389,30 @@ class StudentRegistrationTests(TestCase):
         self.assertFalse(response.context["has_graded_records"])
         self.assertContains(response, "No student grade records compiled for this class yet")
 
+    def test_class_report_empty_state_shows_master_records_pill(self):
+        classroom = ClassRoom.objects.create(class_name="Class Empty Pill")
+        url = reverse("class_report", kwargs={"class_id": classroom.id})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.context["has_graded_records"])
+        self.assertContains(response, "View Master Records")
+
+    def test_admin_report_landing_shows_staff_empty_state_with_pill(self):
+        from django.contrib.auth.models import User
+
+        self.client.logout()
+        User.objects.create_superuser(username="repadmin", password="password")
+        self.client.login(username="repadmin", password="password")
+        classroom = ClassRoom.objects.create(class_name="Class Admin Empty")
+        url = reverse("class_report", kwargs={"class_id": classroom.id})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.context["has_graded_records"])
+        self.assertTrue(response.context["has_class_subject_assignment"])
+        self.assertContains(response, "Group%208381.svg")
+        self.assertContains(response, "View Master Records")
+        self.assertContains(response, "No student grade records compiled for this class yet")
+
     def test_class_report_with_grades_displays_table(self):
         classroom = ClassRoom.objects.create(class_name="Class Graded")
         session = AcademicSession.objects.create(academic_year="2025/2026", is_current=True)
