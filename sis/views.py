@@ -7,7 +7,7 @@ from django.contrib.auth.models import User
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.db.models import Q, Count, Prefetch
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.urls import reverse
 from django.views.decorators.http import require_POST
 import calendar
@@ -2723,6 +2723,218 @@ def parents_list(request):
         parents = Parent.objects.none()
 
     return render(request, 'sis/parents_list.html', {'parents': parents})
+
+
+@login_required
+def export_students_excel(request):
+    from datetime import datetime
+    import io
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
+
+    user = request.user
+    if _is_admin(user):
+        students = Student.objects.filter(is_alumni=False).select_related(
+            'classroom', 'father', 'mother'
+        ).order_by('last_name', 'first_name')
+    elif hasattr(user, 'staff_profile'):
+        staff = user.staff_profile
+        visible_class_ids = set(StaffClassSubject.objects.filter(
+            staff=staff
+        ).values_list('classroom_id', flat=True))
+        if staff.form_class:
+            visible_class_ids.add(staff.form_class_id)
+        visible_class_ids.update(
+            ClassRoom.objects.filter(form_master=staff).values_list('id', flat=True)
+        )
+        students = Student.objects.filter(
+            classroom_id__in=visible_class_ids, is_alumni=False
+        ).select_related('classroom', 'father', 'mother').order_by('last_name', 'first_name')
+    else:
+        raise PermissionDenied
+
+    columns = [
+        "Admission No.", "First Name", "Other Names", "Last Name", "Gender",
+        "Date of Birth", "Class", "Status",
+        "Father Name", "Father Phone", "Father Email",
+        "Mother Name", "Mother Phone", "Mother Email",
+        "Parent Address",
+    ]
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Students Directory"
+
+    header_font = Font(bold=True, size=14)
+    sub_header_font = Font(bold=True, size=10)
+    border = Border(
+        left=Side(style='thin'), right=Side(style='thin'),
+        top=Side(style='thin'), bottom=Side(style='thin')
+    )
+    header_fill = PatternFill(start_color="E8E8E8", end_color="E8E8E8", fill_type="solid")
+
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=len(columns))
+    ws.cell(row=1, column=1, value="STUDENTS DIRECTORY").font = header_font
+
+    for col_idx, name in enumerate(columns, 1):
+        cell = ws.cell(row=3, column=col_idx, value=name)
+        cell.font = sub_header_font
+        cell.border = border
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal='center', wrap_text=True)
+
+    row = 4
+    for s in students:
+        father = s.father
+        mother = s.mother
+        address = ''
+        if father and father.residential_address:
+            address = father.residential_address
+        elif mother and mother.residential_address:
+            address = mother.residential_address
+
+        values = [
+            s.admission_number, s.first_name, s.other_names or '', s.last_name, s.gender,
+            s.dob.strftime('%Y-%m-%d'), s.classroom.class_name if s.classroom else '', s.status,
+            father.name if father else '', father.telephone_number if father else '', father.email if father else '',
+            mother.name if mother else '', mother.telephone_number if mother else '', mother.email if mother else '',
+            address,
+        ]
+        for col_idx, val in enumerate(values, 1):
+            cell = ws.cell(row=row, column=col_idx, value=val)
+            cell.border = border
+        row += 1
+
+    for col in ws.columns:
+        max_length = 0
+        col_letter = None
+        for cell in col:
+            if not hasattr(cell, 'column_letter'):
+                continue
+            if col_letter is None:
+                col_letter = cell.column_letter
+            if cell.value:
+                max_length = max(max_length, len(str(cell.value)))
+        if col_letter:
+            ws.column_dimensions[col_letter].width = min(max_length + 4, 30)
+
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+
+    response = HttpResponse(
+        buffer.getvalue(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    filename = f"Students_Directory_{datetime.now().strftime('%Y-%m-%d')}.xlsx"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
+
+
+@login_required
+def export_parents_excel(request):
+    from datetime import datetime
+    import io
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
+
+    user = request.user
+
+    children_prefetch = Prefetch(
+        'father_of',
+        queryset=Student.objects.select_related('classroom').filter(is_alumni=False),
+        to_attr='father_children'
+    )
+    mother_prefetch = Prefetch(
+        'mother_of',
+        queryset=Student.objects.select_related('classroom').filter(is_alumni=False),
+        to_attr='mother_children'
+    )
+
+    if user.is_superuser:
+        parents = Parent.objects.prefetch_related(children_prefetch, mother_prefetch).order_by('name')
+    elif hasattr(user, 'staff_profile'):
+        staff = user.staff_profile
+        classroom_ids = StaffClassSubject.objects.filter(
+            staff=staff
+        ).values_list('classroom_id', flat=True).distinct()
+        parents = Parent.objects.filter(
+            Q(father_of__classroom_id__in=classroom_ids) |
+            Q(mother_of__classroom_id__in=classroom_ids)
+        ).distinct().prefetch_related(children_prefetch, mother_prefetch).order_by('name')
+    else:
+        raise PermissionDenied
+
+    columns = [
+        "Parent Name", "Phone", "Email", "Occupation", "Residential Address",
+        "No. of Children", "Children (Name - Class)",
+    ]
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Parents Directory"
+
+    header_font = Font(bold=True, size=14)
+    sub_header_font = Font(bold=True, size=10)
+    border = Border(
+        left=Side(style='thin'), right=Side(style='thin'),
+        top=Side(style='thin'), bottom=Side(style='thin')
+    )
+    header_fill = PatternFill(start_color="E8E8E8", end_color="E8E8E8", fill_type="solid")
+
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=len(columns))
+    ws.cell(row=1, column=1, value="PARENTS DIRECTORY").font = header_font
+
+    for col_idx, name in enumerate(columns, 1):
+        cell = ws.cell(row=3, column=col_idx, value=name)
+        cell.font = sub_header_font
+        cell.border = border
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal='center', wrap_text=True)
+
+    row = 4
+    for parent in parents:
+        father_children = list(getattr(parent, 'father_children', []))
+        mother_children = list(getattr(parent, 'mother_children', []))
+        children = father_children + mother_children
+        children_str = "; ".join(
+            f"{child.first_name} {child.last_name} - {child.classroom.class_name if child.classroom else 'N/A'}"
+            for child in children
+        )
+        values = [
+            parent.name or '', parent.telephone_number or '', parent.email or '',
+            parent.occupation or '', parent.residential_address or '',
+            len(children), children_str,
+        ]
+        for col_idx, val in enumerate(values, 1):
+            cell = ws.cell(row=row, column=col_idx, value=val)
+            cell.border = border
+        row += 1
+
+    for col in ws.columns:
+        max_length = 0
+        col_letter = None
+        for cell in col:
+            if not hasattr(cell, 'column_letter'):
+                continue
+            if col_letter is None:
+                col_letter = cell.column_letter
+            if cell.value:
+                max_length = max(max_length, len(str(cell.value)))
+        if col_letter:
+            ws.column_dimensions[col_letter].width = min(max_length + 4, 40)
+
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+
+    response = HttpResponse(
+        buffer.getvalue(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    filename = f"Parents_Directory_{datetime.now().strftime('%Y-%m-%d')}.xlsx"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
 
 
 @login_required
