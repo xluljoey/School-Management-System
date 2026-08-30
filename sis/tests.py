@@ -418,3 +418,49 @@ class StudentRegistrationTests(TestCase):
         self.assertTrue(response.context["has_graded_records"])
         self.assertContains(response, "Evelyn Standings")
         self.assertNotContains(response, "No student grade records compiled for this class yet")
+
+
+class FormMasterStudentVisibilityTests(TestCase):
+    def setUp(self):
+        from django.contrib.auth.models import User
+
+        self.classroom = ClassRoom.objects.create(class_name="JHS 1")
+        self.student = Student.objects.create(
+            admission_number="FM-001",
+            first_name="Kofi",
+            last_name="Mensah",
+            gender="Male",
+            dob="2011-01-01",
+            status="Day",
+            classroom=self.classroom,
+        )
+        user = User.objects.create_user(username="formmaster", password="password")
+        StaffProfile.objects.create(
+            staff_id="FM-TEACHER-001",
+            first_name="Form",
+            last_name="Master",
+            email="formmaster@example.com",
+            user=user,
+            form_class=self.classroom,
+        )
+        self.client.login(username="formmaster", password="password")
+
+    def test_form_master_sees_students_of_form_class_in_directory(self):
+        response = self.client.get(reverse("student_list"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Kofi  Mensah")
+
+    def test_form_master_without_teaching_assignment_still_sees_form_class(self):
+        other_class = ClassRoom.objects.create(class_name="JHS 2")
+        other_student = Student.objects.create(
+            admission_number="FM-002",
+            first_name="Ama",
+            last_name="Serwaa",
+            gender="Female",
+            dob="2011-02-02",
+            status="Day",
+            classroom=other_class,
+        )
+        response = self.client.get(reverse("student_list"))
+        self.assertContains(response, "Kofi  Mensah")
+        self.assertNotContains(response, "Ama  Serwaa")
