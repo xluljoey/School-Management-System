@@ -9,7 +9,7 @@ from django.test import RequestFactory, TestCase
 from django.urls import reverse
 
 from .forms import StaffRegistrationForm, StudentRegistrationForm
-from .models import ClassRoom, Department, Designation, Parent, Student, Subject, SubjectAssessment, StaffProfile, AcademicSession, Term, ClassSubject
+from .models import ClassRoom, Department, Designation, Parent, Student, Subject, SubjectAssessment, StaffProfile, AcademicSession, Term, ClassSubject, Enrollment
 
 
 class StudentRegistrationTests(TestCase):
@@ -606,9 +606,11 @@ class ExportSessionTests(TestCase):
 
         wb = load_workbook(self._io.BytesIO(response.content))
         for expected_sheet in [
-            "Overview", "Classes", "Other Subjects", "Students",
-            "Enrollments", "Subject Assessments", "Mid-Term Records",
-            "Grade Verifications", "Staff",
+            "Overview", "Sessions", "Terms", "Classes", "Subjects",
+            "Departments", "Designations", "Class Subjects", "Parents",
+            "Students", "Enrollments", "Subject Assessments", "Mid-Term Records",
+            "Grade Verifications", "Staff", "Staff Assignments",
+            "Promotion Criteria", "Notifications", "Timetables", "Timetable Slots",
         ]:
             self.assertIn(expected_sheet, wb.sheetnames)
 
@@ -646,3 +648,300 @@ class ExportSessionTests(TestCase):
         self.assertEqual(len(assessments), 1)
         self.assertEqual(assessments[0]["subject"], "Mathematics")
         self.assertEqual(assessments[0]["total"], 90.0)
+
+    def test_import_requires_superuser(self):
+        from django.contrib.auth.models import User
+
+        staff_user = User.objects.create_user(username="importstaff", password="password")
+        self.client.login(username="importstaff", password="password")
+        response = self.client.post(
+            reverse("import_session_json"), {}, format="multipart"
+        )
+        self.assertEqual(response.status_code, 403)
+
+    def test_import_session_json_restores_records(self):
+        import json
+        import io
+        from django.contrib.auth.models import User
+
+        session = AcademicSession.objects.create(academic_year="2024/2025")
+        subject = Subject.objects.create(subject_name="English Language")
+        payload = {
+            "session": {"academic_year": "2024/2025", "is_current": False},
+            "active_term": {"term_name": "Term 2", "is_active": False},
+            "sessions": [{"academic_year": "2024/2025", "is_current": False}],
+            "terms": [{"session": "2024/2025", "term_name": "Term 2", "is_active": False}],
+            "classes": [{"class_name": "JHS 2", "order": 2, "next_class": None, "form_master_id": None}],
+            "subjects": ["English Language"],
+            "departments": ["Languages"],
+            "designations": ["Teacher"],
+            "class_subjects": [{"classroom": "JHS 2", "subject": "English Language"}],
+            "parents": [{"id": 101, "name": "Ama Owusu", "telephone_number": "0244111222", "occupation": "Trader"}],
+            "students": [{
+                "admission_number": "IM-001",
+                "first_name": "Abena",
+                "other_names": "",
+                "last_name": "Owusu",
+                "gender": "Female",
+                "dob": "2011-04-04",
+                "date_of_admission": "2024-09-01",
+                "status": "Day",
+                "living_with": "Mother",
+                "classroom": "JHS 2",
+                "father_id": None,
+                "mother_id": 101,
+                "pending_next_class": None,
+                "promotion_status": "NEUTRAL",
+                "is_alumni": False,
+            }],
+            "enrollments": [{
+                "student": "IM-001",
+                "classroom": "JHS 2",
+                "academic_session": "2024/2025",
+                "academic_term": "Term 2",
+            }],
+            "subject_assessments": [{
+                "student": "IM-001",
+                "subject": "English Language",
+                "academic_session": "2024/2025",
+                "academic_term": "Term 2",
+                "class_score": 35.0,
+                "exam_score": 45.0,
+            }],
+        }
+
+        superuser = User.objects.create_superuser(
+            username="importadmin", email="c@c.com", password="password"
+        )
+        self.client.login(username="importadmin", password="password")
+
+        backup = json.dumps(payload).encode('utf-8')
+        response = self.client.post(
+            reverse("import_session_json"),
+            {"backup_file": io.BytesIO(backup)},
+            format="multipart",
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, reverse("configure_session"))
+
+        self.assertTrue(Student.objects.filter(admission_number="IM-001").exists())
+        self.assertTrue(Parent.objects.filter(name="Ama Owusu").exists())
+        self.assertTrue(ClassRoom.objects.filter(class_name="JHS 2").exists())
+        self.assertTrue(ClassSubject.objects.filter(classroom__class_name="JHS 2").exists())
+        self.assertTrue(Subject.objects.filter(subject_name="English Language").exists())
+        self.assertTrue(Enrollment.objects.filter(student__admission_number="IM-001").exists())
+        self.assertTrue(SubjectAssessment.objects.filter(student__admission_number="IM-001").exists())
+        self.assertTrue(Department.objects.filter(name="Languages").exists())
+        self.assertTrue(Designation.objects.filter(name="Teacher").exists())
+
+    def test_import_session_json_rejects_foreign_payload(self):
+        import json
+        import io
+        from django.contrib.auth.models import User
+
+        superuser = User.objects.create_superuser(
+            username="importbadadmin", email="d@d.com", password="password"
+        )
+        self.client.login(username="importbadadmin", password="password")
+
+        backup = json.dumps({"foo": "bar"}).encode('utf-8')
+        response = self.client.post(
+            reverse("import_session_json"),
+            {"backup_file": io.BytesIO(backup)},
+            format="multipart",
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, reverse("configure_session"))
+        self.assertEqual(Student.objects.count(), 1)
+        self.assertFalse(Student.objects.filter(admission_number="IM-001").exists())
+
+    def test_import_excel_round_trip_restores_exported_workbook(self):
+        from openpyxl import Workbook
+        import io
+
+        from django.contrib.auth.models import User
+
+        superuser = User.objects.create_superuser(
+            username="xlsadmin", email="x@x.com", password="password"
+        )
+        self.client.login(username="xlsadmin", password="password")
+
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Sessions"
+        ws.append([])
+        ws.append([])
+        ws.append(["ID", "Academic Year", "Is Current"])
+        ws.append([1, "2025/2026", True])
+
+        wb.create_sheet("Classes")
+        ws = wb["Classes"]
+        ws.append([])
+        ws.append([])
+        ws.append(["ID", "Class Name", "Order", "Next Class", "Form Master"])
+        ws.append([1, "JHS 1", 1, "", ""])
+
+        wb.create_sheet("Subjects")
+        ws = wb["Subjects"]
+        ws.append([])
+        ws.append([])
+        ws.append(["ID", "Subject Name"])
+        ws.append([1, "Mathematics"])
+
+        wb.create_sheet("Parents")
+        ws = wb["Parents"]
+        ws.append([])
+        ws.append([])
+        ws.append(["ID", "Name", "Occupation", "Residential Address", "Email", "Telephone", "No. of Children"])
+        ws.append([101, "Kwame Mensah", "", "", "", "0244000001", 1])
+
+        wb.create_sheet("Students")
+        ws = wb["Students"]
+        ws.append([])
+        ws.append([])
+        ws.append([
+            "ID", "Admission No.", "First Name", "Other Names", "Last Name", "Gender",
+            "Date of Birth", "Date of Admission", "Status", "Living With",
+            "Previous School", "Class", "Father Name", "Father Phone", "Father Email",
+            "Mother Name", "Mother Phone", "Mother Email",
+            "Pending Next Class", "Promotion Status", "Is Alumni",
+        ])
+        ws.append([
+            1, "XLS-001", "Kofi", "", "Mensah", "Male",
+            "2011-01-01", "2025-09-01", "Day", "Father",
+            "", "JHS 1", "Kwame Mensah", "0244000001", "",
+            "", "", "",
+            "", "NEUTRAL", False,
+        ])
+
+        excel_file = io.BytesIO()
+        wb.save(excel_file)
+        excel_file.seek(0)
+
+        response = self.client.post(
+            reverse("import_session_excel"),
+            {"backup_file": excel_file},
+            format="multipart",
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, reverse("configure_session"))
+        self.assertTrue(Student.objects.filter(admission_number="XLS-001").exists())
+        self.assertTrue(ClassRoom.objects.filter(class_name="JHS 1").exists())
+        self.assertTrue(Subject.objects.filter(subject_name="Mathematics").exists())
+        self.assertTrue(Parent.objects.filter(name="Kwame Mensah").exists())
+
+    def test_import_excel_flexible_maps_custom_headers(self):
+        from openpyxl import Workbook
+        import io
+
+        from django.contrib.auth.models import User
+
+        superuser = User.objects.create_superuser(
+            username="flexadmin", email="y@y.com", password="password"
+        )
+        self.client.login(username="flexadmin", password="password")
+
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Students"
+        ws.append(["Admission No.", "Student Name", "Class", "Parent Name", "Telephone"])
+        ws.append(["FL-001", "Ama Boateng", "JHS 2", "Esi Boateng", "0244111999"])
+        ws.append(["FL-002", "Yaw Antwi", "JHS 2", "Yaw Antwi Snr", "0244555666"])
+
+        wb.create_sheet("Classes")
+        ws = wb["Classes"]
+        ws.append(["Class", "Teacher"])
+        ws.append(["JHS 2", "Mrs. Adu"])
+
+        excel_file = io.BytesIO()
+        wb.save(excel_file)
+        excel_file.seek(0)
+
+        response = self.client.post(
+            reverse("import_session_excel"),
+            {"backup_file": excel_file},
+            format="multipart",
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, reverse("configure_session"))
+
+        self.assertTrue(Student.objects.filter(admission_number="FL-001").exists())
+        self.assertTrue(Student.objects.filter(admission_number="FL-002").exists())
+        self.assertTrue(ClassRoom.objects.filter(class_name="JHS 2").exists())
+        self.assertTrue(Parent.objects.filter(name="Esi Boateng", telephone_number="0244111999").exists())
+
+    def test_import_excel_requires_superuser(self):
+        from django.contrib.auth.models import User
+
+        staff_user = User.objects.create_user(username="xlsstaff", password="password")
+        self.client.login(username="xlsstaff", password="password")
+        response = self.client.post(
+            reverse("import_session_excel"), {}, format="multipart"
+        )
+        self.assertEqual(response.status_code, 403)
+
+
+class ConfigureSessionTests(TestCase):
+    def setUp(self):
+        from django.contrib.auth.models import User
+
+        self.user = User.objects.create_superuser(
+            username="cfgadmin", password="password", email="cfg@example.com"
+        )
+        self.client.login(username="cfgadmin", password="password")
+
+    def _make_env(self):
+        s1 = AcademicSession.objects.create(academic_year="2024/2025", is_current=True)
+        t1a = Term.objects.create(session=s1, term_name="Term 1", is_active=True)
+        Term.objects.create(session=s1, term_name="Term 2", is_active=False)
+        s2 = AcademicSession.objects.create(academic_year="2025/2026", is_current=False)
+        Term.objects.create(session=s2, term_name="Term 1", is_active=False)
+        return s1, s2, t1a
+
+    def test_set_active_env_requires_term(self):
+        s1, s2, _ = self._make_env()
+        response = self.client.post(reverse("configure_session"), {
+            "academic_session": s2.pk,
+        })
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, reverse("configure_session"))
+        s1.refresh_from_db()
+        s2.refresh_from_db()
+        self.assertTrue(s1.is_current)
+        self.assertFalse(s2.is_current)
+        self.assertEqual(Term.objects.filter(is_active=True).count(), 1)
+
+    def test_set_active_env_rejects_term_from_other_session(self):
+        s1, s2, t1a = self._make_env()
+        response = self.client.post(reverse("configure_session"), {
+            "academic_session": s2.pk,
+            "term": t1a.pk,
+        })
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, reverse("configure_session"))
+        s1.refresh_from_db()
+        s2.refresh_from_db()
+        self.assertTrue(s1.is_current)
+        self.assertFalse(s2.is_current)
+        self.assertEqual(Term.objects.filter(is_active=True).get(), t1a)
+
+    def test_set_active_env_switches_consistent_pair(self):
+        s1, s2, _ = self._make_env()
+        s2t1 = Term.objects.get(session=s2, term_name="Term 1")
+        response = self.client.post(reverse("configure_session"), {
+            "academic_session": s2.pk,
+            "term": s2t1.pk,
+        })
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, reverse("configure_session"))
+        s1.refresh_from_db()
+        s2.refresh_from_db()
+        self.assertFalse(s1.is_current)
+        self.assertTrue(s2.is_current)
+        self.assertEqual(Term.objects.filter(is_active=True).get(), s2t1)
+        self.assertEqual(Term.objects.filter(is_active=True).count(), 1)
+
+    def test_at_most_one_current_session_and_one_active_term(self):
+        self._make_env()
+        self.assertEqual(AcademicSession.objects.filter(is_current=True).count(), 1)
+        self.assertEqual(Term.objects.filter(is_active=True).count(), 1)

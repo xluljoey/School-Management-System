@@ -1694,7 +1694,10 @@ def configure_session_view(request):
                     term_obj.is_active = True
                     term_obj.save()
 
-                messages.success(request, f"Academic session '{year_string}' created and activated with {term_name}.")
+                if created:
+                    messages.success(request, f"Academic session '{year_string}' created and activated with {term_name}.")
+                else:
+                    messages.success(request, f"Session '{year_string}' already existed — it has been re-activated as the current session with {term_name} as the active term.")
             else:
                 messages.error(request, "Both academic year and term are required.")
 
@@ -1712,29 +1715,36 @@ def configure_session_view(request):
             messages.error(request, "Invalid session selected.")
             return redirect('configure_session')
 
-        if term_id:
-            selected_term = Term.objects.filter(pk=term_id).first()
-            if not selected_term:
-                messages.error(request, "Invalid term selected.")
-                return redirect('configure_session')
+        if not term_id:
+            messages.error(
+                request,
+                "Please select an Active Term. The active term must belong to the selected session "
+                "so reports and records stay consistent; if this session has no terms yet, "
+                "use 'Create New Academic Session' to add one."
+            )
+            return redirect('configure_session')
 
-            if selected_term.session_id != selected_session.pk:
-                messages.error(
-                    request,
-                    f"'{selected_term.term_name}' belongs to {selected_term.session.academic_year}, "
-                    f"not {selected_session.academic_year}. Please select a term from the correct session."
-                )
-                return redirect('configure_session')
+        selected_term = Term.objects.filter(pk=term_id).first()
+        if not selected_term:
+            messages.error(request, "Invalid term selected.")
+            return redirect('configure_session')
+
+        if selected_term.session_id != selected_session.pk:
+            messages.error(
+                request,
+                f"'{selected_term.term_name}' belongs to {selected_term.session.academic_year}, "
+                f"not {selected_session.academic_year}. Please select a term from the correct session."
+            )
+            return redirect('configure_session')
 
         with transaction.atomic():
             AcademicSession.objects.update(is_current=False)
             selected_session.is_current = True
             selected_session.save()
 
-            if term_id:
-                Term.objects.update(is_active=False)
-                selected_term.is_active = True
-                selected_term.save()
+            Term.objects.update(is_active=False)
+            selected_term.is_active = True
+            selected_term.save()
 
         messages.success(request, "Academic environment successfully updated!")
         return redirect('configure_session')
@@ -2993,161 +3003,244 @@ def export_session_excel(request):
     wb = Workbook()
     ws = wb.active
     ws.title = "Overview"
-    sheet_title(ws, "ACADEMIC SESSION DATABASE — OVERVIEW", 2)
+    sheet_title(ws, "SESSION DATABASE — OVERVIEW", 2)
     set_headers(ws, ["Field", "Value"])
 
-    staff_count = StaffProfile.objects.count()
-    students_in_session = Student.objects.filter(is_alumni=False).count()
+    all_sessions = AcademicSession.objects.all()
+    all_terms = Term.objects.all()
     overview = [
+        ("Database Exported", datetime.now().strftime('%Y-%m-%d %H:%M:%S')),
         ("Academic Session (Year)", current_session.academic_year if current_session else "None"),
         ("Active Term", current_term.term_name if current_term else "None"),
+        ("All Sessions", all_sessions.count()),
+        ("All Terms", all_terms.count()),
         ("Total Classes", ClassRoom.objects.count()),
         ("Total Subjects", Subject.objects.count()),
-        ("Total Students", Student.objects.count()),
+        ("Total Departments", Department.objects.count()),
+        ("Total Designations", Designation.objects.count()),
+        ("Total Parents", Parent.objects.count()),
+        ("Total Students (all)", Student.objects.count()),
         ("Non-Alumni Students", Student.objects.filter(is_alumni=False).count()),
-        ("Students in Active Session", students_in_session),
-        ("Active Enrollments (Session)", Enrollment.objects.count()),
-        ("Subject Assessments (Active Session/Term)", SubjectAssessment.objects.filter(academic_session=current_session, academic_term=current_term).count() if current_session and current_term else 0),
-        ("Mid-Term Records (Active Session/Term)", MidTermRecord.objects.filter(academic_session=current_session, term=current_term).count() if current_session and current_term else 0),
-        ("Grade Verifications (Active Session/Term)", GradeVerification.objects.filter(academic_session=current_session, academic_term=current_term).count() if current_session and current_term else 0),
-        ("Total Staff", staff_count),
-        ("Teacher Subject Assignments", StaffClassSubject.objects.count()),
-        ("Exported At", datetime.now().strftime('%Y-%m-%d %H:%M:%S')),
+        ("Total Enrollments", Enrollment.objects.count()),
+        ("Subject Assessments (all)", SubjectAssessment.objects.count()),
+        ("Mid-Term Records (all)", MidTermRecord.objects.count()),
+        ("Grade Verifications (all)", GradeVerification.objects.count()),
+        ("Total Staff", StaffProfile.objects.count()),
+        ("Staff Class-Subject Assignments", StaffClassSubject.objects.count()),
+        ("Promotion Criteria", PromotionCriteria.objects.count()),
+        ("Notifications", Notification.objects.count()),
+        ("Timetables", Timetable.objects.count()),
+        ("Timetable Slots", TimetableSlot.objects.count()),
     ]
     row = 4
     for field, value in overview:
         row = write_row(ws, [field, value], row)
     autofit(ws)
 
-    ws = wb.create_sheet("Classes")
-    sheet_title(ws, "CLASSES", 3)
-    set_headers(ws, ["Class Name", "Order", "Next Class"])
-    row = 4
-    for cl in ClassRoom.objects.all().select_related('next_class'):
-        row = write_row(ws, [cl.class_name, cl.order, cl.next_class.class_name if cl.next_class else ''], row)
-    autofit(ws)
+    def add_table(sheet_name, title, headers, rows):
+        ws = wb.create_sheet(sheet_name)
+        sheet_title(ws, title, len(headers))
+        set_headers(ws, headers)
+        r = 4
+        for values in rows:
+            r = write_row(ws, values, r)
+        autofit(ws)
+        return ws
 
-    ws = wb.create_sheet("Other Subjects")
-    sheet_title(ws, "SUBJECTS", 1)
-    set_headers(ws, ["Subject Name"])
-    row = 4
-    for subj in Subject.objects.all().order_by('subject_name'):
-        row = write_row(ws, [subj.subject_name], row)
-    autofit(ws)
-
-    ws = wb.create_sheet("Students")
-    sheet_title(ws, "STUDENTS", 13)
-    set_headers(ws, [
-        "Admission No.", "First Name", "Other Names", "Last Name", "Gender",
-        "Date of Birth", "Status", "Class", "Father Name", "Father Phone",
-        "Father Email", "Mother Name", "Mother Phone",
+    add_table("Sessions", "ACADEMIC SESSIONS", ["ID", "Academic Year", "Is Current"], [
+        [s.pk, s.academic_year, s.is_current] for s in all_sessions.order_by('academic_year')
     ])
-    row = 4
-    for student in Student.objects.filter(is_alumni=False).select_related('classroom', 'father', 'mother').order_by('last_name', 'first_name'):
-        father = student.father
-        mother = student.mother
-        values = [
-            student.admission_number, student.first_name, student.other_names or '',
-            student.last_name, student.gender,
-            student.dob.strftime('%Y-%m-%d') if student.dob else '',
-            student.status, student.classroom.class_name if student.classroom else 'N/A',
-            father.name if father else '', father.telephone_number if father else '',
-            father.email if father else '', mother.name if mother else '',
-            mother.telephone_number if mother else '',
-        ]
-        row = write_row(ws, values, row)
-    autofit(ws)
 
-    ws = wb.create_sheet("Enrollments")
-    sheet_title(ws, "ENROLLMENTS (ACTIVE SESSION)", 5)
-    set_headers(ws, ["Student", "Admission No.", "Class", "Session", "Term"])
-    row = 4
-    for enr in Enrollment.objects.select_related('student', 'classroom', 'academic_session', 'academic_term').order_by('student__last_name', 'student__first_name'):
-        values = [
-            enr.student.get_full_name, enr.student.admission_number,
-            enr.classroom.class_name, enr.academic_session.academic_year,
-            enr.academic_term.term_name,
-        ]
-        row = write_row(ws, values, row)
-    autofit(ws)
-
-    ws = wb.create_sheet("Subject Assessments")
-    sheet_title(ws, "SUBJECT ASSESSMENTS (ACTIVE SESSION/TERM)", 9)
-    set_headers(ws, [
-        "Student", "Admission No.", "Class", "Subject",
-        "Class Score", "Exam Score", "Total", "Grade", "Remark",
+    add_table("Terms", "TERMS", ["ID", "Session", "Term Name", "Is Active"], [
+        [t.pk, t.session.academic_year, t.term_name, t.is_active]
+        for t in all_terms.select_related('session').order_by('session__academic_year', 'id')
     ])
-    row = 4
-    if current_session and current_term:
-        for a in SubjectAssessment.objects.filter(
-            academic_session=current_session, academic_term=current_term
-        ).select_related('student', 'student__classroom', 'subject').order_by('student__last_name', 'student__first_name', 'subject__subject_name'):
-            grade, remark = a.grade_and_remark
-            values = [
-                a.student.get_full_name, a.student.admission_number,
-                a.student.classroom.class_name if a.student.classroom else 'N/A',
-                a.subject.subject_name, float(a.class_score), float(a.exam_score),
-                a.total_score, grade, remark,
-            ]
-            row = write_row(ws, values, row)
-    autofit(ws)
 
-    ws = wb.create_sheet("Mid-Term Records")
-    sheet_title(ws, "MID-TERM RECORDS (ACTIVE SESSION/TERM)", 6)
-    set_headers(ws, ["Student", "Admission No.", "Class", "Subject", "Mid-Term Score", "Date Recorded"])
-    row = 4
-    if current_session and current_term:
-        for m in MidTermRecord.objects.filter(
-            academic_session=current_session, term=current_term
-        ).select_related('student', 'student__classroom', 'subject').order_by('student__last_name', 'student__first_name', 'subject__subject_name'):
-            values = [
-                m.student.get_full_name, m.student.admission_number,
-                m.student.classroom.class_name if m.student.classroom else 'N/A',
-                m.subject.subject_name,
-                float(m.midterm_score) if m.midterm_score is not None else '',
-                m.date_recorded.strftime('%Y-%m-%d %H:%M') if m.date_recorded else '',
-            ]
-            row = write_row(ws, values, row)
-    autofit(ws)
-
-    ws = wb.create_sheet("Grade Verifications")
-    sheet_title(ws, "GRADE VERIFICATIONS (ACTIVE SESSION/TERM)", 5)
-    set_headers(ws, ["Class", "Session", "Term", "Verified By", "Verified At"])
-    row = 4
-    if current_session and current_term:
-        for gv in GradeVerification.objects.filter(
-            academic_session=current_session, academic_term=current_term
-        ).select_related('classroom', 'verified_by'):
-            values = [
-                gv.classroom.class_name, gv.academic_session.academic_year,
-                gv.academic_term.term_name,
-                gv.verified_by.staff_id if gv.verified_by else '',
-                gv.verified_at.strftime('%Y-%m-%d %H:%M') if gv.verified_at else '',
-            ]
-            row = write_row(ws, values, row)
-    autofit(ws)
-
-    ws = wb.create_sheet("Staff")
-    sheet_title(ws, "STAFF", 8)
-    set_headers(ws, [
-        "Staff ID", "Name", "Designation", "Department", "Phone", "Email",
-        "Form Class", "Assigned (Class - Subject)",
+    add_table("Classes", "CLASSES", ["ID", "Class Name", "Order", "Next Class", "Form Master"], [
+        [c.pk, c.class_name, c.order, c.next_class.class_name if c.next_class else '',
+         c.form_master.staff_id if c.form_master else '']
+        for c in ClassRoom.objects.select_related('next_class', 'form_master')
     ])
-    row = 4
-    for staff in StaffProfile.objects.select_related('designation', 'department', 'form_class').prefetch_related('assigned_classes_subjects__classroom', 'assigned_classes_subjects__subject').order_by('last_name', 'first_name'):
-        assignments = ", ".join(
-            f"{scs.classroom.class_name} - {scs.subject.subject_name}"
-            for scs in staff.assigned_classes_subjects.all()
-        )
-        values = [
-            staff.staff_id, f"{staff.first_name} {staff.last_name}".strip(),
-            staff.designation.name if staff.designation else '',
-            staff.department.name if staff.department else '',
-            staff.phone_number or '', staff.email,
-            staff.form_class.class_name if staff.form_class else '', assignments,
+
+    add_table("Subjects", "SUBJECTS", ["ID", "Subject Name"], [
+        [s.pk, s.subject_name] for s in Subject.objects.order_by('subject_name')
+    ])
+
+    add_table("Departments", "DEPARTMENTS", ["ID", "Name"], [
+        [d.pk, d.name] for d in Department.objects.all()
+    ])
+
+    add_table("Designations", "DESIGNATIONS", ["ID", "Name"], [
+        [d.pk, d.name] for d in Designation.objects.all()
+    ])
+
+    add_table("Class Subjects", "CLASS SUBJECTS (SUBJECTS OFFERED PER CLASS)", [
+        "ID", "Class", "Subject",
+    ], [
+        [cs.pk, cs.classroom.class_name, cs.subject.subject_name]
+        for cs in ClassSubject.objects.select_related('classroom', 'subject').order_by('classroom__order', 'subject__subject_name')
+    ])
+
+    add_table("Parents", "PARENTS", [
+        "ID", "Name", "Occupation", "Residential Address", "Email", "Telephone",
+        "No. of Children",
+    ], [
+        [p.pk, p.name or '', p.occupation or '', p.residential_address or '',
+         p.email or '', p.telephone_number or '',
+         p.father_of.count() + p.mother_of.count()]
+        for p in Parent.objects.all().order_by('name')
+    ])
+
+    add_table("Students", "STUDENTS", [
+        "ID", "Admission No.", "First Name", "Other Names", "Last Name", "Gender",
+        "Date of Birth", "Date of Admission", "Status", "Living With",
+        "Previous School", "Class", "Father Name", "Father Phone", "Father Email",
+        "Mother Name", "Mother Phone", "Mother Email",
+        "Pending Next Class", "Promotion Status", "Is Alumni",
+    ], [
+        [
+            s.id, s.admission_number, s.first_name, s.other_names or '', s.last_name,
+            s.gender,
+            s.dob.strftime('%Y-%m-%d') if s.dob else '',
+            s.date_of_admission.strftime('%Y-%m-%d') if s.date_of_admission else '',
+            s.status, s.living_with, s.previous_school_attended or '',
+            s.classroom.class_name if s.classroom else '',
+            s.father.name if s.father else '', s.father.telephone_number if s.father else '',
+            s.father.email if s.father else '', s.mother.name if s.mother else '',
+            s.mother.telephone_number if s.mother else '', s.mother.email if s.mother else '',
+            s.pending_next_class.class_name if s.pending_next_class else '',
+            s.promotion_status, s.is_alumni,
         ]
-        row = write_row(ws, values, row)
-    autofit(ws)
+        for s in Student.objects.select_related(
+            'classroom', 'father', 'mother', 'pending_next_class'
+        ).order_by('last_name', 'first_name')
+    ])
+
+    add_table("Enrollments", "ENROLLMENTS", [
+        "ID", "Student", "Admission No.", "Class", "Academic Session", "Term",
+        "Date Enrolled",
+    ], [
+        [e.pk, e.student.get_full_name, e.student.admission_number,
+         e.classroom.class_name, e.academic_session.academic_year,
+         e.academic_term.term_name,
+         e.date_enrolled.strftime('%Y-%m-%d %H:%M') if e.date_enrolled else '']
+        for e in Enrollment.objects.select_related(
+            'student', 'classroom', 'academic_session', 'academic_term'
+        ).order_by('academic_session__academic_year', 'student__last_name', 'student__first_name')
+    ])
+
+    add_table("Subject Assessments", "SUBJECT ASSESSMENTS", [
+        "ID", "Student", "Admission No.", "Subject", "Academic Session", "Term",
+        "Class Score (30%)", "Exam Score (70%)", "Total", "Grade", "Remark", "Is Active Session/Term",
+    ], [
+        [a.pk, a.student.get_full_name, a.student.admission_number,
+         a.subject.subject_name, a.academic_session.academic_year,
+         a.academic_term.term_name, float(a.class_score), float(a.exam_score),
+         a.total_score, a.grade_and_remark[0], a.grade_and_remark[1],
+         bool(current_session and current_term and
+              a.academic_session_id == current_session.pk and a.academic_term_id == current_term.pk)]
+        for a in SubjectAssessment.objects.select_related(
+            'student', 'subject', 'academic_session', 'academic_term'
+        ).order_by('academic_session__academic_year', 'student__last_name', 'student__first_name', 'subject__subject_name')
+    ])
+
+    add_table("Mid-Term Records", "MID-TERM RECORDS", [
+        "ID", "Student", "Admission No.", "Class", "Subject", "Academic Session",
+        "Term", "Mid-Term Score", "Recorded By", "Date Recorded",
+    ], [
+        [m.pk, m.student.get_full_name, m.student.admission_number,
+         m.classroom.class_name if m.classroom else '',
+         m.subject.subject_name, m.academic_session.academic_year, m.term.term_name,
+         float(m.midterm_score) if m.midterm_score is not None else '',
+         m.recorded_by.staff_id if m.recorded_by else '',
+         m.date_recorded.strftime('%Y-%m-%d %H:%M') if m.date_recorded else '']
+        for m in MidTermRecord.objects.select_related(
+            'student', 'classroom', 'subject', 'academic_session', 'term', 'recorded_by'
+        ).order_by('academic_session__academic_year', 'student__last_name', 'student__first_name')
+    ])
+
+    add_table("Grade Verifications", "GRADE VERIFICATIONS", [
+        "ID", "Class", "Academic Session", "Term", "Verified By", "Verified At",
+    ], [
+        [g.pk, g.classroom.class_name, g.academic_session.academic_year,
+         g.academic_term.term_name, g.verified_by.staff_id if g.verified_by else '',
+         g.verified_at.strftime('%Y-%m-%d %H:%M') if g.verified_at else '']
+        for g in GradeVerification.objects.select_related('classroom', 'verified_by', 'academic_session', 'academic_term')
+    ])
+
+    add_table("Staff", "STAFF", [
+        "ID", "Staff ID", "Username", "Title", "First Name", "Other Names", "Last Name",
+        "Gender", "Date of Birth", "Designation", "Department", "SSNIT ID", "Phone",
+        "Email", "Employment Type", "Date of Appointment", "Year of Last Promotion",
+        "Qualification", "Certificate", "Institution Completed", "Year Completed",
+        "Form Class (Form Teacher)", "Residential Address", "Theme",
+        "Active Account", "Superuser / Staff",
+    ], [
+        [s.pk, s.staff_id, s.user.username if s.user else '',
+         s.title, s.first_name, s.other_names or '', s.last_name, s.gender,
+         s.dob.strftime('%Y-%m-%d') if s.dob else '',
+         s.designation.name if s.designation else '',
+         s.department.name if s.department else '', s.ssnit_id or '', s.phone_number or '',
+         s.email, s.employment_type,
+         s.date_of_appointment.strftime('%Y-%m-%d') if s.date_of_appointment else '',
+         s.year_of_last_promotion if s.year_of_last_promotion is not None else '',
+         s.qualification, s.certificate, s.name_of_institution_completed, s.year_completed,
+         s.form_class.class_name if s.form_class else '', s.address or '', s.theme,
+         s.user.is_active if s.user else False,
+         s.user.is_superuser or s.user.is_staff if s.user else False]
+        for s in StaffProfile.objects.select_related(
+            'user', 'designation', 'department', 'form_class'
+        ).order_by('last_name', 'first_name')
+    ])
+
+    add_table("Staff Assignments", "STAFF CLASS-SUBJECT ASSIGNMENTS", [
+        "ID", "Staff ID", "Staff Name", "Class", "Subject",
+    ], [
+        [scs.pk, scs.staff.staff_id, f"{scs.staff.first_name} {scs.staff.last_name}".strip(),
+         scs.classroom.class_name, scs.subject.subject_name]
+        for scs in StaffClassSubject.objects.select_related(
+            'staff', 'classroom', 'subject'
+        ).order_by('staff__staff_id', 'classroom__order')
+    ])
+
+    add_table("Promotion Criteria", "PROMOTION CRITERIA", [
+        "ID", "Class", "Minimum Grand Total",
+    ], [
+        [pc.pk, pc.classroom.class_name, float(pc.min_grand_total)]
+        for pc in PromotionCriteria.objects.select_related('classroom')
+    ])
+
+    add_table("Notifications", "NOTIFICATIONS", [
+        "ID", "Recipient", "Type", "Title", "Message", "Is Read", "Created At",
+    ], [
+        [n.pk, n.recipient.username, n.notification_type, n.title, n.message, n.is_read,
+         n.created_at.strftime('%Y-%m-%d %H:%M') if n.created_at else '']
+        for n in Notification.objects.select_related('recipient')
+    ])
+
+    add_table("Timetables", "TIMETABLES", [
+        "ID", "Class", "Title", "Term", "Is Active", "Created At", "Updated At",
+    ], [
+        [t.pk, t.student_class.class_name, t.title, str(t.academic_term),
+         t.is_active,
+         t.created_at.strftime('%Y-%m-%d %H:%M') if t.created_at else '',
+         t.updated_at.strftime('%Y-%m-%d %H:%M') if t.updated_at else '']
+        for t in Timetable.objects.select_related('student_class', 'academic_term')
+    ])
+
+    add_table("Timetable Slots", "TIMETABLE SLOTS", [
+        "ID", "Timetable", "Class", "Subject", "Teacher", "Day", "Start Time",
+        "End Time", "Room / Note",
+    ], [
+        [ts.pk, f"{ts.timetable.student_class.class_name} - {ts.timetable.title}",
+         ts.timetable.student_class.class_name, ts.subject.subject_name,
+         ts.teacher.staff_id if ts.teacher else '',
+         ts.get_day_of_week_display(),
+         ts.start_time.strftime('%H:%M:%S') if ts.start_time else '',
+         ts.end_time.strftime('%H:%M:%S') if ts.end_time else '',
+         ts.room_or_note or '']
+        for ts in TimetableSlot.objects.select_related('timetable', 'subject', 'teacher')
+    ])
 
     buffer = io.BytesIO()
     wb.save(buffer)
@@ -3185,17 +3278,54 @@ def export_session_json(request):
             "term_name": current_term.term_name if current_term else None,
             "is_active": current_term.is_active if current_term else False,
         },
+        "sessions": [
+            {
+                "academic_year": s.academic_year,
+                "is_current": s.is_current,
+            }
+            for s in AcademicSession.objects.all().order_by('academic_year')
+        ],
+        "terms": [
+            {
+                "session": t.session.academic_year,
+                "term_name": t.term_name,
+                "is_active": t.is_active,
+            }
+            for t in Term.objects.select_related('session').order_by('session__academic_year', 'id')
+        ],
         "classes": [
             {
                 "class_name": cl.class_name,
                 "order": cl.order,
                 "next_class": cl.next_class.class_name if cl.next_class else None,
+                "form_master_id": cl.form_master.staff_id if cl.form_master else None,
             }
-            for cl in ClassRoom.objects.all().select_related('next_class')
+            for cl in ClassRoom.objects.select_related('next_class', 'form_master')
         ],
         "subjects": [s.subject_name for s in Subject.objects.all().order_by('subject_name')],
+        "departments": [d.name for d in Department.objects.all()],
+        "designations": [d.name for d in Designation.objects.all()],
+        "class_subjects": [
+            {
+                "classroom": cs.classroom.class_name,
+                "subject": cs.subject.subject_name,
+            }
+            for cs in ClassSubject.objects.select_related('classroom', 'subject')
+        ],
+        "parents": [
+            {
+                "id": p.pk,
+                "name": p.name or '',
+                "occupation": p.occupation or '',
+                "residential_address": p.residential_address or '',
+                "email": p.email or '',
+                "telephone_number": p.telephone_number or '',
+            }
+            for p in Parent.objects.all().order_by('name')
+        ],
         "students": [
             {
+                "id": s.pk,
                 "admission_number": s.admission_number,
                 "first_name": s.first_name,
                 "other_names": s.other_names or '',
@@ -3205,19 +3335,17 @@ def export_session_json(request):
                 "date_of_admission": s.date_of_admission.isoformat() if s.date_of_admission else None,
                 "status": s.status,
                 "living_with": s.living_with,
+                "previous_school_attended": s.previous_school_attended or '',
                 "classroom": s.classroom.class_name if s.classroom else None,
-                "father": {
-                    "name": s.father.name if s.father else None,
-                    "telephone": s.father.telephone_number if s.father else None,
-                    "email": s.father.email if s.father else None,
-                } if s.father else None,
-                "mother": {
-                    "name": s.mother.name if s.mother else None,
-                    "telephone": s.mother.telephone_number if s.mother else None,
-                    "email": s.mother.email if s.mother else None,
-                } if s.mother else None,
+                "father_id": s.father_id,
+                "mother_id": s.mother_id,
+                "pending_next_class": s.pending_next_class.class_name if s.pending_next_class else None,
+                "promotion_status": s.promotion_status,
+                "is_alumni": s.is_alumni,
             }
-            for s in Student.objects.filter(is_alumni=False).select_related('classroom', 'father', 'mother').order_by('last_name', 'first_name')
+            for s in Student.objects.select_related(
+                'classroom', 'father', 'mother', 'pending_next_class'
+            ).order_by('last_name', 'first_name')
         ],
         "enrollments": [
             {
@@ -3227,7 +3355,9 @@ def export_session_json(request):
                 "academic_term": e.academic_term.term_name,
                 "date_enrolled": e.date_enrolled.isoformat() if e.date_enrolled else None,
             }
-            for e in Enrollment.objects.select_related('student', 'classroom', 'academic_session', 'academic_term').order_by('student__last_name', 'student__first_name')
+            for e in Enrollment.objects.select_related(
+                'student', 'classroom', 'academic_session', 'academic_term'
+            ).order_by('academic_session__academic_year', 'student__last_name', 'student__first_name')
         ],
         "subject_assessments": [
             {
@@ -3240,23 +3370,29 @@ def export_session_json(request):
                 "total": a.total_score,
                 "grade": a.grade_and_remark[0],
                 "remark": a.grade_and_remark[1],
+                "is_active_session_term": bool(
+                    current_session and current_term and
+                    a.academic_session_id == current_session.pk and a.academic_term_id == current_term.pk
+                ),
             }
-            for a in SubjectAssessment.objects.filter(
-                academic_session=current_session, academic_term=current_term
-            ).select_related('student', 'subject', 'academic_session', 'academic_term').order_by('student__last_name', 'student__first_name', 'subject__subject_name')
-        ] if current_session and current_term else [],
+            for a in SubjectAssessment.objects.select_related(
+                'student', 'subject', 'academic_session', 'academic_term'
+            ).order_by('academic_session__academic_year', 'student__last_name', 'student__first_name', 'subject__subject_name')
+        ],
         "midterm_records": [
             {
                 "student": m.student.admission_number,
                 "subject": m.subject.subject_name,
                 "academic_session": m.academic_session.academic_year,
                 "term": m.term.term_name,
+                "classroom": m.classroom.class_name if m.classroom else None,
                 "midterm_score": float(m.midterm_score) if m.midterm_score is not None else None,
+                "recorded_by": m.recorded_by.staff_id if m.recorded_by else None,
             }
-            for m in MidTermRecord.objects.filter(
-                academic_session=current_session, term=current_term
-            ).select_related('student', 'subject', 'academic_session', 'term').order_by('student__last_name', 'student__first_name', 'subject__subject_name')
-        ] if current_session and current_term else [],
+            for m in MidTermRecord.objects.select_related(
+                'student', 'subject', 'academic_session', 'term', 'classroom', 'recorded_by'
+            ).order_by('academic_session__academic_year', 'student__last_name', 'student__first_name')
+        ],
         "grade_verifications": [
             {
                 "classroom": gv.classroom.class_name,
@@ -3264,25 +3400,37 @@ def export_session_json(request):
                 "academic_term": gv.academic_term.term_name,
                 "verified_by": gv.verified_by.staff_id if gv.verified_by else None,
             }
-            for gv in GradeVerification.objects.filter(
-                academic_session=current_session, academic_term=current_term
-            ).select_related('classroom', 'verified_by')
-        ] if current_session and current_term else [],
+            for gv in GradeVerification.objects.select_related('classroom', 'verified_by')
+        ],
         "staff": [
             {
+                "id": s.pk,
                 "staff_id": s.staff_id,
                 "title": s.title,
                 "first_name": s.first_name,
                 "other_names": s.other_names or '',
                 "last_name": s.last_name,
                 "gender": s.gender,
+                "dob": s.dob.isoformat() if s.dob else None,
                 "designation": s.designation.name if s.designation else None,
                 "department": s.department.name if s.department else None,
+                "ssnit_id": s.ssnit_id or '',
                 "phone_number": s.phone_number or '',
                 "email": s.email,
+                "employment_type": s.employment_type,
+                "date_of_appointment": s.date_of_appointment.isoformat() if s.date_of_appointment else None,
+                "year_of_last_promotion": s.year_of_last_promotion,
+                "qualification": s.qualification,
+                "certificate": s.certificate,
+                "name_of_institution_completed": s.name_of_institution_completed,
+                "year_completed": s.year_completed,
                 "form_class": s.form_class.class_name if s.form_class else None,
+                "address": s.address or '',
+                "username": s.user.username if s.user else None,
             }
-            for s in StaffProfile.objects.select_related('designation', 'department', 'form_class').order_by('last_name', 'first_name')
+            for s in StaffProfile.objects.select_related(
+                'user', 'designation', 'department', 'form_class'
+            ).order_by('last_name', 'first_name')
         ],
         "staff_assignments": [
             {
@@ -3291,6 +3439,46 @@ def export_session_json(request):
                 "subject": scs.subject.subject_name,
             }
             for scs in StaffClassSubject.objects.select_related('staff', 'classroom', 'subject').order_by('staff__staff_id')
+        ],
+        "promotion_criteria": [
+            {
+                "classroom": pc.classroom.class_name,
+                "min_grand_total": float(pc.min_grand_total),
+            }
+            for pc in PromotionCriteria.objects.select_related('classroom')
+        ],
+        "notifications": [
+            {
+                "recipient": n.recipient.username,
+                "title": n.title,
+                "message": n.message,
+                "notification_type": n.notification_type,
+                "is_read": n.is_read,
+                "created_at": n.created_at.isoformat() if n.created_at else None,
+            }
+            for n in Notification.objects.select_related('recipient')
+        ],
+        "timetables": [
+            {
+                "id": t.pk,
+                "student_class": t.student_class.class_name,
+                "title": t.title,
+                "academic_term": str(t.academic_term),
+                "is_active": t.is_active,
+            }
+            for t in Timetable.objects.select_related('student_class', 'academic_term')
+        ],
+        "timetable_slots": [
+            {
+                "timetable_id": ts.timetable_id,
+                "subject": ts.subject.subject_name,
+                "teacher": ts.teacher.staff_id if ts.teacher else None,
+                "day_of_week": ts.day_of_week,
+                "start_time": ts.start_time.strftime('%H:%M:%S') if ts.start_time else None,
+                "end_time": ts.end_time.strftime('%H:%M:%S') if ts.end_time else None,
+                "room_or_note": ts.room_or_note or '',
+            }
+            for ts in TimetableSlot.objects.select_related('timetable', 'subject', 'teacher')
         ],
     }
 
@@ -3303,6 +3491,947 @@ def export_session_json(request):
     filename = f"session_database_backup_{year_label}_{term_label}_{datetime.now().strftime('%Y-%m-%d')}.json"
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     return response
+
+
+def _apply_session_payload(payload):
+    """Shared, transactional engine that applies a session-backup payload.
+
+    Used by both the JSON import and the Excel import. Anything in `payload`
+    is optional except the core 'session' section. Raises on error so callers
+    can roll back and show a message. Returns the inserted-item counts.
+    """
+    counts = {
+        'sessions': 0, 'terms': 0, 'classes': 0, 'subjects': 0,
+        'departments': 0, 'designations': 0, 'class_subjects': 0,
+        'parents': 0, 'students': 0, 'enrollments': 0,
+        'subject_assessments': 0, 'midterm_records': 0, 'grade_verifications': 0,
+        'staff': 0, 'staff_assignments': 0, 'promotion_criteria': 0,
+        'timetables': 0, 'timetable_slots': 0,
+    }
+
+    with transaction.atomic():
+            session_by_year = {s.academic_year: s for s in AcademicSession.objects.all()}
+            subject_by_name = {s.subject_name: s for s in Subject.objects.all()}
+            class_by_name = {c.class_name: c for c in ClassRoom.objects.all()}
+            staff_by_id = {s.staff_id: s for s in StaffProfile.objects.all()}
+            parent_by_id = {p.pk: p for p in Parent.objects.all()}
+            student_by_adm = {s.admission_number: s for s in Student.objects.all()}
+
+            for name in payload.get('departments', []):
+                Department.objects.get_or_create(name=name)
+                counts['departments'] += 1
+
+            for name in payload.get('designations', []):
+                Designation.objects.get_or_create(name=name)
+                counts['designations'] += 1
+
+            for item in payload.get('sessions', []):
+                session, created = AcademicSession.objects.get_or_create(academic_year=item['academic_year'])
+                if created:
+                    if item.get('is_current', False) and not AcademicSession.objects.filter(is_current=True).exists():
+                        session.is_current = True
+                    session.save()
+                    counts['sessions'] += 1
+                session_by_year[session.academic_year] = session
+
+            term_by_key = {}
+            for item in payload.get('terms', []):
+                session = session_by_year.get(item['session'])
+                if not session:
+                    continue
+                term, created = Term.objects.get_or_create(
+                    session=session, term_name=item['term_name'],
+                    defaults={'is_active': item.get('is_active', False)},
+                )
+                if created and item.get('is_active', False)\
+                        and not Term.objects.filter(is_active=True).exists():
+                    term.is_active = True
+                    term.save()
+                if created:
+                    counts['terms'] += 1
+                term_by_key[(session.academic_year, term.term_name)] = term
+
+            for item in payload.get('classes', []):
+                classroom, created = ClassRoom.objects.get_or_create(
+                    class_name=item['class_name'],
+                    defaults={'order': item.get('order', 0)},
+                )
+                if created:
+                    counts['classes'] += 1
+                else:
+                    classroom.order = item.get('order', classroom.order)
+                if item.get('next_class'):
+                    classroom.next_class = class_by_name.get(item['next_class'])
+                classroom.save()
+                class_by_name[classroom.class_name] = classroom
+
+            for name in payload.get('subjects', []):
+                Subject.objects.get_or_create(subject_name=name)
+                counts['subjects'] += 1
+                subject_by_name[name] = Subject.objects.get(subject_name=name)
+
+            for item in payload.get('class_subjects', []):
+                classroom = class_by_name.get(item['classroom'])
+                subject = subject_by_name.get(item['subject'])
+                if classroom and subject:
+                    ClassSubject.objects.get_or_create(classroom=classroom, subject=subject)
+                    counts['class_subjects'] += 1
+
+            for item in payload.get('parents', []):
+                parent, created = Parent.objects.get_or_create(
+                    name=item.get('name'), telephone_number=item.get('telephone_number'),
+                    defaults={
+                        'occupation': item.get('occupation') or '',
+                        'residential_address': item.get('residential_address') or '',
+                        'email': item.get('email') or '',
+                    },
+                )
+                if created:
+                    if item.get('id'):
+                        parent.pk = item['id']
+                    parent.save()
+                    counts['parents'] += 1
+                parent_by_id[parent.pk] = parent
+
+            for item in payload.get('students', []):
+                from datetime import date as ddate
+
+                def _parse_iso(value):
+                    if not value:
+                        return None
+                    try:
+                        return ddate.fromisoformat(value)
+                    except (ValueError, TypeError):
+                        return None
+
+                student, created = Student.objects.get_or_create(
+                    admission_number=item['admission_number'],
+                    defaults={
+                        'first_name': item['first_name'],
+                        'last_name': item['last_name'],
+                        'gender': item.get('gender', 'Male'),
+                        'dob': _parse_iso(item.get('dob')) or date.today(),
+                    },
+                )
+                if created:
+                    counts['students'] += 1
+                else:
+                    student.first_name = item.get('first_name', student.first_name)
+                    student.last_name = item.get('last_name', student.last_name)
+                student.other_names = item.get('other_names') or ''
+                student.gender = item['gender']
+                dob = _parse_iso(item.get('dob'))
+                if dob is not None:
+                    student.dob = dob
+                date_of_admission = _parse_iso(item.get('date_of_admission'))
+                if date_of_admission is not None:
+                    student.date_of_admission = date_of_admission
+                student.status = item.get('status', student.status)
+                student.living_with = item.get('living_with', student.living_with)
+                if item.get('previous_school_attended'):
+                    student.previous_school_attended = item['previous_school_attended']
+                if item.get('classroom'):
+                    student.classroom = class_by_name.get(item['classroom'])
+                if item.get('father_id'):
+                    student.father = parent_by_id.get(item['father_id'])
+                if item.get('mother_id'):
+                    student.mother = parent_by_id.get(item['mother_id'])
+                if item.get('pending_next_class'):
+                    student.pending_next_class = class_by_name.get(item['pending_next_class'])
+                student.promotion_status = item.get('promotion_status', 'NEUTRAL')
+                student.is_alumni = bool(item.get('is_alumni', False))
+                student.save()
+                student_by_adm[student.admission_number] = student
+
+            for item in payload.get('enrollments', []):
+                student = student_by_adm.get(item['student'])
+                classroom = class_by_name.get(item['classroom'])
+                session = session_by_year.get(item['academic_session'])
+                term = term_by_key.get((item['academic_session'], item['academic_term']))
+                if student and classroom and session and term:
+                    Enrollment.objects.get_or_create(
+                        student=student, classroom=classroom,
+                        academic_session=session, academic_term=term,
+                    )
+                    counts['enrollments'] += 1
+
+            for item in payload.get('subject_assessments', []):
+                student = student_by_adm.get(item['student'])
+                subject = subject_by_name.get(item['subject'])
+                session = session_by_year.get(item['academic_session'])
+                term = term_by_key.get((item['academic_session'], item['academic_term']))
+                if student and subject and session and term:
+                    SubjectAssessment.objects.get_or_create(
+                        student=student, subject=subject,
+                        academic_session=session, academic_term=term,
+                        defaults={'class_score': item['class_score'], 'exam_score': item['exam_score']},
+                    )
+                    counts['subject_assessments'] += 1
+
+            for item in payload.get('midterm_records', []):
+                student = student_by_adm.get(item['student'])
+                subject = subject_by_name.get(item['subject'])
+                session = session_by_year.get(item['academic_session'])
+                term = term_by_key.get((item['academic_session'], item['term']))
+                if student and subject and session and term:
+                    MidTermRecord.objects.get_or_create(
+                        student=student, academic_session=session, term=term, subject=subject,
+                        defaults={
+                            'midterm_score': item.get('midterm_score'),
+                            'classroom': class_by_name.get(item.get('classroom')) if item.get('classroom') else None,
+                            'recorded_by': staff_by_id.get(item.get('recorded_by')) if item.get('recorded_by') else None,
+                        },
+                    )
+                    counts['midterm_records'] += 1
+
+            for item in payload.get('grade_verifications', []):
+                classroom = class_by_name.get(item['classroom'])
+                session = session_by_year.get(item['academic_session'])
+                term = term_by_key.get((item['academic_session'], item['academic_term']))
+                if classroom and session and term:
+                    GradeVerification.objects.get_or_create(
+                        classroom=classroom, academic_session=session, academic_term=term,
+                        defaults={'verified_by': staff_by_id.get(item.get('verified_by')) if item.get('verified_by') else None},
+                    )
+                    counts['grade_verifications'] += 1
+
+            for item in payload.get('staff', []):
+                staff, created = StaffProfile.objects.get_or_create(
+                    staff_id=item['staff_id'], defaults={'email': item['email']},
+                )
+                if created:
+                    counts['staff'] += 1
+                for field in ['title', 'first_name', 'other_names', 'last_name', 'gender']:
+                    if item.get(field) is not None:
+                        setattr(staff, field, item[field])
+                if item.get('dob'):
+                    from datetime import date as ddate
+                    try:
+                        staff.dob = ddate.fromisoformat(item['dob'])
+                    except ValueError:
+                        pass
+                if item.get('date_of_appointment'):
+                    from datetime import date as ddate
+                    try:
+                        staff.date_of_appointment = ddate.fromisoformat(item['date_of_appointment'])
+                    except ValueError:
+                        pass
+                if item.get('designation'):
+                    staff.designation = Designation.objects.filter(name=item['designation']).first()
+                if item.get('department'):
+                    staff.department = Department.objects.filter(name=item['department']).first()
+                for field in ['ssnit_id', 'phone_number', 'employment_type', 'qualification',
+                              'certificate', 'name_of_institution_completed', 'address']:
+                    if item.get(field) is not None:
+                        setattr(staff, field, item[field])
+                if item.get('year_of_last_promotion') is not None:
+                    staff.year_of_last_promotion = item['year_of_last_promotion']
+                if item.get('year_completed') is not None:
+                    staff.year_completed = item['year_completed']
+                if item.get('email'):
+                    staff.email = item['email']
+                if item.get('form_class'):
+                    staff.form_class = class_by_name.get(item['form_class'])
+                staff.save()
+                staff_by_id[staff.staff_id] = staff
+
+            for item in payload.get('staff_assignments', []):
+                staff = staff_by_id.get(item['staff_id'])
+                classroom = class_by_name.get(item['classroom'])
+                subject = subject_by_name.get(item['subject'])
+                if staff and classroom and subject:
+                    StaffClassSubject.objects.get_or_create(staff=staff, classroom=classroom, subject=subject)
+                    counts['staff_assignments'] += 1
+
+            for item in payload.get('promotion_criteria', []):
+                classroom = class_by_name.get(item['classroom'])
+                if classroom:
+                    PromotionCriteria.objects.get_or_create(
+                        classroom=classroom, defaults={'min_grand_total': item['min_grand_total']},
+                    )
+                    counts['promotion_criteria'] += 1
+
+            timetable_by_id = {}
+            for item in payload.get('timetables', []):
+                classroom = class_by_name.get(item['student_class'])
+                term = None
+                for t in Term.objects.select_related('session').all():
+                    if str(t) == item['academic_term']:
+                        term = t
+                        break
+                if not classroom or not term:
+                    continue
+                timetable, created = Timetable.objects.get_or_create(
+                    student_class=classroom, academic_term=term,
+                    defaults={
+                        'title': item['title'],
+                        'is_active': item.get('is_active', True),
+                    },
+                )
+                if created:
+                    counts['timetables'] += 1
+                timetable_by_id[item.get('id')] = timetable
+
+            for item in payload.get('timetable_slots', []):
+                timetable = timetable_by_id.get(item.get('timetable_id'))
+                subject = subject_by_name.get(item['subject'])
+                teacher = staff_by_id.get(item.get('teacher'))
+                if not timetable or not subject:
+                    continue
+                TimetableSlot.objects.get_or_create(
+                    timetable=timetable, day_of_week=item['day_of_week'],
+                    start_time=item['start_time'],
+                    defaults={
+                        'subject': subject,
+                        'end_time': item['end_time'],
+                        'teacher': teacher,
+                        'room_or_note': item.get('room_or_note', ''),
+                    },
+                )
+                counts['timetable_slots'] += 1
+
+    return counts
+
+
+def import_session_json(request):
+    if not _is_admin(request.user):
+        raise PermissionDenied
+
+    upload = request.FILES.get('backup_file')
+    if not upload:
+        messages.error(request, "No backup file was uploaded.")
+        return redirect('configure_session')
+
+    try:
+        payload = json.loads(upload.read().decode('utf-8'))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        messages.error(request, "The uploaded file is not a valid JSON backup.")
+        return redirect('configure_session')
+
+    if not isinstance(payload, dict) or not payload.get('session'):
+        messages.error(request, "This file does not look like a session database backup (missing 'session' section).")
+        return redirect('configure_session')
+
+    try:
+        counts = _apply_session_payload(payload)
+    except Exception as exc:
+        messages.error(request, f"Import failed (rolled back): {exc}")
+        return redirect('configure_session')
+
+    total = sum(counts.values())
+    parts = ", ".join(f"{k} {v}" for k, v in counts.items() if v)
+    messages.success(request, f"Backup imported successfully! Imported {total} items: {parts}.")
+    return redirect('configure_session')
+
+
+_DAY_DISPLAY_TO_CODE = {
+    'Monday': 'MON', 'Tuesday': 'TUE', 'Wednesday': 'WED', 'Thursday': 'THU', 'Friday': 'FRI',
+    'Mon': 'MON', 'Tue': 'TUE', 'Wed': 'WED', 'Thu': 'THU', 'Fri': 'FRI',
+}
+
+
+def _cell_str(value):
+    if value is None:
+        return ''
+    return str(value).strip()
+
+
+def _cell_bool(value):
+    if value is None:
+        return False
+    if isinstance(value, bool):
+        return value
+    text = str(value).strip().lower()
+    return text in ('1', 'true', 'yes', 'y', 'active', 'current')
+
+
+def _cell_float(value):
+    if value is None or value == '':
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _read_export_sheet(wb, sheet_name):
+    """Read a sheet from an exported session-database workbook.
+
+    Exports put a merged title on row 1, headers on row 3, and data from
+    row 4 onward. Returns a list of dicts keyed by header text.
+    """
+    if sheet_name not in wb.sheetnames:
+        return []
+    ws = wb[sheet_name]
+    headers = [_cell_str(ws.cell(row=3, column=col).value) for col in range(1, ws.max_column + 1)]
+    if not any(headers):
+        return []
+    rows = []
+    for r in range(4, ws.max_row + 1):
+        values = [ws.cell(row=r, column=col).value for col in range(1, len(headers) + 1)]
+        if not any(v is not None and _cell_str(v) for v in values):
+            continue
+        row = {}
+        for header, value in zip(headers, values):
+            if header:
+                row[header] = value
+        rows.append(row)
+    return rows
+
+
+def _excel_export_to_payload(wb):
+    """Convert an exported session-database workbook back into a payload."""
+    payload = {
+        'session': {'academic_year': None, 'is_current': False},
+        'sessions': [], 'terms': [], 'classes': [], 'subjects': [],
+        'departments': [], 'designations': [], 'class_subjects': [],
+        'parents': [], 'students': [], 'enrollments': [],
+        'subject_assessments': [], 'midterm_records': [],
+        'grade_verifications': [], 'staff': [], 'staff_assignments': [],
+        'promotion_criteria': [], 'notifications': [], 'timetables': [],
+        'timetable_slots': [],
+    }
+
+    sessions = _read_export_sheet(wb, 'Sessions')
+    for row in sessions:
+        payload['sessions'].append({
+            'academic_year': _cell_str(row.get('Academic Year')),
+            'is_current': _cell_bool(row.get('Is Current')),
+        })
+    if payload['sessions']:
+        payload['session'] = payload['sessions'][0]
+
+    for row in _read_export_sheet(wb, 'Terms'):
+        payload['terms'].append({
+            'session': _cell_str(row.get('Session')),
+            'term_name': _cell_str(row.get('Term Name')),
+            'is_active': _cell_bool(row.get('Is Active')),
+        })
+
+    for row in _read_export_sheet(wb, 'Classes'):
+        payload['classes'].append({
+            'class_name': _cell_str(row.get('Class Name')),
+            'order': row.get('Order'),
+            'next_class': _cell_str(row.get('Next Class')),
+            'form_master_id': _cell_str(row.get('Form Master')),
+        })
+
+    payload['subjects'] = [_cell_str(r.get('Subject Name')) for r in _read_export_sheet(wb, 'Subjects')]
+    payload['departments'] = [_cell_str(r.get('Name')) for r in _read_export_sheet(wb, 'Departments')]
+    payload['designations'] = [_cell_str(r.get('Name')) for r in _read_export_sheet(wb, 'Designations')]
+
+    for row in _read_export_sheet(wb, 'Class Subjects'):
+        payload['class_subjects'].append({
+            'classroom': _cell_str(row.get('Class')),
+            'subject': _cell_str(row.get('Subject')),
+        })
+
+    for row in _read_export_sheet(wb, 'Parents'):
+        payload['parents'].append({
+            'id': row.get('ID'),
+            'name': _cell_str(row.get('Name')),
+            'occupation': _cell_str(row.get('Occupation')),
+            'residential_address': _cell_str(row.get('Residential Address')),
+            'email': _cell_str(row.get('Email')),
+            'telephone_number': _cell_str(row.get('Telephone')),
+        })
+
+    parent_key_to_id = {}
+    for p in payload['parents']:
+        if p['name']:
+            key = (p['name'], p['telephone_number'])
+            if key not in parent_key_to_id:
+                parent_key_to_id[key] = p['id']
+
+    for row in _read_export_sheet(wb, 'Students'):
+        father_key = (_cell_str(row.get('Father Name')), _cell_str(row.get('Father Phone')))
+        mother_key = (_cell_str(row.get('Mother Name')), _cell_str(row.get('Mother Phone')))
+        payload['students'].append({
+            'id': row.get('ID'),
+            'admission_number': _cell_str(row.get('Admission No.')),
+            'first_name': _cell_str(row.get('First Name')),
+            'other_names': _cell_str(row.get('Other Names')),
+            'last_name': _cell_str(row.get('Last Name')),
+            'gender': _cell_str(row.get('Gender')),
+            'dob': row.get('Date of Birth'),
+            'date_of_admission': row.get('Date of Admission'),
+            'status': _cell_str(row.get('Status')),
+            'living_with': _cell_str(row.get('Living With')),
+            'previous_school_attended': _cell_str(row.get('Previous School')),
+            'classroom': _cell_str(row.get('Class')),
+            'father_id': parent_key_to_id.get(father_key),
+            'mother_id': parent_key_to_id.get(mother_key),
+            'pending_next_class': _cell_str(row.get('Pending Next Class')),
+            'promotion_status': _cell_str(row.get('Promotion Status')),
+            'is_alumni': _cell_bool(row.get('Is Alumni')),
+        })
+
+    for row in _read_export_sheet(wb, 'Enrollments'):
+        payload['enrollments'].append({
+            'student': _cell_str(row.get('Admission No.')),
+            'classroom': _cell_str(row.get('Class')),
+            'academic_session': _cell_str(row.get('Academic Session')),
+            'academic_term': _cell_str(row.get('Term')),
+        })
+
+    for row in _read_export_sheet(wb, 'Subject Assessments'):
+        payload['subject_assessments'].append({
+            'student': _cell_str(row.get('Admission No.')),
+            'subject': _cell_str(row.get('Subject')),
+            'academic_session': _cell_str(row.get('Academic Session')),
+            'academic_term': _cell_str(row.get('Term')),
+            'class_score': _cell_float(row.get('Class Score (30%)')),
+            'exam_score': _cell_float(row.get('Exam Score (70%)')),
+        })
+
+    for row in _read_export_sheet(wb, 'Mid-Term Records'):
+        payload['midterm_records'].append({
+            'student': _cell_str(row.get('Admission No.')),
+            'subject': _cell_str(row.get('Subject')),
+            'academic_session': _cell_str(row.get('Academic Session')),
+            'term': _cell_str(row.get('Term')),
+            'classroom': _cell_str(row.get('Class')),
+            'midterm_score': _cell_float(row.get('Mid-Term Score')),
+            'recorded_by': _cell_str(row.get('Recorded By')),
+        })
+
+    for row in _read_export_sheet(wb, 'Grade Verifications'):
+        payload['grade_verifications'].append({
+            'classroom': _cell_str(row.get('Class')),
+            'academic_session': _cell_str(row.get('Academic Session')),
+            'academic_term': _cell_str(row.get('Term')),
+            'verified_by': _cell_str(row.get('Verified By')),
+        })
+
+    for row in _read_export_sheet(wb, 'Staff'):
+        payload['staff'].append({
+            'staff_id': _cell_str(row.get('Staff ID')),
+            'title': _cell_str(row.get('Title')),
+            'first_name': _cell_str(row.get('First Name')),
+            'other_names': _cell_str(row.get('Other Names')),
+            'last_name': _cell_str(row.get('Last Name')),
+            'gender': _cell_str(row.get('Gender')),
+            'dob': row.get('Date of Birth'),
+            'designation': _cell_str(row.get('Designation')),
+            'department': _cell_str(row.get('Department')),
+            'ssnit_id': _cell_str(row.get('SSNIT ID')),
+            'phone_number': _cell_str(row.get('Phone')),
+            'email': _cell_str(row.get('Email')),
+            'employment_type': _cell_str(row.get('Employment Type')),
+            'date_of_appointment': row.get('Date of Appointment'),
+            'year_of_last_promotion': row.get('Year of Last Promotion'),
+            'qualification': _cell_str(row.get('Qualification')),
+            'certificate': _cell_str(row.get('Certificate')),
+            'name_of_institution_completed': _cell_str(row.get('Institution Completed')),
+            'year_completed': row.get('Year Completed'),
+            'form_class': _cell_str(row.get('Form Class (Form Teacher)')),
+            'address': _cell_str(row.get('Residential Address')),
+            'username': _cell_str(row.get('Username')),
+        })
+
+    for row in _read_export_sheet(wb, 'Staff Assignments'):
+        payload['staff_assignments'].append({
+            'staff_id': _cell_str(row.get('Staff ID')),
+            'classroom': _cell_str(row.get('Class')),
+            'subject': _cell_str(row.get('Subject')),
+        })
+
+    for row in _read_export_sheet(wb, 'Promotion Criteria'):
+        payload['promotion_criteria'].append({
+            'classroom': _cell_str(row.get('Class')),
+            'min_grand_total': _cell_float(row.get('Minimum Grand Total')),
+        })
+
+    for row in _read_export_sheet(wb, 'Notifications'):
+        payload['notifications'].append({
+            'recipient': _cell_str(row.get('Recipient')),
+            'notification_type': _cell_str(row.get('Type')),
+            'title': _cell_str(row.get('Title')),
+            'message': _cell_str(row.get('Message')),
+            'is_read': _cell_bool(row.get('Is Read')),
+        })
+
+    for row in _read_export_sheet(wb, 'Timetables'):
+        payload['timetables'].append({
+            'id': row.get('ID'),
+            'student_class': _cell_str(row.get('Class')),
+            'title': _cell_str(row.get('Title')),
+            'academic_term': _cell_str(row.get('Term')),
+            'is_active': _cell_bool(row.get('Is Active')),
+        })
+
+    slot_timetable_id = {}
+    for t in payload['timetables']:
+        label = f"{t['student_class']} - {t['title']}"
+        slot_timetable_id[label] = t['id']
+        slot_timetable_id.setdefault(t['student_class'], t['id'])
+
+    for row in _read_export_sheet(wb, 'Timetable Slots'):
+        day_display = _cell_str(row.get('Day'))
+        payload['timetable_slots'].append({
+            'timetable_id': slot_timetable_id.get(_cell_str(row.get('Timetable'))),
+            'subject': _cell_str(row.get('Subject')),
+            'teacher': _cell_str(row.get('Teacher')),
+            'day_of_week': _DAY_DISPLAY_TO_CODE.get(day_display, day_display),
+            'start_time': _cell_str(row.get('Start Time')),
+            'end_time': _cell_str(row.get('End Time')),
+            'room_or_note': _cell_str(row.get('Room / Note')),
+        })
+
+    return payload
+
+
+_FLEX_ALIASES = {
+    'admission_number': ['admission number', 'admission no', 'admission no.', 'admission', 'student id',
+                         'student number', 'index number', 'student no', 'student no.'],
+    'first_name': ['first name', 'fname', 'forename'],
+    'other_names': ['other names', 'middle name', 'middle names', 'other name'],
+    'last_name': ['last name', 'surname', 'lname', 'family name'],
+    'full_name': ['full name', 'student name', 'name', 'pupil name', 'student full name'],
+    'gender': ['gender', 'sex'],
+    'dob': ['date of birth', 'dob', 'birth date', 'birthday'],
+    'date_of_admission': ['date of admission', 'admission date', 'enrollment date', 'enrolment date'],
+    'status': ['status', 'student status', 'enrolment status', 'enrollment status'],
+    'parent_name': ['parent name', 'guardian name', 'guardian', 'parent/guardian', 'father/mother name'],
+    'parent_phone': ['telephone', 'phone', 'phone number', 'telephone number', 'contact', 'mobile',
+                     'parent phone', 'parent telephone', 'guardian phone'],
+    'parent_email': ['email', 'email address', 'parent email', 'guardian email'],
+    'occupation': ['occupation', 'parent occupation'],
+    'class_name': ['class', 'class name', 'form', 'form class', 'stream', 'classroom', 'grade'],
+    'subject_name': ['subject', 'subject name', 'course', 'course name'],
+    'teacher_staff_id': ['staff id', 'staff no', 'staff no.', 'staff number', 'employee id', 'teacher id',
+                         'staff code'],
+    'teacher_name': ['teacher', 'teacher name', 'staff name', 'teacher full name'],
+    'academic_year': ['academic year', 'academic session', 'session year', 'year', 'session name', 'session'],
+    'term_name': ['term', 'term name', 'term number', 'term no'],
+    'midterm_score': ['midterm score', 'mid-term score', 'mid term score', 'mte'],
+    'class_score': ['class score', 'classwork', 'continuous assessment', 'ca score', 'term score'],
+    'exam_score': ['exam score', 'examination score', 'exam'],
+    'score': ['total score', 'total', 'grand total', 'score', 'average'],
+    'grade': ['grade', 'position'],
+    'promotion_status': ['promotion status', 'promotion'],
+}
+
+
+def _normalize_header(text):
+    return _cell_str(text).lower().replace('_', ' ').replace('-', ' ').replace('/', ' ').replace('.', ' ')
+
+
+def _normalize_aliase(alias):
+    return _normalize_header(alias)
+
+
+def _match_column(headers, aliases):
+    aliases_norm = {_normalize_aliase(a) for a in aliases}
+    for h in headers:
+        if h in aliases_norm:
+            return headers[h]
+    return None
+
+
+def _find_header_row(ws):
+    """Detect the header row index for an arbitrary sheet (usually row 1)."""
+    best_row, best_score = None, 0
+    for r in range(1, min(max_row if (max_row := ws.max_row) else 1, 15) + 1):
+        score = 0
+        for c in range(1, ws.max_column + 1):
+            header = _normalize_header(ws.cell(row=r, column=c).value)
+            if header and any(header == _normalize_aliase(a) for aliases in _FLEX_ALIASES.values() for a in aliases):
+                score += 1
+        if score > best_score:
+            best_score, best_row = score, r
+    if best_score < 2:
+        return None
+    return best_row
+
+
+def _sheet_columns(ws, header_row):
+    cols = {}
+    for c in range(1, ws.max_column + 1):
+        raw = ws.cell(row=header_row, column=c).value
+        if raw is not None and _cell_str(raw):
+            cols[_normalize_header(raw)] = c
+    return cols
+
+
+def _flex_sheet_rows(ws, header_row, cols):
+    rows = []
+    for r in range(header_row + 1, ws.max_row + 1):
+        row = {}
+        blank = True
+        for norm, c in cols.items():
+            val = ws.cell(row=r, column=c).value
+            if _cell_str(val):
+                blank = False
+            row[norm] = val
+        if not blank:
+            rows.append(row)
+    return rows
+
+
+def _excel_flex_to_payload(wb):
+    """Map the admin's own spreadsheets onto the backup payload.
+
+    Tolerates missing sheets and missing optional columns. Only rows whose
+    entity can be recognised are imported; core entities are sessions,
+    classes, subjects, parents, students and staff.
+    """
+    payload = {
+        'session': {'academic_year': None, 'is_current': False},
+        'sessions': [], 'terms': [], 'classes': [], 'subjects': [],
+        'departments': [], 'designations': [], 'class_subjects': [],
+        'parents': [], 'students': [], 'enrollments': [],
+        'subject_assessments': [], 'midterm_records': [],
+        'grade_verifications': [], 'staff': [], 'staff_assignments': [],
+        'promotion_criteria': [], 'notifications': [], 'timetables': [],
+        'timetable_slots': [],
+    }
+    warnings = []
+    parents_by_key = {}
+
+    def get_col(cols, key):
+        aliases = _FLEX_ALIASES.get(key, [])
+        aliases_norm = {_normalize_aliase(a) for a in aliases}
+        for n, c in cols.items():
+            if n in aliases_norm:
+                return c
+        return None
+
+    for ws in wb.worksheets:
+        header_row = _find_header_row(ws)
+        if header_row is None:
+            continue
+        cols = _sheet_columns(ws, header_row)
+        rows = _flex_sheet_rows(ws, header_row, cols)
+        if not rows:
+            continue
+
+        c_adm = get_col(cols, 'admission_number')
+        c_fname = get_col(cols, 'first_name')
+        c_lname = get_col(cols, 'last_name')
+        c_full = get_col(cols, 'full_name')
+        c_gender = get_col(cols, 'gender')
+        c_dob = get_col(cols, 'dob')
+        c_admdate = get_col(cols, 'date_of_admission')
+        c_status = get_col(cols, 'status')
+        c_class = get_col(cols, 'class_name')
+        c_subject = get_col(cols, 'subject_name')
+        c_parent = get_col(cols, 'parent_name')
+        c_pemail = get_col(cols, 'parent_email')
+        c_pphone = get_col(cols, 'parent_phone')
+        c_staffid = get_col(cols, 'teacher_staff_id')
+        c_acad = get_col(cols, 'academic_year')
+        c_termname = get_col(cols, 'term_name')
+        c_promo = get_col(cols, 'promotion_status')
+
+        # ── Students sheet ──
+        if c_adm or c_full or c_fname or c_lname:
+            for row in rows:
+                adm = _cell_str(row.get(list(cols.keys())[list(cols.values()).index(c_adm)] if c_adm else '')) if c_adm else ''
+                first = _cell_str(row[list(cols.keys())[list(cols.values()).index(c_fname)]]) if c_fname else ''
+                last = _cell_str(row[list(cols.keys())[list(cols.values()).index(c_lname)]]) if c_lname else ''
+                full = _cell_str(row[list(cols.keys())[list(cols.values()).index(c_full)]]) if c_full else ''
+                if not adm and c_full:
+                    adm = full
+                if not first and not last and full:
+                    parts = full.split()
+                    first = parts[0] if parts else ''
+                    last = parts[-1] if len(parts) > 1 else ''
+                classroom = _cell_str(row[list(cols.keys())[list(cols.values()).index(c_class)]]) if c_class else ''
+                parent_name = _cell_str(row[list(cols.keys())[list(cols.values()).index(c_parent)]]) if c_parent else ''
+                parent_phone = _cell_str(row[list(cols.keys())[list(cols.values()).index(c_pphone)]]) if c_pphone else ''
+                parent_email = _cell_str(row[list(cols.keys())[list(cols.values()).index(c_pemail)]]) if c_pemail else ''
+                if not adm and not first and not last:
+                    continue
+                if parent_name:
+                    key = (parent_name, parent_phone)
+                    if key not in parents_by_key:
+                        parents_by_key[key] = {
+                            'name': parent_name,
+                            'telephone_number': parent_phone,
+                            'email': parent_email,
+                            'occupation': '',
+                        }
+                payload['students'].append({
+                    'id': None,
+                    'admission_number': adm,
+                    'first_name': first,
+                    'other_names': '',
+                    'last_name': last,
+                    'gender': _cell_str(row[list(cols.keys())[list(cols.values()).index(c_gender)]]) if c_gender else 'Male',
+                    'dob': row[list(cols.keys())[list(cols.values()).index(c_dob)]] if c_dob else None,
+                    'date_of_admission': row[list(cols.keys())[list(cols.values()).index(c_admdate)]] if c_admdate else None,
+                    'status': _cell_str(row[list(cols.keys())[list(cols.values()).index(c_status)]]) if c_status else 'ACTIVE',
+                    'living_with': '',
+                    'previous_school_attended': '',
+                    'classroom': classroom,
+                    'father_id': None,
+                    'mother_id': None,
+                    'pending_next_class': '',
+                    'promotion_status': _cell_str(row[list(cols.keys())[list(cols.values()).index(c_promo)]]) if c_promo else 'NEUTRAL',
+                    'is_alumni': False,
+                })
+            continue
+
+        # ── Classes sheet ──
+        if c_class and not c_subject and not c_adm:
+            for row in rows:
+                cn = _cell_str(row[list(cols.keys())[list(cols.values()).index(c_class)]])
+                if cn:
+                    payload['classes'].append({
+                        'class_name': cn,
+                        'order': len(payload['classes']) + 1,
+                        'next_class': '',
+                        'form_master_id': '',
+                    })
+            continue
+
+        # ── Subjects sheet ──
+        if c_subject and not c_adm and not c_class:
+            for row in rows:
+                sn = _cell_str(row[list(cols.keys())[list(cols.values()).index(c_subject)]])
+                if sn:
+                    payload['subjects'].append(sn)
+            continue
+
+        # ── Class-Subject matrix ──
+        if c_class and c_subject:
+            for row in rows:
+                cn = _cell_str(row[list(cols.keys())[list(cols.values()).index(c_class)]])
+                sn = _cell_str(row[list(cols.keys())[list(cols.values()).index(c_subject)]])
+                if cn and sn:
+                    payload['class_subjects'].append({'classroom': cn, 'subject': sn})
+            continue
+
+        # ── Parents / Guardians sheet ──
+        if c_parent and not c_adm and not c_full and not c_fname and not c_lname:
+            for row in rows:
+                pname = _cell_str(row[list(cols.keys())[list(cols.values()).index(c_parent)]])
+                pphone = _cell_str(row[list(cols.keys())[list(cols.values()).index(c_pphone)]]) if c_pphone else ''
+                pemail = _cell_str(row[list(cols.keys())[list(cols.values()).index(c_pemail)]]) if c_pemail else ''
+                if pname:
+                    parents_by_key[(pname, pphone)] = {
+                        'name': pname,
+                        'telephone_number': pphone,
+                        'email': pemail,
+                        'occupation': '',
+                    }
+            continue
+
+        # ── Staff / Teachers sheet ──
+        if c_staffid and not c_adm:
+            for row in rows:
+                sid = _cell_str(row[list(cols.keys())[list(cols.values()).index(c_staffid)]])
+                if not sid:
+                    continue
+                first = _cell_str(row[list(cols.keys())[list(cols.values()).index(c_fname)]]) if c_fname else ''
+                last = _cell_str(row[list(cols.keys())[list(cols.values()).index(c_lname)]]) if c_lname else ''
+                full = _cell_str(row[list(cols.keys())[list(cols.values()).index(c_full)]]) if c_full else ''
+                if not first and not last and full:
+                    parts = full.split()
+                    first = parts[0] if parts else ''
+                    last = parts[-1] if len(parts) > 1 else ''
+                payload['staff'].append({
+                    'staff_id': sid,
+                    'title': '',
+                    'first_name': first,
+                    'other_names': '',
+                    'last_name': last,
+                    'gender': _cell_str(row[list(cols.keys())[list(cols.values()).index(c_gender)]]) if c_gender else 'Male',
+                    'dob': row[list(cols.keys())[list(cols.values()).index(c_dob)]] if c_dob else None,
+                    'designation': '',
+                    'department': '',
+                    'ssnit_id': '',
+                    'phone_number': '',
+                    'email': '',
+                    'employment_type': '',
+                    'date_of_appointment': None,
+                    'year_of_last_promotion': None,
+                    'qualification': '',
+                    'certificate': '',
+                    'name_of_institution_completed': '',
+                    'year_completed': None,
+                    'form_class': '',
+                    'address': '',
+                    'username': None,
+                })
+            continue
+
+        # ── Sessions / Terms sheet ──
+        if c_acad:
+            for row in rows:
+                ay = _cell_str(row[list(cols.keys())[list(cols.values()).index(c_acad)]]) if c_acad else ''
+                tn = _cell_str(row[list(cols.keys())[list(cols.values()).index(c_termname)]]) if c_termname else ''
+                if ay and not any(s['academic_year'] == ay for s in payload['sessions']):
+                    payload['sessions'].append({'academic_year': ay, 'is_current': False})
+                if ay and tn and not any((t['session'], t['term_name']) == (ay, tn) for t in payload['terms']):
+                    payload['terms'].append({'session': ay, 'term_name': tn, 'is_active': False})
+            continue
+
+    if parents_by_key:
+        payload['parents'] = list(parents_by_key.values())
+
+    # ── Link students to their unique parent ──
+    parent_by_key = {}
+    for p in payload['parents']:
+        parent_by_key[(p['name'], p['telephone_number'])] = p
+    for s in payload['students']:
+        # flexible files carry a single guardian column; link to that parent
+        pass  # father_id/mother_id are left null when no explicit father/mother columns exist
+
+    if not payload['sessions']:
+        warnings.append("No sessions were found - no session will be created.")
+    return payload, warnings
+
+
+@login_required
+@require_POST
+def import_session_excel(request):
+    if not _is_admin(request.user):
+        raise PermissionDenied
+
+    from openpyxl import load_workbook
+
+    upload = request.FILES.get('backup_file')
+    if not upload:
+        messages.error(request, "No Excel file was uploaded.")
+        return redirect('configure_session')
+
+    try:
+        wb = load_workbook(upload, data_only=True)
+    except Exception:
+        messages.error(request, "The uploaded file is not a valid Excel workbook (.xlsx).")
+        return redirect('configure_session')
+
+    if 'Overview' in wb.sheetnames:
+        payload = _excel_export_to_payload(wb)
+        if not payload['sessions'] and not payload['students'] and not payload['classes']:
+            messages.error(request, "This workbook does not look like a session database export "
+                                    "(no Sessions, Students, or Classes data found).")
+            return redirect('configure_session')
+    else:
+        payload, warnings = _excel_flex_to_payload(wb)
+        if not payload['students'] and not payload['classes'] and not payload['sessions']:
+            warnings.append("No classes, sessions, or students could be recognised in any sheet.")
+        if not (payload['students'] or payload['classes'] or payload['sessions'] or payload['parents']):
+            messages.error(request, "Could not find any importable data. Make sure your sheets have "
+                                    "recognisable headers (e.g. 'Class', 'Admission No.', 'Student Name', "
+                                    "'Parent Name', 'Telephone').")
+            return redirect('configure_session')
+
+    try:
+        counts = _apply_session_payload(payload)
+    except Exception as exc:
+        messages.error(request, f"Excel import failed (rolled back): {exc}")
+        return redirect('configure_session')
+
+    total = sum(counts.values())
+    parts = ", ".join(f"{k} {v}" for k, v in counts.items() if v)
+    message = f"Excel import successful! Imported {total} items: {parts}."
+    if locals().get('warnings'):
+        message += " " + " ".join(warnings)
+    messages.success(request, message)
+    return redirect('configure_session')
 
 
 @login_required
