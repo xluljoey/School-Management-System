@@ -2938,6 +2938,374 @@ def export_parents_excel(request):
 
 
 @login_required
+def export_session_excel(request):
+    if not _is_admin(request.user):
+        raise PermissionDenied
+
+    from datetime import datetime
+    import io
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
+
+    current_session = AcademicSession.objects.filter(is_current=True).first()
+    current_term = Term.objects.filter(is_active=True).first()
+
+    header_font = Font(bold=True, size=14)
+    sub_header_font = Font(bold=True, size=10)
+    border = Border(
+        left=Side(style='thin'), right=Side(style='thin'),
+        top=Side(style='thin'), bottom=Side(style='thin')
+    )
+    header_fill = PatternFill(start_color="E8E8E8", end_color="E8E8E8", fill_type="solid")
+
+    def set_headers(ws, headers):
+        for col_idx, name in enumerate(headers, 1):
+            cell = ws.cell(row=3, column=col_idx, value=name)
+            cell.font = sub_header_font
+            cell.border = border
+            cell.fill = header_fill
+            cell.alignment = Alignment(horizontal='center', wrap_text=True)
+
+    def write_row(ws, values, row):
+        for col_idx, val in enumerate(values, 1):
+            cell = ws.cell(row=row, column=col_idx, value=val)
+            cell.border = border
+        return row + 1
+
+    def autofit(ws):
+        for col in ws.columns:
+            max_length = 0
+            col_letter = None
+            for cell in col:
+                if not hasattr(cell, 'column_letter'):
+                    continue
+                if col_letter is None:
+                    col_letter = cell.column_letter
+                if cell.value:
+                    max_length = max(max_length, len(str(cell.value)))
+            if col_letter:
+                ws.column_dimensions[col_letter].width = min(max_length + 4, 45)
+
+    def sheet_title(ws, title, ncols):
+        ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=ncols)
+        ws.cell(row=1, column=1, value=title).font = header_font
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Overview"
+    sheet_title(ws, "ACADEMIC SESSION DATABASE — OVERVIEW", 2)
+    set_headers(ws, ["Field", "Value"])
+
+    staff_count = StaffProfile.objects.count()
+    students_in_session = Student.objects.filter(is_alumni=False).count()
+    overview = [
+        ("Academic Session (Year)", current_session.academic_year if current_session else "None"),
+        ("Active Term", current_term.term_name if current_term else "None"),
+        ("Total Classes", ClassRoom.objects.count()),
+        ("Total Subjects", Subject.objects.count()),
+        ("Total Students", Student.objects.count()),
+        ("Non-Alumni Students", Student.objects.filter(is_alumni=False).count()),
+        ("Students in Active Session", students_in_session),
+        ("Active Enrollments (Session)", Enrollment.objects.count()),
+        ("Subject Assessments (Active Session/Term)", SubjectAssessment.objects.filter(academic_session=current_session, academic_term=current_term).count() if current_session and current_term else 0),
+        ("Mid-Term Records (Active Session/Term)", MidTermRecord.objects.filter(academic_session=current_session, term=current_term).count() if current_session and current_term else 0),
+        ("Grade Verifications (Active Session/Term)", GradeVerification.objects.filter(academic_session=current_session, academic_term=current_term).count() if current_session and current_term else 0),
+        ("Total Staff", staff_count),
+        ("Teacher Subject Assignments", StaffClassSubject.objects.count()),
+        ("Exported At", datetime.now().strftime('%Y-%m-%d %H:%M:%S')),
+    ]
+    row = 4
+    for field, value in overview:
+        row = write_row(ws, [field, value], row)
+    autofit(ws)
+
+    ws = wb.create_sheet("Classes")
+    sheet_title(ws, "CLASSES", 3)
+    set_headers(ws, ["Class Name", "Order", "Next Class"])
+    row = 4
+    for cl in ClassRoom.objects.all().select_related('next_class'):
+        row = write_row(ws, [cl.class_name, cl.order, cl.next_class.class_name if cl.next_class else ''], row)
+    autofit(ws)
+
+    ws = wb.create_sheet("Other Subjects")
+    sheet_title(ws, "SUBJECTS", 1)
+    set_headers(ws, ["Subject Name"])
+    row = 4
+    for subj in Subject.objects.all().order_by('subject_name'):
+        row = write_row(ws, [subj.subject_name], row)
+    autofit(ws)
+
+    ws = wb.create_sheet("Students")
+    sheet_title(ws, "STUDENTS", 13)
+    set_headers(ws, [
+        "Admission No.", "First Name", "Other Names", "Last Name", "Gender",
+        "Date of Birth", "Status", "Class", "Father Name", "Father Phone",
+        "Father Email", "Mother Name", "Mother Phone",
+    ])
+    row = 4
+    for student in Student.objects.filter(is_alumni=False).select_related('classroom', 'father', 'mother').order_by('last_name', 'first_name'):
+        father = student.father
+        mother = student.mother
+        values = [
+            student.admission_number, student.first_name, student.other_names or '',
+            student.last_name, student.gender,
+            student.dob.strftime('%Y-%m-%d') if student.dob else '',
+            student.status, student.classroom.class_name if student.classroom else 'N/A',
+            father.name if father else '', father.telephone_number if father else '',
+            father.email if father else '', mother.name if mother else '',
+            mother.telephone_number if mother else '',
+        ]
+        row = write_row(ws, values, row)
+    autofit(ws)
+
+    ws = wb.create_sheet("Enrollments")
+    sheet_title(ws, "ENROLLMENTS (ACTIVE SESSION)", 5)
+    set_headers(ws, ["Student", "Admission No.", "Class", "Session", "Term"])
+    row = 4
+    for enr in Enrollment.objects.select_related('student', 'classroom', 'academic_session', 'academic_term').order_by('student__last_name', 'student__first_name'):
+        values = [
+            enr.student.get_full_name, enr.student.admission_number,
+            enr.classroom.class_name, enr.academic_session.academic_year,
+            enr.academic_term.term_name,
+        ]
+        row = write_row(ws, values, row)
+    autofit(ws)
+
+    ws = wb.create_sheet("Subject Assessments")
+    sheet_title(ws, "SUBJECT ASSESSMENTS (ACTIVE SESSION/TERM)", 9)
+    set_headers(ws, [
+        "Student", "Admission No.", "Class", "Subject",
+        "Class Score", "Exam Score", "Total", "Grade", "Remark",
+    ])
+    row = 4
+    if current_session and current_term:
+        for a in SubjectAssessment.objects.filter(
+            academic_session=current_session, academic_term=current_term
+        ).select_related('student', 'student__classroom', 'subject').order_by('student__last_name', 'student__first_name', 'subject__subject_name'):
+            grade, remark = a.grade_and_remark
+            values = [
+                a.student.get_full_name, a.student.admission_number,
+                a.student.classroom.class_name if a.student.classroom else 'N/A',
+                a.subject.subject_name, float(a.class_score), float(a.exam_score),
+                a.total_score, grade, remark,
+            ]
+            row = write_row(ws, values, row)
+    autofit(ws)
+
+    ws = wb.create_sheet("Mid-Term Records")
+    sheet_title(ws, "MID-TERM RECORDS (ACTIVE SESSION/TERM)", 6)
+    set_headers(ws, ["Student", "Admission No.", "Class", "Subject", "Mid-Term Score", "Date Recorded"])
+    row = 4
+    if current_session and current_term:
+        for m in MidTermRecord.objects.filter(
+            academic_session=current_session, term=current_term
+        ).select_related('student', 'student__classroom', 'subject').order_by('student__last_name', 'student__first_name', 'subject__subject_name'):
+            values = [
+                m.student.get_full_name, m.student.admission_number,
+                m.student.classroom.class_name if m.student.classroom else 'N/A',
+                m.subject.subject_name,
+                float(m.midterm_score) if m.midterm_score is not None else '',
+                m.date_recorded.strftime('%Y-%m-%d %H:%M') if m.date_recorded else '',
+            ]
+            row = write_row(ws, values, row)
+    autofit(ws)
+
+    ws = wb.create_sheet("Grade Verifications")
+    sheet_title(ws, "GRADE VERIFICATIONS (ACTIVE SESSION/TERM)", 5)
+    set_headers(ws, ["Class", "Session", "Term", "Verified By", "Verified At"])
+    row = 4
+    if current_session and current_term:
+        for gv in GradeVerification.objects.filter(
+            academic_session=current_session, academic_term=current_term
+        ).select_related('classroom', 'verified_by'):
+            values = [
+                gv.classroom.class_name, gv.academic_session.academic_year,
+                gv.academic_term.term_name,
+                gv.verified_by.staff_id if gv.verified_by else '',
+                gv.verified_at.strftime('%Y-%m-%d %H:%M') if gv.verified_at else '',
+            ]
+            row = write_row(ws, values, row)
+    autofit(ws)
+
+    ws = wb.create_sheet("Staff")
+    sheet_title(ws, "STAFF", 8)
+    set_headers(ws, [
+        "Staff ID", "Name", "Designation", "Department", "Phone", "Email",
+        "Form Class", "Assigned (Class - Subject)",
+    ])
+    row = 4
+    for staff in StaffProfile.objects.select_related('designation', 'department', 'form_class').prefetch_related('assigned_classes_subjects__classroom', 'assigned_classes_subjects__subject').order_by('last_name', 'first_name'):
+        assignments = ", ".join(
+            f"{scs.classroom.class_name} - {scs.subject.subject_name}"
+            for scs in staff.assigned_classes_subjects.all()
+        )
+        values = [
+            staff.staff_id, f"{staff.first_name} {staff.last_name}".strip(),
+            staff.designation.name if staff.designation else '',
+            staff.department.name if staff.department else '',
+            staff.phone_number or '', staff.email,
+            staff.form_class.class_name if staff.form_class else '', assignments,
+        ]
+        row = write_row(ws, values, row)
+    autofit(ws)
+
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+
+    response = HttpResponse(
+        buffer.getvalue(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    year_label = current_session.academic_year.replace('/', '-') if current_session else 'unknown'
+    term_label = current_term.term_name.replace(' ', '') if current_term else 'unknown'
+    filename = f"session_database_{year_label}_{term_label}_{datetime.now().strftime('%Y-%m-%d')}.xlsx"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
+
+
+@login_required
+def export_session_json(request):
+    if not _is_admin(request.user):
+        raise PermissionDenied
+
+    import json
+    from datetime import datetime
+
+    current_session = AcademicSession.objects.filter(is_current=True).first()
+    current_term = Term.objects.filter(is_active=True).first()
+
+    payload = {
+        "exported_at": datetime.now().isoformat(),
+        "session": {
+            "academic_year": current_session.academic_year if current_session else None,
+            "is_current": current_session.is_current if current_session else False,
+        },
+        "active_term": {
+            "term_name": current_term.term_name if current_term else None,
+            "is_active": current_term.is_active if current_term else False,
+        },
+        "classes": [
+            {
+                "class_name": cl.class_name,
+                "order": cl.order,
+                "next_class": cl.next_class.class_name if cl.next_class else None,
+            }
+            for cl in ClassRoom.objects.all().select_related('next_class')
+        ],
+        "subjects": [s.subject_name for s in Subject.objects.all().order_by('subject_name')],
+        "students": [
+            {
+                "admission_number": s.admission_number,
+                "first_name": s.first_name,
+                "other_names": s.other_names or '',
+                "last_name": s.last_name,
+                "gender": s.gender,
+                "dob": s.dob.isoformat() if s.dob else None,
+                "date_of_admission": s.date_of_admission.isoformat() if s.date_of_admission else None,
+                "status": s.status,
+                "living_with": s.living_with,
+                "classroom": s.classroom.class_name if s.classroom else None,
+                "father": {
+                    "name": s.father.name if s.father else None,
+                    "telephone": s.father.telephone_number if s.father else None,
+                    "email": s.father.email if s.father else None,
+                } if s.father else None,
+                "mother": {
+                    "name": s.mother.name if s.mother else None,
+                    "telephone": s.mother.telephone_number if s.mother else None,
+                    "email": s.mother.email if s.mother else None,
+                } if s.mother else None,
+            }
+            for s in Student.objects.filter(is_alumni=False).select_related('classroom', 'father', 'mother').order_by('last_name', 'first_name')
+        ],
+        "enrollments": [
+            {
+                "student": e.student.admission_number,
+                "classroom": e.classroom.class_name,
+                "academic_session": e.academic_session.academic_year,
+                "academic_term": e.academic_term.term_name,
+                "date_enrolled": e.date_enrolled.isoformat() if e.date_enrolled else None,
+            }
+            for e in Enrollment.objects.select_related('student', 'classroom', 'academic_session', 'academic_term').order_by('student__last_name', 'student__first_name')
+        ],
+        "subject_assessments": [
+            {
+                "student": a.student.admission_number,
+                "subject": a.subject.subject_name,
+                "academic_session": a.academic_session.academic_year,
+                "academic_term": a.academic_term.term_name,
+                "class_score": float(a.class_score),
+                "exam_score": float(a.exam_score),
+                "total": a.total_score,
+                "grade": a.grade_and_remark[0],
+                "remark": a.grade_and_remark[1],
+            }
+            for a in SubjectAssessment.objects.filter(
+                academic_session=current_session, academic_term=current_term
+            ).select_related('student', 'subject', 'academic_session', 'academic_term').order_by('student__last_name', 'student__first_name', 'subject__subject_name')
+        ] if current_session and current_term else [],
+        "midterm_records": [
+            {
+                "student": m.student.admission_number,
+                "subject": m.subject.subject_name,
+                "academic_session": m.academic_session.academic_year,
+                "term": m.term.term_name,
+                "midterm_score": float(m.midterm_score) if m.midterm_score is not None else None,
+            }
+            for m in MidTermRecord.objects.filter(
+                academic_session=current_session, term=current_term
+            ).select_related('student', 'subject', 'academic_session', 'term').order_by('student__last_name', 'student__first_name', 'subject__subject_name')
+        ] if current_session and current_term else [],
+        "grade_verifications": [
+            {
+                "classroom": gv.classroom.class_name,
+                "academic_session": gv.academic_session.academic_year,
+                "academic_term": gv.academic_term.term_name,
+                "verified_by": gv.verified_by.staff_id if gv.verified_by else None,
+            }
+            for gv in GradeVerification.objects.filter(
+                academic_session=current_session, academic_term=current_term
+            ).select_related('classroom', 'verified_by')
+        ] if current_session and current_term else [],
+        "staff": [
+            {
+                "staff_id": s.staff_id,
+                "title": s.title,
+                "first_name": s.first_name,
+                "other_names": s.other_names or '',
+                "last_name": s.last_name,
+                "gender": s.gender,
+                "designation": s.designation.name if s.designation else None,
+                "department": s.department.name if s.department else None,
+                "phone_number": s.phone_number or '',
+                "email": s.email,
+                "form_class": s.form_class.class_name if s.form_class else None,
+            }
+            for s in StaffProfile.objects.select_related('designation', 'department', 'form_class').order_by('last_name', 'first_name')
+        ],
+        "staff_assignments": [
+            {
+                "staff_id": scs.staff.staff_id,
+                "classroom": scs.classroom.class_name,
+                "subject": scs.subject.subject_name,
+            }
+            for scs in StaffClassSubject.objects.select_related('staff', 'classroom', 'subject').order_by('staff__staff_id')
+        ],
+    }
+
+    response = HttpResponse(
+        json.dumps(payload, indent=2),
+        content_type='application/json'
+    )
+    year_label = current_session.academic_year.replace('/', '-') if current_session else 'unknown'
+    term_label = current_term.term_name.replace(' ', '') if current_term else 'unknown'
+    filename = f"session_database_backup_{year_label}_{term_label}_{datetime.now().strftime('%Y-%m-%d')}.json"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
+
+
+@login_required
 def parent_detail_view(request, parent_id):
     parent = get_object_or_404(Parent, pk=parent_id)
     children = list(parent.father_of.all()) + list(parent.mother_of.all())

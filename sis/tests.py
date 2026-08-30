@@ -540,3 +540,109 @@ class ExportExcelTests(TestCase):
         cell_values = [c.value for row in ws.iter_rows(min_row=4) for c in row if c.value is not None]
         self.assertIn("Kwame Mensah", cell_values)
         self.assertTrue(any("Kofi Mensah - JHS 1" in str(v) for v in cell_values))
+
+
+class ExportSessionTests(TestCase):
+    def setUp(self):
+        import io
+
+        from django.contrib.auth.models import User
+
+        self._io = io
+        self.session = AcademicSession.objects.create(academic_year="2025/2026", is_current=True)
+        self.term = Term.objects.create(session=self.session, term_name="Term 1", is_active=True)
+
+        classroom = ClassRoom.objects.create(class_name="JHS 1")
+        parent = Parent.objects.create(name="Kwame Mensah", telephone_number="0244000001")
+        self.student = Student.objects.create(
+            admission_number="EX-010",
+            first_name="Kofi",
+            other_names="Kojo",
+            last_name="Mensah",
+            gender="Male",
+            dob="2011-01-01",
+            status="Day",
+            classroom=classroom,
+            father=parent,
+        )
+        subject = Subject.objects.create(subject_name="Mathematics")
+        SubjectAssessment.objects.create(
+            student=self.student,
+            subject=subject,
+            academic_session=self.session,
+            academic_term=self.term,
+            class_score=40,
+            exam_score=50,
+        )
+
+    def test_exports_require_superuser(self):
+        from django.contrib.auth.models import User
+
+        staff_user = User.objects.create_user(username="exportstaff", password="password")
+        self.client.login(username="exportstaff", password="password")
+
+        excel_resp = self.client.get(reverse("export_session_excel"))
+        self.assertEqual(excel_resp.status_code, 403)
+        json_resp = self.client.get(reverse("export_session_json"))
+        self.assertEqual(json_resp.status_code, 403)
+
+    def test_export_session_excel_contains_grand_data_sheets(self):
+        from django.contrib.auth.models import User
+
+        superuser = User.objects.create_superuser(
+            username="exportadmin", email="a@a.com", password="password"
+        )
+        self.client.login(username="exportadmin", password="password")
+
+        response = self.client.get(reverse("export_session_excel"))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response["Content-Type"],
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        self.assertIn("session_database_", response["Content-Disposition"])
+
+        from openpyxl import load_workbook
+
+        wb = load_workbook(self._io.BytesIO(response.content))
+        for expected_sheet in [
+            "Overview", "Classes", "Other Subjects", "Students",
+            "Enrollments", "Subject Assessments", "Mid-Term Records",
+            "Grade Verifications", "Staff",
+        ]:
+            self.assertIn(expected_sheet, wb.sheetnames)
+
+        ws_students = wb["Students"]
+        cell_values = [c.value for row in ws_students.iter_rows(min_row=4) for c in row if c.value is not None]
+        self.assertIn("EX-010", cell_values)
+        self.assertIn("Kwame Mensah", cell_values)
+
+        ws_assessments = wb["Subject Assessments"]
+        header_row = [c.value for c in ws_assessments[3]]
+        self.assertIn("Subject", header_row)
+        cell_values = [c.value for row in ws_assessments.iter_rows(min_row=4) for c in row if c.value is not None]
+        self.assertIn("Mathematics", cell_values)
+        self.assertIn(90.0, cell_values)
+
+    def test_export_session_json_contains_session_data(self):
+        import json
+        from django.contrib.auth.models import User
+
+        superuser = User.objects.create_superuser(
+            username="exportjsonadmin", email="b@b.com", password="password"
+        )
+        self.client.login(username="exportjsonadmin", password="password")
+
+        response = self.client.get(reverse("export_session_json"))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "application/json")
+        self.assertIn("session_database_backup_", response["Content-Disposition"])
+
+        data = json.loads(response.content)
+        self.assertEqual(data["session"]["academic_year"], "2025/2026")
+        self.assertEqual(data["active_term"]["term_name"], "Term 1")
+        self.assertTrue(any(s["admission_number"] == "EX-010" for s in data["students"]))
+        assessments = data["subject_assessments"]
+        self.assertEqual(len(assessments), 1)
+        self.assertEqual(assessments[0]["subject"], "Mathematics")
+        self.assertEqual(assessments[0]["total"], 90.0)

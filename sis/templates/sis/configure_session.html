@@ -86,6 +86,45 @@
     </div>
 </div>
 
+<div style="max-width: 640px; margin: 24px auto 0;">
+    <div style="background-color: #ffffff; border: 1px solid #f0f0f0; border-radius: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); padding: 40px;">
+        <h5 class="fw-bold text-dark mb-1" style="font-size: 16px; letter-spacing: -0.3px;">Session Database Export</h5>
+        <div style="font-size: 12px; color: #9ca3af; margin-bottom: 24px;">Download a snapshot of everything in the active academic session — full Excel workbook (grand data) or a JSON backup for later import.</div>
+        <div style="display: flex; flex-wrap: wrap; gap: 12px;">
+            <a href="{% url 'export_session_excel' %}"
+               style="display: flex; align-items: center; gap: 10px; border-radius: 50px; padding: 14px 28px;
+                      font-weight: 600; font-size: 14px; color: #fff; background-color: #121214;
+                      border: 1px solid #2a2a2e; text-decoration: none;
+                      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+                      transition: transform 0.2s, box-shadow 0.2s;"
+               onmouseover="this.style.transform='scale(1.03)';"
+               onmouseout="this.style.transform='scale(1)';">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                Export to Excel
+            </a>
+            <a href="{% url 'export_session_json' %}"
+               style="display: flex; align-items: center; gap: 10px; border-radius: 50px; padding: 14px 28px;
+                      font-weight: 600; font-size: 14px; color: #111; background-color: #fff;
+                      border: 1px solid #e4e4e7; text-decoration: none;
+                      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+                      transition: transform 0.2s, background 0.2s;"
+               onmouseover="this.style.transform='scale(1.03)'; this.style.backgroundColor='#f9fafb';"
+               onmouseout="this.style.transform='scale(1)'; this.style.backgroundColor='#fff';">
+                <i class="bi bi-file-earmark-code" style="font-size: 15px;"></i>
+                JSON Backup
+            </a>
+        </div>
+        <div style="font-size: 11px; color: #9ca3af; margin-top: 18px; display: flex; align-items: center; gap: 6px;">
+            <span style="color: #10b981; font-size: 8px;">&#9679;</span>
+            Admin only &mdash; covers {{ current_session|default:"no active session" }} &ndash; {{ current_term|default:"no active term" }}
+        </div>
+    </div>
+</div>
+
 <a href="{% url 'academic_year_rollover' %}"
    style="position: fixed; bottom: 100px; right: 40px; z-index: 1050;
           display: flex; align-items: center; gap: 8px;
