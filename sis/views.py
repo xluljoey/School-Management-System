@@ -242,11 +242,17 @@ def student_list_view(request):
     if is_admin:
         students = Student.objects.filter(is_alumni=False).select_related('classroom')
     else:
-        taught_class_ids = StaffClassSubject.objects.filter(
-            staff=request.user.staff_profile
-        ).values_list('classroom_id', flat=True).distinct()
+        staff = request.user.staff_profile
+        visible_class_ids = set(StaffClassSubject.objects.filter(
+            staff=staff
+        ).values_list('classroom_id', flat=True))
+        if staff.form_class:
+            visible_class_ids.add(staff.form_class_id)
+        visible_class_ids.update(
+            ClassRoom.objects.filter(form_master=staff).values_list('id', flat=True)
+        )
         students = Student.objects.filter(
-            classroom_id__in=taught_class_ids, is_alumni=False
+            classroom_id__in=visible_class_ids, is_alumni=False
         ).select_related('classroom').distinct()
 
     gender = request.GET.get('gender', '').strip()
