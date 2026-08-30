@@ -316,6 +316,18 @@ class AcademicSession(models.Model):
     academic_year = models.CharField(max_length=20, unique=True, help_text="e.g., 2025/2026")
     is_current = models.BooleanField(default=False, help_text="True if this is the active academic year")
 
+    class Meta:
+        indexes = [
+            models.Index(fields=['is_current'], name='sess_is_current_idx'),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=['is_current'],
+                condition=models.Q(is_current=True),
+                name='only_one_current_session',
+            ),
+        ]
+
     def __str__(self):
         return self.academic_year
 
@@ -332,6 +344,16 @@ class Term(models.Model):
 
     class Meta:
         unique_together = ('session', 'term_name')
+        indexes = [
+            models.Index(fields=['is_active'], name='term_is_active_idx'),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=['is_active'],
+                condition=models.Q(is_active=True),
+                name='only_one_active_term',
+            ),
+        ]
 
     def __str__(self):
         return f"{self.term_name} ({self.session.academic_year})"

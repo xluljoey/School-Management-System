@@ -86,6 +86,81 @@
     </div>
 </div>
 
+<div style="max-width: 640px; margin: 24px auto 0;">
+    <div style="background-color: #ffffff; border: 1px solid #f0f0f0; border-radius: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); padding: 40px;">
+        <h5 class="fw-bold text-dark mb-1" style="font-size: 16px; letter-spacing: -0.3px;">Session Database Export</h5>
+        <div style="font-size: 12px; color: #9ca3af; margin-bottom: 24px;">Download a snapshot of everything in the active academic session — full Excel workbook (grand data) or a JSON backup for later import.</div>
+        <div style="display: flex; flex-wrap: wrap; gap: 12px;">
+            <a href="{% url 'export_session_excel' %}"
+               style="display: flex; align-items: center; gap: 10px; border-radius: 50px; padding: 14px 28px;
+                      font-weight: 600; font-size: 14px; color: #fff; background-color: #121214;
+                      border: 1px solid #2a2a2e; text-decoration: none;
+                      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+                      transition: transform 0.2s, box-shadow 0.2s;"
+               onmouseover="this.style.transform='scale(1.03)';"
+               onmouseout="this.style.transform='scale(1)';">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                Export to Excel
+            </a>
+            <a href="{% url 'export_session_json' %}"
+               style="display: flex; align-items: center; gap: 10px; border-radius: 50px; padding: 14px 28px;
+                      font-weight: 600; font-size: 14px; color: #111; background-color: #fff;
+                      border: 1px solid #e4e4e7; text-decoration: none;
+                      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+                      transition: transform 0.2s, background 0.2s;"
+               onmouseover="this.style.transform='scale(1.03)'; this.style.backgroundColor='#f9fafb';"
+               onmouseout="this.style.transform='scale(1)'; this.style.backgroundColor='#fff';">
+                <i class="bi bi-file-earmark-code" style="font-size: 15px;"></i>
+                JSON Backup
+            </a>
+        </div>
+        <hr style="border: none; border-top: 1px solid #f0f0f0; margin: 24px 0;">
+        <h6 class="fw-semibold text-dark mb-2" style="font-size: 13px;">Restore from JSON Backup</h6>
+        <div style="font-size: 12px; color: #9ca3af; margin-bottom: 14px;">Upload a previously downloaded <code>session_database_backup_*.json</code> file to restore records. Existing records are preserved; the import is idempotent and transactional (all-or-nothing).</div>
+        <form method="POST" action="{% url 'import_session_json' %}" enctype="multipart/form-data" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
+            {% csrf_token %}
+            <input type="file" name="backup_file" accept=".json,application/json" required
+                   style="flex: 1; min-width: 200px; border-radius: 50px; border: 1px solid #e4e4e7;
+                          padding: 12px 18px; font-size: 13px; background: #f9fafb; outline: none;">
+            <button type="submit"
+                    style="border-radius: 50px; padding: 12px 26px; font-weight: 600; font-size: 14px;
+                           color: #fff; background-color: #f59e0b; border: none; cursor: pointer;
+                           box-shadow: 0 6px 18px -5px rgba(245, 158, 11, 0.5);
+                           transition: background-color 0.2s, transform 0.15s;"
+                    onmouseover="this.style.backgroundColor='#d97706'; this.style.transform='scale(1.02)';"
+                    onmouseout="this.style.backgroundColor='#f59e0b'; this.style.transform='scale(1)';">
+                Import Backup
+            </button>
+        </form>
+        <hr style="border: none; border-top: 1px solid #f0f0f0; margin: 24px 0;">
+        <h6 class="fw-semibold text-dark mb-2" style="font-size: 13px;">Restore from Excel</h6>
+        <div style="font-size: 12px; color: #9ca3af; margin-bottom: 14px;">Upload the <code>session_database_*.xlsx</code> workbook exported above to restore the same data &mdash; or bring in your own school spreadsheet (recognised columns like <code>Class</code>, <code>Admission No.</code>, <code>Student Name</code>, <code>Parent Name</code>, <code>Telephone</code>). Missing optional columns are allowed; only rows with core data are imported.</div>
+        <form method="POST" action="{% url 'import_session_excel' %}" enctype="multipart/form-data" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
+            {% csrf_token %}
+            <input type="file" name="backup_file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required
+                   style="flex: 1; min-width: 200px; border-radius: 50px; border: 1px solid #e4e4e7;
+                          padding: 12px 18px; font-size: 13px; background: #f9fafb; outline: none;">
+            <button type="submit"
+                    style="border-radius: 50px; padding: 12px 26px; font-weight: 600; font-size: 14px;
+                           color: #fff; background-color: #121214; border: 1px solid #2a2a2e; cursor: pointer;
+                           box-shadow: 0 6px 18px -5px rgba(0, 0, 0, 0.35);
+                           transition: background-color 0.2s, transform 0.15s;"
+                    onmouseover="this.style.backgroundColor='#2a2a2e'; this.style.transform='scale(1.02)';"
+                    onmouseout="this.style.backgroundColor='#121214'; this.style.transform='scale(1)';">
+                Import Excel
+            </button>
+        </form>
+        <div style="font-size: 11px; color: #9ca3af; margin-top: 18px; display: flex; align-items: center; gap: 6px;">
+            <span style="color: #10b981; font-size: 8px;">&#9679;</span>
+            Admin only &mdash; covers {{ current_session|default:"no active session" }} &ndash; {{ current_term|default:"no active term" }}
+        </div>
+    </div>
+</div>
+
 <a href="{% url 'academic_year_rollover' %}"
    style="position: fixed; bottom: 100px; right: 40px; z-index: 1050;
           display: flex; align-items: center; gap: 8px;
@@ -112,9 +187,9 @@
     Create New Academic Session
 </a>
 
-<div class="modal fade" id="createSessionModal" tabindex="-1" aria-labelledby="createSessionModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div style="background: #fff; border-radius: 20px; width: min(92vw, 480px); max-height: 80vh; overflow: hidden; box-shadow: 0 25px 60px rgba(0,0,0,0.25); display: flex; flex-direction: column;">
+<div class="modal fade" id="createSessionModal" data-bs-backdrop="static" tabindex="-1" aria-labelledby="createSessionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 480px;">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px; box-shadow: 0 25px 60px rgba(0,0,0,0.25); max-height: 80vh; overflow: hidden;">
             <form method="POST" action="">
                 {% csrf_token %}
                 <div style="padding: 28px 32px 0;">
