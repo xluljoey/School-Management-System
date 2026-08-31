@@ -4,10 +4,36 @@
 {% block title %}Parent Directory{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="d-flex justify-content-between align-items-center mb-4" style="flex-wrap: wrap; gap: 12px;">
     <div>
         <h4 class="fw-bold mb-1" style="color: #000000;">All Parents</h4>
-        <span style="color: #8E8D93; font-size: 0.85rem;">{{ parents|length }} parent{{ parents|length|pluralize }} total</span>
+        <span style="color: #8E8D93; font-size: 0.85rem;">{{ total_count }} parent{{ total_count|pluralize }} total</span>
+    </div>
+    <div class="d-flex align-items-center gap-2" style="flex-wrap: wrap;">
+        <form method="GET" id="parentSearchForm" class="d-flex align-items-center gap-2" style="flex-wrap: wrap;">
+            <div style="position: relative;">
+                <span style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #999; display: flex; pointer-events: none;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                </span>
+                <input type="text" name="q" value="{{ q }}"
+                    placeholder="Search by parent or student name, ID/phone..."
+                    oninput="document.getElementById('parentSearchForm').submit()"
+                    style="appearance: none; -webkit-appearance: none; border-radius: 50px;
+                           background-color: #f4f4f5; color: #111;
+                           border: 1px solid #e4e4e7; padding: 10px 16px 10px 42px;
+                           font-size: 13px; font-weight: 500; outline: none; min-width: 300px;">
+            </div>
+            {% if q %}
+            <a href="{% url 'parents_list' %}"
+               style="border-radius: 50px; background-color: #fff; color: #111;
+                      border: 1px solid #e4e4e7; padding: 10px 16px;
+                      font-size: 13px; font-weight: 500; text-decoration: none;
+                      display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                Clear
+            </a>
+            {% endif %}
+        </form>
     </div>
 </div>
 
@@ -90,7 +116,13 @@
             </tr>
             {% empty %}
             <tr>
-                <td colspan="4" class="text-center py-5" style="color: #8E8D93;">No parents registered yet.</td>
+                <td colspan="4" class="text-center py-5" style="color: #8E8D93;">
+                    {% if q %}
+                    No parents match "<strong style="color: #4B5563;">{{ q }}</strong>". Try searching by a linked student's name or admission number.
+                    {% else %}
+                    No parents registered yet.
+                    {% endif %}
+                </td>
             </tr>
             {% endfor %}
         </tbody>

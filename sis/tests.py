@@ -1102,3 +1102,60 @@ class ConfigureSessionTests(TestCase):
         self._make_env()
         self.assertEqual(AcademicSession.objects.filter(is_current=True).count(), 1)
         self.assertEqual(Term.objects.filter(is_active=True).count(), 1)
+
+
+class ParentDirectorySearchTests(TestCase):
+    def setUp(self):
+        from django.contrib.auth.models import User
+
+        User.objects.create_superuser(username="parentadmin", password="password")
+        self.client.login(username="parentadmin", password="password")
+
+        cls = ClassRoom.objects.create(class_name="JHS 1")
+        self.p = Parent.objects.create(name="Kwame Mensah", telephone_number="0244000001")
+        self.p2 = Parent.objects.create(name="Ama Serwaa", telephone_number="0244000002")
+        self.student = Student.objects.create(
+            admission_number="LNK-001",
+            first_name="Kofi",
+            other_names="Kwabena",
+            last_name="Mensah",
+            gender="Male",
+            dob="2011-01-01",
+            status="Day",
+            classroom=cls,
+            father=self.p,
+        )
+        Student.objects.create(
+            admission_number="LNK-002",
+            first_name="Esi",
+            last_name="Osei",
+            gender="Female",
+            dob="2012-02-02",
+            status="Day",
+            classroom=cls,
+            mother=self.p2,
+        )
+
+    def test_find_parent_by_linked_student_name(self):
+        response = self.client.get(reverse("parents_list"), {"q": "Kofi"})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Kwame Mensah")
+        self.assertNotContains(response, "Ama Serwaa")
+
+    def test_find_parent_by_linked_student_admission_number(self):
+        response = self.client.get(reverse("parents_list"), {"q": "LNK-002"})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Ama Serwaa")
+        self.assertNotContains(response, "Kwame Mensah")
+
+    def test_find_parent_by_parent_own_name(self):
+        response = self.client.get(reverse("parents_list"), {"q": "Serwaa"})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Ama Serwaa")
+        self.assertNotContains(response, "Kwame Mensah")
+
+    def test_no_results_message_for_miss(self):
+        response = self.client.get(reverse("parents_list"), {"q": "zzzznomatch"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["total_count"], 0)
+        self.assertContains(response, "No parents match")
