@@ -285,17 +285,8 @@ def alumni_list_view(request):
 
     students = Student.objects.filter(is_alumni=True).select_related('classroom').order_by('last_name', 'first_name')
 
-    q = request.GET.get('q', '').strip()
-    if q:
-        students = students.filter(
-            Q(first_name__icontains=q) |
-            Q(last_name__icontains=q) |
-            Q(admission_number__icontains=q)
-        )
-
     return render(request, 'sis/alumni_list.html', {
         'students': students,
-        'search_query': q,
         'total_count': students.count(),
     })
 
@@ -1539,6 +1530,88 @@ def export_students_excel(request):
 
 
 @login_required
+def export_alumni_excel(request):
+    from datetime import datetime
+    import io
+    from django.http import HttpResponse
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
+
+    user = request.user
+    if not _is_admin(user) and not hasattr(user, 'staff_profile'):
+        raise PermissionDenied
+
+    students = Student.objects.filter(is_alumni=True).select_related(
+        'classroom', 'father', 'mother'
+    ).order_by('last_name', 'first_name')
+
+    columns = [
+        "First Name", "Other Names", "Last Name", "Admission No.",
+        "Gender", "Last Class", "Status",
+    ]
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Alumni Directory"
+
+    header_font = Font(bold=True, size=14)
+    sub_header_font = Font(bold=True, size=10)
+    border = Border(
+        left=Side(style='thin'), right=Side(style='thin'),
+        top=Side(style='thin'), bottom=Side(style='thin')
+    )
+    header_fill = PatternFill(start_color="E8E8E8", end_color="E8E8E8", fill_type="solid")
+
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=len(columns))
+    ws.cell(row=1, column=1, value="ALUMNI DIRECTORY").font = header_font
+
+    for col_idx, name in enumerate(columns, 1):
+        cell = ws.cell(row=3, column=col_idx, value=name)
+        cell.font = sub_header_font
+        cell.border = border
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal='center', wrap_text=True)
+
+    row = 4
+    for s in students:
+        values = [
+            s.first_name, s.other_names or '', s.last_name, s.admission_number,
+            s.gender,
+            s.classroom.class_name if s.classroom else '',
+            s.status,
+        ]
+        for col_idx, val in enumerate(values, 1):
+            cell = ws.cell(row=row, column=col_idx, value=val)
+            cell.border = border
+        row += 1
+
+    for col in ws.columns:
+        max_length = 0
+        col_letter = None
+        for cell in col:
+            if not hasattr(cell, 'column_letter'):
+                continue
+            if col_letter is None:
+                col_letter = cell.column_letter
+            if cell.value:
+                max_length = max(max_length, len(str(cell.value)))
+        if col_letter:
+            ws.column_dimensions[col_letter].width = min(max_length + 4, 30)
+
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+
+    response = HttpResponse(
+        buffer.getvalue(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    filename = f"Alumni_Directory_{datetime.now().strftime('%Y-%m-%d')}.xlsx"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
+
+
+@login_required
 def export_parents_excel(request):
     from datetime import datetime
     import io
@@ -2198,7 +2271,17 @@ def global_search_view(request):
     full_name_q = Q(first_name__icontains=q) | Q(last_name__icontains=q)
     results = []
 
-    if scope == 'students':
+    if scope == 'alumni':
+        for s in Student.objects.filter(full_name_q | Q(admission_number__icontains=q), is_alumni=True)[:8]:
+            results.append({
+                'id': s.id,
+                'name': f"{s.first_name} {s.last_name}",
+                'extra': s.admission_number,
+                'type': 'Student',
+                'url': reverse('student_detail', args=[s.id]),
+            })
+
+    elif scope == 'students':
         for s in Student.objects.filter(full_name_q | Q(admission_number__icontains=q)).exclude(is_alumni=True)[:8]:
             results.append({
                 'id': s.id,

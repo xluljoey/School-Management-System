@@ -599,6 +599,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (/^\/(staff\/register|students\/register)/.test(path)) return 'hidden';
         if (/^\/staff\/list/.test(path) || /^\/staff\/?$/.test(path)) return 'staff';
         if (/^\/students\/?$/.test(path)) return 'students';
+        if (/^\/alumni\/?$/.test(path)) return 'alumni';
         if (/^\/parents\/?$/.test(path)) return 'parents';
         if (/^\/classes-subjects/.test(path)) return 'classes';
         if (/^\/timetables/.test(path)) return 'timetables';

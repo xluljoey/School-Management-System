@@ -9,37 +9,6 @@
         <h4 class="fw-bold mb-1" style="color: #000000;">Alumni</h4>
         <span style="color: #8E8D93; font-size: 0.85rem;">{{ total_count }} graduate{{ total_count|pluralize }} total</span>
     </div>
-    <div class="d-flex align-items-center gap-2" style="flex-wrap: wrap;">
-        <form method="GET" id="searchForm" class="d-flex align-items-center gap-2">
-            <div style="position: relative;">
-                <input type="text" name="q" value="{{ search_query }}" placeholder="Search by name or admission no."
-                    style="border-radius: 50px; background-color: #f4f4f5; color: #111;
-                           border: 1px solid #e4e4e7; padding: 10px 20px;
-                           font-size: 13px; font-weight: 500; outline: none; width: 260px;
-                           transition: background 0.2s, border-color 0.2s;"
-                    onfocus="this.style.backgroundColor='#fff'; this.style.borderColor='#111';"
-                    onblur="this.style.backgroundColor='#f4f4f5'; this.style.borderColor='#e4e4e7';">
-            </div>
-            <button type="submit"
-                style="border-radius: 50px; background-color: #000; color: #fff; border: none;
-                       padding: 10px 20px; font-size: 13px; font-weight: 600; cursor: pointer;">
-                Search
-            </button>
-            {% if search_query %}
-            <a href="{% url 'alumni_list' %}"
-               style="border-radius: 50px; background-color: #fff; color: #111;
-                      border: 1px solid #e4e4e7; padding: 10px 20px;
-                      font-size: 13px; font-weight: 500; text-decoration: none;
-                      display: inline-flex; align-items: center; gap: 6px;
-                      white-space: nowrap; transition: background 0.15s;"
-               onmouseover="this.style.backgroundColor='#f4f4f5'"
-               onmouseout="this.style.backgroundColor='#fff'">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                Clear
-            </a>
-            {% endif %}
-        </form>
-    </div>
 </div>
 
 <div class="table-responsive">
@@ -83,15 +52,29 @@
                     <div style="width: 64px; height: 64px; border-radius: 50%; background: #f3f4f6; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
                         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5"><path d="M22 10v6M2 10l10-5 10 5-10 5z"></path><path d="M6 12v5c3 3 9 3 12 0v-5"></path></svg>
                     </div>
-                    {% if search_query %}
-                    No alumni match "{{ search_query }}".
-                    {% else %}
                     No alumni yet. Students appear here after graduating from JHS 3 during academic year rollover.
-                    {% endif %}
                 </td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
+</div>
+
+<div style="position: fixed; bottom: 40px; right: 40px; z-index: 1050;">
+    <a href="{% url 'export_alumni_excel' %}"
+       class="shadow-lg d-inline-flex align-items-center gap-2"
+       style="border-radius: 50px; background-color: #000; color: #fff;
+              padding: 14px 28px; font-weight: 600; text-decoration: none;
+              font-size: 14px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+              transition: transform 0.2s ease, background-color 0.2s; border: none;"
+       onmouseover="this.style.backgroundColor='#222'; this.style.transform='scale(1.03)';"
+       onmouseout="this.style.backgroundColor='#000'; this.style.transform='scale(1)';">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+        Export to Excel
+    </a>
 </div>
 {% endblock %}

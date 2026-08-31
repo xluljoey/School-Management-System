@@ -777,6 +777,45 @@ class ExportExcelTests(TestCase):
         self.assertIn("Kwame Mensah", cell_values)
         self.assertIn("ama@example.com", cell_values)
 
+    def test_export_alumni_excel_includes_only_alumni(self):
+        classroom = ClassRoom.objects.create(class_name="JHS 1")
+        Student.objects.create(
+            admission_number="ALM-EX-001",
+            first_name="Adwoa",
+            last_name="Alumni",
+            gender="Female",
+            dob="2011-01-01",
+            status="Day",
+            classroom=classroom,
+            is_alumni=True,
+        )
+        Student.objects.create(
+            admission_number="ALM-EX-002",
+            first_name="Kofi",
+            last_name="Current",
+            gender="Male",
+            dob="2012-01-01",
+            status="Day",
+            classroom=classroom,
+            is_alumni=False,
+        )
+
+        response = self.client.get(reverse("export_alumni_excel"))
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Alumni_Directory", response["Content-Disposition"])
+
+        from openpyxl import load_workbook
+
+        ws = load_workbook(self._io.BytesIO(response.content)).active
+        header_row = [c.value for c in ws[3]]
+        self.assertIn("Last Class", header_row)
+
+        cell_values = [c.value for row in ws.iter_rows(min_row=4) for c in row if c.value is not None]
+        self.assertIn("ALM-EX-001", cell_values)
+        self.assertIn("Adwoa", cell_values)
+        self.assertNotIn("ALM-EX-002", cell_values)
+        self.assertNotIn("Current", cell_values)
+
     def test_export_parents_excel_includes_linked_students(self):
         classroom = ClassRoom.objects.create(class_name="JHS 1")
         parent = Parent.objects.create(name="Kwame Mensah", telephone_number="0244000001")
@@ -1269,6 +1308,31 @@ class ParentDirectorySearchTests(TestCase):
         response = self.client.get(reverse("global_search_api"), {"q": "zzzznomatch", "scope": "parents"})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["results"], [])
+
+    def test_alumni_scope_returns_only_alumni(self):
+        cls = ClassRoom.objects.get(class_name="JHS 1")
+        stu = Student.objects.create(
+            admission_number="ALM-001",
+            first_name="Adwoa",
+            last_name="Alumni",
+            gender="Female",
+            dob="2011-01-01",
+            status="Day",
+            classroom=cls,
+            is_alumni=True,
+        )
+        resp = self.client.get(reverse("global_search_api"), {"q": "Adwoa", "scope": "alumni"})
+        self.assertEqual(resp.status_code, 200)
+        names = [r["name"] for r in resp.json()["results"]]
+        self.assertIn("Adwoa Alumni", names)
+        self.assertNotIn("Kwame Mensah", names)
+
+    def test_alumni_scope_excludes_non_alumni(self):
+        resp = self.client.get(reverse("global_search_api"), {"q": "Kofi", "scope": "alumni"})
+        self.assertEqual(resp.status_code, 200)
+        names = [r["name"] for r in resp.json()["results"]]
+        self.assertNotIn("Kwame Mensah", names)
+
 
 
 class ParentDetailViewTests(TestCase):
