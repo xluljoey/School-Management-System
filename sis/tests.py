@@ -1137,25 +1137,27 @@ class ParentDirectorySearchTests(TestCase):
         )
 
     def test_find_parent_by_linked_student_name(self):
-        response = self.client.get(reverse("parents_list"), {"q": "Kofi"})
+        response = self.client.get(reverse("global_search_api"), {"q": "Kofi", "scope": "parents"})
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Kwame Mensah")
-        self.assertNotContains(response, "Ama Serwaa")
+        names = [r["name"] for r in response.json()["results"]]
+        self.assertIn("Kwame Mensah", names)
+        self.assertNotIn("Ama Serwaa", names)
 
     def test_find_parent_by_linked_student_admission_number(self):
-        response = self.client.get(reverse("parents_list"), {"q": "LNK-002"})
+        response = self.client.get(reverse("global_search_api"), {"q": "LNK-002", "scope": "parents"})
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Ama Serwaa")
-        self.assertNotContains(response, "Kwame Mensah")
+        names = [r["name"] for r in response.json()["results"]]
+        self.assertIn("Ama Serwaa", names)
+        self.assertNotIn("Kwame Mensah", names)
 
     def test_find_parent_by_parent_own_name(self):
-        response = self.client.get(reverse("parents_list"), {"q": "Serwaa"})
+        response = self.client.get(reverse("global_search_api"), {"q": "Serwaa", "scope": "parents"})
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Ama Serwaa")
-        self.assertNotContains(response, "Kwame Mensah")
+        names = [r["name"] for r in response.json()["results"]]
+        self.assertIn("Ama Serwaa", names)
+        self.assertNotIn("Kwame Mensah", names)
 
-    def test_no_results_message_for_miss(self):
-        response = self.client.get(reverse("parents_list"), {"q": "zzzznomatch"})
+    def test_no_results_for_miss(self):
+        response = self.client.get(reverse("global_search_api"), {"q": "zzzznomatch", "scope": "parents"})
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.context["total_count"], 0)
-        self.assertContains(response, "No parents match")
+        self.assertEqual(response.json()["results"], [])

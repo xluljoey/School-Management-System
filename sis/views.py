@@ -2203,7 +2203,19 @@ def global_search_view(request):
             })
 
     elif scope == 'parents':
-        for p in Parent.objects.filter(Q(name__icontains=q) | Q(email__icontains=q) | Q(telephone_number__icontains=q))[:8]:
+        for p in Parent.objects.filter(
+            Q(name__icontains=q) |
+            Q(email__icontains=q) |
+            Q(telephone_number__icontains=q) |
+            Q(father_of__admission_number__icontains=q) |
+            Q(father_of__first_name__icontains=q) |
+            Q(father_of__last_name__icontains=q) |
+            Q(father_of__other_names__icontains=q) |
+            Q(mother_of__admission_number__icontains=q) |
+            Q(mother_of__first_name__icontains=q) |
+            Q(mother_of__last_name__icontains=q) |
+            Q(mother_of__other_names__icontains=q)
+        ).distinct()[:8]:
             results.append({
                 'id': p.id,
                 'name': p.name or 'Unnamed',
@@ -2293,7 +2305,13 @@ def global_search_view(request):
                 'type': 'Staff',
                 'url': reverse('staff_detail', args=[st.id]),
             })
-        for p in Parent.objects.filter(Q(name__icontains=q))[:3]:
+        for p in Parent.objects.filter(
+            Q(name__icontains=q) |
+            Q(father_of__first_name__icontains=q) |
+            Q(father_of__last_name__icontains=q) |
+            Q(mother_of__first_name__icontains=q) |
+            Q(mother_of__last_name__icontains=q)
+        ).distinct()[:3]:
             results.append({
                 'id': p.id,
                 'name': p.name or 'Unnamed',
@@ -3031,7 +3049,7 @@ def parents_list(request):
     )
 
     if user.is_superuser:
-        parents = Parent.objects.prefetch_related(children_prefetch, mother_prefetch)
+        parents = Parent.objects.prefetch_related(children_prefetch, mother_prefetch).order_by('name')
     elif hasattr(user, 'staff_profile'):
         staff = user.staff_profile
         classroom_ids = StaffClassSubject.objects.filter(
@@ -3040,33 +3058,11 @@ def parents_list(request):
         parents = Parent.objects.filter(
             Q(father_of__classroom_id__in=classroom_ids) |
             Q(mother_of__classroom_id__in=classroom_ids)
-        ).distinct().prefetch_related(children_prefetch, mother_prefetch)
+        ).distinct().prefetch_related(children_prefetch, mother_prefetch).order_by('name')
     else:
         parents = Parent.objects.none()
 
-    q = request.GET.get('q', '').strip()
-    if q:
-        parents = parents.filter(
-            Q(name__icontains=q) |
-            Q(telephone_number__icontains=q) |
-            Q(email__icontains=q) |
-            Q(father_of__admission_number__icontains=q) |
-            Q(father_of__first_name__icontains=q) |
-            Q(father_of__last_name__icontains=q) |
-            Q(father_of__other_names__icontains=q) |
-            Q(mother_of__admission_number__icontains=q) |
-            Q(mother_of__first_name__icontains=q) |
-            Q(mother_of__last_name__icontains=q) |
-            Q(mother_of__other_names__icontains=q)
-        ).distinct()
-
-    parents = parents.order_by('name')
-
-    return render(request, 'sis/parents_list.html', {
-        'parents': parents,
-        'q': q,
-        'total_count': parents.count(),
-    })
+    return render(request, 'sis/parents_list.html', {'parents': parents})
 
 
 @login_required
