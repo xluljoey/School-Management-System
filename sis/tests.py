@@ -489,6 +489,51 @@ class StudentRegistrationTests(TestCase):
         self.assertFalse(master.context["is_admin_landing"])
         self.assertContains(master, "Evelyn Standings")
 
+    def test_master_report_shows_subject_position(self):
+        classroom = ClassRoom.objects.create(class_name="Class Positions")
+        session = AcademicSession.objects.create(academic_year="2027/2028", is_current=True)
+        term = Term.objects.create(session=session, term_name="Term 1", is_active=True)
+        subject = Subject.objects.create(subject_name="Maths")
+        ClassSubject.objects.create(classroom=classroom, subject=subject)
+        top = Student.objects.create(
+            admission_number="2001",
+            first_name="Alice",
+            last_name="Top",
+            dob="2010-01-01",
+            gender="Female",
+            status="Day",
+            current_class=classroom,
+        )
+        bottom = Student.objects.create(
+            admission_number="2002",
+            first_name="Bob",
+            last_name="Bottom",
+            dob="2010-01-01",
+            gender="Male",
+            status="Day",
+            current_class=classroom,
+        )
+        for student, class_score, exam_score in [(top, 30, 60), (bottom, 20, 40)]:
+            SubjectAssessment.objects.create(
+                student=student,
+                subject=subject,
+                academic_session=session,
+                academic_term=term,
+                class_score=class_score,
+                exam_score=exam_score,
+            )
+        url = reverse("class_report", kwargs={"class_id": classroom.id})
+        response = self.client.get(url + "?master=1")
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["has_graded_records"])
+        by_student = {row["student"].id: row for row in response.context["report_data"]}
+        self.assertEqual(
+            by_student[top.id]["subject_scores"][subject.id]["subject_position"], 1
+        )
+        self.assertEqual(
+            by_student[bottom.id]["subject_scores"][subject.id]["subject_position"], 2
+        )
+
 
 
 class FormMasterStudentVisibilityTests(TestCase):

@@ -597,6 +597,24 @@ def class_report_card_view(request, class_id):
     for index, row in enumerate(report_data):
         row['rank'] = index + 1
 
+    for subject in subjects_for_class:
+        scored = [
+            row for row in report_data
+            if row['subject_scores'][subject.id]['total'] is not None
+        ]
+        scored.sort(
+            key=lambda r: r['subject_scores'][subject.id]['total'],
+            reverse=True,
+        )
+        dense_rank = 0
+        prev_total = None
+        for row in scored:
+            total = row['subject_scores'][subject.id]['total']
+            if total != prev_total:
+                dense_rank += 1
+                prev_total = total
+            row['subject_scores'][subject.id]['subject_position'] = dense_rank
+
     subject_position_map = {}
     if active_subject:
         ranked_subject = [r for r in report_data if r['subject_total'] is not None]
