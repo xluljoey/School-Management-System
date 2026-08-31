@@ -9,7 +9,7 @@ from django.test import RequestFactory, TestCase
 from django.urls import reverse
 
 from .forms import StaffRegistrationForm, StudentRegistrationForm
-from .models import ClassRoom, Department, Designation, Parent, Student, Subject, SubjectAssessment, StaffProfile, AcademicSession, Term, ClassSubject, Enrollment
+from .models import ClassRoom, Department, Designation, MidTermRecord, Parent, Student, Subject, SubjectAssessment, StaffProfile, AcademicSession, Term, ClassSubject, Enrollment
 
 
 class StudentRegistrationTests(TestCase):
@@ -565,6 +565,37 @@ class StudentRegistrationTests(TestCase):
         self.assertEqual(response.context["selected_subject"].id, subject.id)
         self.assertContains(response, "Grace Mid")
         self.assertContains(response, "Save Assessment")
+
+    def test_midterm_compile_auto_selects_last_compiled_subject(self):
+        classroom = ClassRoom.objects.create(class_name="Class Midterm Auto")
+        session = AcademicSession.objects.create(academic_year="2031/2032", is_current=True)
+        term = Term.objects.create(session=session, term_name="Term 1", is_active=True)
+        subject = Subject.objects.create(subject_name="Compiled Subject")
+        ClassSubject.objects.create(classroom=classroom, subject=subject)
+        student = Student.objects.create(
+            admission_number="3002",
+            first_name="Noah",
+            last_name="Auto",
+            dob="2010-01-01",
+            gender="Male",
+            status="Day",
+            current_class=classroom,
+        )
+        MidTermRecord.objects.create(
+            student=student,
+            academic_session=session,
+            term=term,
+            classroom=classroom,
+            subject=subject,
+            midterm_score=45,
+        )
+        url = reverse("compile_midterm_grades") + "?class_id=" + str(classroom.id)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["subject_selected"])
+        self.assertTrue(response.context["auto_selected_subject"])
+        self.assertEqual(response.context["selected_subject"].id, subject.id)
+        self.assertContains(response, "Compiled Subject")
 
 
 

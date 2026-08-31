@@ -2566,9 +2566,13 @@ def compile_midterm_grades_view(request):
     selected_class_id = request.GET.get('class_id')
     selected_subject_id = request.GET.get('subject_id')
     selected_subject = None
+    auto_selected_subject = False
     classroom = None
     students = []
     available_subjects = Subject.objects.none()
+
+    current_session = AcademicSession.objects.filter(is_current=True).first()
+    current_term = Term.objects.filter(is_active=True).first()
 
     if selected_class_id:
         classroom = get_object_or_404(ClassRoom, pk=selected_class_id)
@@ -2580,9 +2584,16 @@ def compile_midterm_grades_view(request):
 
         if selected_subject_id:
             selected_subject = get_object_or_404(Subject, pk=selected_subject_id)
-
-    current_session = AcademicSession.objects.filter(is_current=True).first()
-    current_term = Term.objects.filter(is_active=True).first()
+        else:
+            last_record = MidTermRecord.objects.filter(
+                classroom=classroom,
+                academic_session=current_session,
+                term=current_term,
+            ).order_by('-date_recorded').first()
+            if last_record and available_subjects.filter(pk=last_record.subject_id).exists():
+                selected_subject = last_record.subject
+                selected_subject_id = str(selected_subject.id)
+                auto_selected_subject = True
 
     if request.method == 'POST':
         selected_class_id = request.POST.get('class_id')
@@ -2647,6 +2658,7 @@ def compile_midterm_grades_view(request):
         'selected_class_id': selected_class_id,
         'selected_subject_id': selected_subject_id,
         'subject_selected': bool(selected_subject),
+        'auto_selected_subject': auto_selected_subject,
         'grade_map': grade_map,
         'ranks': ranks,
     }
