@@ -2560,83 +2560,95 @@ def compile_midterm_grades_view(request):
     if request.user.is_superuser:
         classrooms = ClassRoom.objects.all()
     else:
-        assigned_ids = StaffClassSubject.objects.filter(staff=staff).values_list('classroom_id', flat=True).distinct()
-        classrooms = ClassRoom.objects.filter(id__in=assigned_ids)
+        assigned_class_ids = StaffClassSubject.objects.filter(staff=staff).values_list('classroom_id', flat=True).distinct()
+        classrooms = ClassRoom.objects.filter(id__in=assigned_class_ids)
 
-    subjects = Subject.objects.none()
     selected_class_id = request.GET.get('class_id')
+    selected_subject_id = request.GET.get('subject_id')
+    selected_subject = None
+    classroom = None
     students = []
+    available_subjects = Subject.objects.none()
 
     if selected_class_id:
         classroom = get_object_or_404(ClassRoom, pk=selected_class_id)
         students = Student.objects.filter(enrollments__classroom=classroom).distinct()
-
-        subject_qs = Subject.objects.filter(offered_in_classes__classroom=classroom).distinct()
+        available_subjects = Subject.objects.filter(offered_in_classes__classroom=classroom).distinct()
         if not request.user.is_superuser and staff:
             assigned_subject_ids = StaffClassSubject.objects.filter(staff=staff, classroom=classroom).values_list('subject_id', flat=True).distinct()
-            subject_qs = subject_qs.filter(id__in=assigned_subject_ids)
-        subjects = subject_qs
-    else:
-        classroom = None
+            available_subjects = available_subjects.filter(id__in=assigned_subject_ids)
 
-    if request.method == 'POST':
-        class_id = request.POST.get('class_id')
-        classroom = get_object_or_404(ClassRoom, pk=class_id)
-        students = Student.objects.filter(enrollments__classroom=classroom).distinct()
+        if selected_subject_id:
+            selected_subject = get_object_or_404(Subject, pk=selected_subject_id)
 
-        subject_qs = Subject.objects.filter(offered_in_classes__classroom=classroom).distinct()
-        if not request.user.is_superuser and staff:
-            assigned_subject_ids = StaffClassSubject.objects.filter(staff=staff, classroom=classroom).values_list('subject_id', flat=True).distinct()
-            subject_qs = subject_qs.filter(id__in=assigned_subject_ids)
-
-        current_session = AcademicSession.objects.filter(is_current=True).first()
-        current_term = Term.objects.filter(is_active=True).first()
-
-        for student in students:
-            for subject in subject_qs:
-                score_key = f'score_{student.id}_{subject.id}'
-                val = request.POST.get(score_key)
-                if val:
-                    MidTermRecord.objects.update_or_create(
-                        student=student,
-                        academic_session=current_session,
-                        term=current_term,
-                        subject=subject,
-                        defaults={
-                            'classroom': classroom,
-                            'midterm_score': val,
-                            'recorded_by': staff,
-                        }
-                    )
-
-        messages.success(request, 'Mid-term grades saved successfully!')
-        return redirect(request.path + '?class_id=' + str(class_id))
-
-    grades_matrix = []
     current_session = AcademicSession.objects.filter(is_current=True).first()
     current_term = Term.objects.filter(is_active=True).first()
 
-    for student in students:
-        cells = []
-        for subject in subjects:
-            rec = MidTermRecord.objects.filter(
-                student=student,
-                academic_session=current_session,
-                term=current_term,
-                subject=subject,
-            ).first()
-            cells.append({
-                'subject': subject,
-                'midterm_score': rec.midterm_score if rec else '',
-            })
-        grades_matrix.append({'student': student, 'cells': cells})
+    if request.method == 'POST':
+        selected_class_id = request.POST.get('class_id')
+        selected_subject_id = request.POST.get('subject_id')
+        classroom = get_object_or_404(ClassRoom, pk=selected_class_id)
+        selected_subject = get_object_or_404(Subject, pk=selected_subject_id)
+
+        if not staff or not StaffClassSubject.objects.filter(staff=staff, classroom=classroom, subject=selected_subject).exists():
+            raise PermissionDenied
+
+        students = Student.objects.filter(enrollments__classroom=classroom).distinct()
+
+        for student in students:
+            val = request.POST.get(f'midterm_score_{student.id}')
+            if val:
+                MidTermRecord.objects.update_or_create(
+                    student=student,
+                    academic_session=current_session,
+                    term=current_term,
+                    subject=selected_subject,
+                    defaults={
+                        'classroom': classroom,
+                        'midterm_score': val,
+                        'recorded_by': staff,
+                    }
+                )
+
+        messages.success(request, f'Mid-term grades for {selected_subject.subject_name} saved successfully!')
+        return redirect(request.path + '?class_id=' + str(selected_class_id) + '&subject_id=' + str(selected_subject.id))
+
+    grade_map = {}
+    if selected_subject:
+        records = MidTermRecord.objects.filter(
+            student__in=students,
+            subject=selected_subject,
+            academic_session=current_session,
+            term=current_term,
+        )
+        grade_map = {rec.student_id: rec.midterm_score for rec in records}
+
+    ranks = {}
+    if selected_subject:
+        scored = sorted(
+            [(student.id, (grade_map.get(student.id) or 0)) for student in students],
+            key=lambda x: x[1],
+            reverse=True,
+        )
+        dense_rank = 0
+        prev_score = None
+        for student_id, score in scored:
+            if score != prev_score:
+                dense_rank += 1
+                prev_score = score
+            ranks[student_id] = dense_rank
 
     context = {
         'classrooms': classrooms,
-        'subjects': subjects,
+        'available_subjects': available_subjects,
         'students': students,
         'selected_class': classroom,
-        'grades_matrix': grades_matrix,
+        'selected_subject': selected_subject,
+        'selected_class_id': selected_class_id,
+        'selected_subject_id': selected_subject_id,
+        'subject_selected': bool(selected_subject),
+        'grade_map': grade_map,
+        'ranks': ranks,
     }
     return render(request, 'sis/compile_midterm_grades.html', context)
 

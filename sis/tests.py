@@ -534,6 +534,38 @@ class StudentRegistrationTests(TestCase):
             by_student[bottom.id]["subject_scores"][subject.id]["subject_position"], 2
         )
 
+    def test_midterm_compile_requires_subject_selection(self):
+        classroom = ClassRoom.objects.create(class_name="Class Midterm Empty")
+        url = reverse("compile_midterm_grades", kwargs={})
+        url = reverse("compile_midterm_grades") + "?class_id=" + str(classroom.id)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.context["subject_selected"])
+        self.assertIsNone(response.context["selected_subject"])
+
+    def test_midterm_compile_single_subject_shows_roster_and_rank(self):
+        classroom = ClassRoom.objects.create(class_name="Class Midterm")
+        session = AcademicSession.objects.create(academic_year="2030/2031", is_current=True)
+        term = Term.objects.create(session=session, term_name="Term 1", is_active=True)
+        subject = Subject.objects.create(subject_name="Midterm Subject")
+        ClassSubject.objects.create(classroom=classroom, subject=subject)
+        student = Student.objects.create(
+            admission_number="3001",
+            first_name="Grace",
+            last_name="Mid",
+            dob="2010-01-01",
+            gender="Female",
+            status="Day",
+            current_class=classroom,
+        )
+        url = reverse("compile_midterm_grades") + "?class_id=" + str(classroom.id) + "&subject_id=" + str(subject.id)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["subject_selected"])
+        self.assertEqual(response.context["selected_subject"].id, subject.id)
+        self.assertContains(response, "Grace Mid")
+        self.assertContains(response, "Save Assessment")
+
 
 
 class FormMasterStudentVisibilityTests(TestCase):
