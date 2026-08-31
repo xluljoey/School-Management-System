@@ -4555,7 +4555,21 @@ def import_session_excel(request):
 @login_required
 def parent_detail_view(request, parent_id):
     parent = get_object_or_404(Parent, pk=parent_id)
-    children = list(parent.father_of.all()) + list(parent.mother_of.all())
+
+    children_qs = Student.objects.filter(
+        Q(father=parent) | Q(mother=parent)
+    ).select_related('classroom')
+    children = []
+    for student in children_qs:
+        if student.father_id == parent.id:
+            relationship = 'Father'
+        elif student.mother_id == parent.id:
+            relationship = 'Mother'
+        else:
+            relationship = 'Guardian'
+        student.relationship = relationship
+        children.append(student)
+
     return render(request, 'sis/parent_detail.html', {
         'parent': parent,
         'children': children,

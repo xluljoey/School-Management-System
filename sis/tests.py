@@ -1161,3 +1161,43 @@ class ParentDirectorySearchTests(TestCase):
         response = self.client.get(reverse("global_search_api"), {"q": "zzzznomatch", "scope": "parents"})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["results"], [])
+
+
+class ParentDetailViewTests(TestCase):
+    def setUp(self):
+        from django.contrib.auth.models import User
+
+        User.objects.create_superuser(username="pdetailadmin", password="password")
+        self.client.login(username="pdetailadmin", password="password")
+
+        self.parent = Parent.objects.create(name="Adjei Prempeh", occupation="Driver")
+        self.classroom = ClassRoom.objects.create(class_name="CLASS 4")
+        self.child = Student.objects.create(
+            admission_number="CHD-001",
+            first_name="Collins",
+            last_name="Prempeh",
+            gender="Male",
+            dob="2012-01-01",
+            status="Day",
+            classroom=self.classroom,
+            father=self.parent,
+        )
+
+    def test_parent_detail_passes_children_with_relationship(self):
+        response = self.client.get(reverse("parent_detail", args=[self.parent.id]))
+        self.assertEqual(response.status_code, 200)
+        children = response.context["children"]
+        self.assertEqual(len(children), 1)
+        self.assertEqual(children[0].relationship, "Father")
+        self.assertEqual(children[0].admission_number, "CHD-001")
+
+    def test_parent_detail_renders_child_banner_and_tabular_rows(self):
+        response = self.client.get(reverse("parent_detail", args=[self.parent.id]))
+        self.assertContains(response, "Connected Children")
+        self.assertContains(response, "Collins Prempeh")
+        self.assertContains(response, "CHD-001")
+        self.assertContains(response, "CLASS 4")
+        self.assertContains(response, "Father")
+        self.assertContains(response, "Parent / Guardian Name")
+        self.assertContains(response, "Contact Numbers")
+        self.assertContains(response, "Email &amp; Residential Address")

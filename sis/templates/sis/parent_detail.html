@@ -4,68 +4,170 @@
 {% block title %}Parent Profile — {{ parent.name }}{% endblock %}
 
 {% block content %}
-<div class="d-flex align-items-center justify-content-between mb-4 border-bottom pb-3" style="border-color: #f4f4f5 !important;">
+<style>
+    .detail-table {
+        border-collapse: separate;
+        border-spacing: 0;
+        width: 100%;
+    }
+    .detail-table th,
+    .detail-table td {
+        padding: 14px 18px;
+        font-size: 13px;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    .detail-table thead th {
+        background-color: #f8f9fa;
+        border-bottom: 2px solid #dee2e6;
+        font-weight: 700;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #6c757d;
+    }
+    .detail-table tbody tr {
+        transition: background-color 0.12s;
+    }
+    .detail-table tbody tr:hover {
+        background-color: #fafafa;
+    }
+    .detail-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+</style>
+
+<div class="d-flex flex-wrap align-items-center justify-content-between mb-4 border-bottom pb-3" style="border-color: #f4f4f5 !important; gap: 12px;">
     <div>
         <h4 class="fw-bold text-dark mb-1" style="font-size: 22px; letter-spacing: -0.5px;">Parent Profile Details</h4>
         <p class="text-muted mb-0" style="font-size: 13px;">ID: PAR-{{ parent.id }}</p>
     </div>
-    <a href="{% url 'parents_list' %}" class="btn btn-light rounded-pill px-4 py-2 d-flex align-items-center gap-2" style="font-size: 14px; border: 1px solid #e4e4e7; font-weight: 500;">
-        <i class="bi bi-arrow-left-short fs-5"></i> Back to Parents
-    </a>
+    <div class="d-flex align-items-center gap-2">
+        <a href="{% url 'parents_list' %}" class="btn btn-light rounded-pill px-4 py-2 d-flex align-items-center gap-2" style="font-size: 14px; border: 1px solid #e4e4e7; font-weight: 500;">
+            <i class="bi bi-arrow-left-short fs-5"></i> Back to Parents
+        </a>
+        {% if request.user.is_superuser %}
+        <a href="{% url 'parent_edit' parent.id %}" class="btn btn-dark rounded-pill px-4 py-2 d-flex align-items-center gap-2" style="font-size: 14px; background-color: #121214; border: 1px solid #2a2a2e; font-weight: 500;">
+            <i class="bi bi-pencil-square text-white-50"></i> Update Parent
+        </a>
+        {% endif %}
+    </div>
 </div>
 
-<div class="row g-4">
-    <div class="col-12 col-lg-4">
-        <div class="card border-0 text-center p-4" style="border-radius: 16px; background-color: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
-            <div class="mx-auto bg-dark text-white rounded-circle d-flex align-items-center justify-content-center mb-3" style="width: 120px; height: 120px; font-size: 42px; font-weight: 600;">
-                {{ parent.name|first|upper }}
-            </div>
-            <h5 class="fw-bold text-dark mb-1">{{ parent.name }}</h5>
-            <div class="badge bg-light text-muted px-3 py-2 rounded-pill border" style="font-size: 12px; font-weight: 500;">
-                Guardian
+<!-- Connected Children Overview Banner (Student-Centric Hero) -->
+<div class="card border-0 mb-4" style="border-radius: 16px; background-color: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+    <div class="card-body p-4">
+        <div class="d-flex align-items-center gap-2 mb-3">
+            <h6 class="text-secondary fw-bold text-uppercase mb-0" style="font-size: 12px; letter-spacing: 0.5px;">Connected Children</h6>
+            <span class="badge bg-light text-muted border px-2 py-1 rounded-pill" style="font-size: 11px; font-weight: 500;">{{ children|length }} linked</span>
+        </div>
+
+        {% for student in children %}
+        <div class="d-flex flex-wrap align-items-center justify-content-between border rounded py-3 px-3 mb-2 last:mb-0" style="gap: 16px; border-color: #f0f0f0 !important;">
+            <a href="{% url 'student_detail' student.id %}" class="d-flex align-items-center gap-3 text-decoration-none" style="min-width: 0;">
+                {% if student.profile_picture %}
+                <img src="{{ student.profile_picture.url }}" alt="" style="width: 52px; height: 52px; border-radius: 50%; object-fit: cover; flex-shrink: 0;">
+                {% else %}
+                <span style="width: 52px; height: 52px; border-radius: 50%; background-color: #000000; color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.1rem; flex-shrink: 0;">{{ student.get_full_name|first|upper }}</span>
+                {% endif %}
+                <div>
+                    <div class="fw-bold text-dark" style="font-size: 15px;">{{ student.get_full_name }}</div>
+                    <div class="text-muted" style="font-size: 12px;">{{ student.admission_number }}</div>
+                </div>
+            </a>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                {% if student.classroom %}
+                <span class="badge bg-light text-dark border px-3 py-2 rounded-pill" style="font-size: 12px; font-weight: 500;">
+                    {{ student.classroom.class_name }}
+                </span>
+                {% endif %}
+                <span class="badge border px-3 py-2 rounded-pill" style="font-size: 12px; font-weight: 600; {% if student.relationship == 'Mother' %}background-color: #fce7f3; color: #be185d; border-color: #fbcfe8;{% elif student.relationship == 'Father' %}background-color: #dbeafe; color: #1e40af; border-color: #bfdbfe;{% else %}background-color: #fef3c7; color: #92400e; border-color: #fde68a;{% endif %}">
+                    {{ student.relationship }}
+                </span>
+                <a href="{% url 'student_detail' student.id %}" class="btn btn-sm btn-outline-dark rounded-pill px-3" style="font-size: 12px; font-weight: 500;">
+                    View Profile <i class="bi bi-arrow-right-short"></i>
+                </a>
             </div>
         </div>
+        {% empty %}
+        <div class="text-center py-5" style="color: #8E8D93;">
+            <i class="bi bi-person-x fs-3 d-block mb-2"></i>
+            No students linked to this parent.
+        </div>
+        {% endfor %}
     </div>
+</div>
 
-    <div class="col-12 col-lg-8">
-        <div class="card border-0 p-4" style="border-radius: 16px; background-color: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.02); min-height: 320px;">
-            <h6 class="text-secondary fw-bold text-uppercase mb-4" style="font-size: 12px; letter-spacing: 0.5px;">Information Registry</h6>
-
-            <div class="row g-4">
-                <div class="col-12 col-md-6">
-                    <div class="text-muted text-uppercase fw-semibold" style="font-size: 11px;">Phone Number</div>
-                    <div class="text-dark fw-medium mt-1">{{ parent.telephone_number|default:"--" }}</div>
-                </div>
-                <div class="col-12 col-md-6">
-                    <div class="text-muted text-uppercase fw-semibold" style="font-size: 11px;">Email Address</div>
-                    <div class="text-dark fw-medium mt-1">{{ parent.email|default:"--" }}</div>
-                </div>
-                <div class="col-12 col-md-6">
-                    <div class="text-muted text-uppercase fw-semibold" style="font-size: 11px;">Occupation</div>
-                    <div class="text-dark fw-medium mt-1">{{ parent.occupation|default:"--" }}</div>
-                </div>
-                <div class="col-12 col-md-6">
-                    <div class="text-muted text-uppercase fw-semibold" style="font-size: 11px;">Connected Children</div>
-                    <div class="mt-1 d-flex flex-wrap gap-1">
+<!-- Structured Tabular Detail Registry -->
+<div class="card border-0" style="border-radius: 16px; background-color: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+    <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center" style="border-bottom: 1px solid #f0f0f0;">
+        <h6 class="text-secondary fw-bold text-uppercase mb-0" style="font-size: 12px; letter-spacing: 0.5px;">Information Registry</h6>
+    </div>
+    <div class="table-responsive">
+        <table class="detail-table mb-0">
+            <thead>
+                <tr>
+                    <th style="width: 34%;">Category</th>
+                    <th>Details</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="text-muted text-uppercase fw-semibold" style="font-size: 11px;">Parent / Guardian Name</td>
+                    <td class="text-dark fw-semibold">
+                        {{ parent.name|default:"--" }}
+                    </td>
+                </tr>
+                <tr>
+                    <td class="text-muted text-uppercase fw-semibold" style="font-size: 11px;">Relationship &amp; Occupation</td>
+                    <td class="text-dark">
+                        {% if parent.occupation %}
+                        <span class="badge bg-light text-dark border px-2 py-1 rounded-pill" style="font-size: 12px; font-weight: 500;">Guardian</span>
+                        <span class="fw-medium">&nbsp;·&nbsp;{{ parent.occupation }}</span>
+                        {% else %}
+                        <span class="badge bg-light text-dark border px-2 py-1 rounded-pill" style="font-size: 12px; font-weight: 500;">Guardian</span>
+                        <span class="text-muted">&nbsp;·&nbsp;--</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <td class="text-muted text-uppercase fw-semibold" style="font-size: 11px;">Contact Numbers</td>
+                    <td class="text-dark">
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <span class="fw-medium">{{ parent.telephone_number|default:"--" }}</span>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="text-muted text-uppercase fw-semibold" style="font-size: 11px;">Email &amp; Residential Address</td>
+                    <td class="text-dark">
+                        <div class="d-flex flex-column gap-1">
+                            <span class="fw-medium">{{ parent.email|default:"--" }}</span>
+                            <span style="color: #6c757d; font-size: 12px;">{{ parent.residential_address|default:"--" }}</span>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="text-muted text-uppercase fw-semibold" style="font-size: 11px;">Connected Children</td>
+                    <td class="text-dark">
                         {% for student in children %}
-                        <span class="badge bg-light text-success border px-2 py-1 rounded" style="font-size: 12px;">
+                        <a href="{% url 'student_detail' student.id %}" class="badge bg-light text-success border px-2 py-1 rounded-pill text-decoration-none me-1 mb-1" style="font-size: 12px; font-weight: 500;">
                             {{ student.get_full_name }} ({{ student.classroom.class_name|default:"No class" }})
-                        </span>
+                        </a>
                         {% empty %}
                         <span class="text-muted">No students assigned</span>
                         {% endfor %}
-                    </div>
-                </div>
-            </div>
-        </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
     </div>
 </div>
 
 {% if request.user.is_superuser %}
-<a href="{% url 'parent_edit' parent.id %}" class="btn btn-dark rounded-pill shadow-lg d-flex align-items-center gap-2 px-4 py-3 position-fixed"
-   style="bottom: 32px; right: 32px; z-index: 1050; font-weight: 500; font-size: 14px; background-color: #121214; border: 1px solid #2a2a2e; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3) !important;">
-    <i class="bi bi-pencil-square text-white-50"></i>
-    <span class="text-white">Update Parent</span>
+<a href="{% url 'parent_edit' parent.id %}" class="btn btn-light rounded-pill shadow-lg d-flex align-items-center gap-2 px-4 py-3 position-fixed"
+   style="bottom: 32px; right: 32px; z-index: 1050; font-weight: 500; font-size: 14px; background-color: #ffffff; color: #121214; border: 1px solid #e4e4e7; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3) !important;">
+    <i class="bi bi-pencil-square"></i>
+    Update Parent
 </a>
 {% endif %}
 {% endblock %}
