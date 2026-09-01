@@ -32,6 +32,53 @@ def _is_admin(user):
     return user.is_active and user.is_superuser
 
 
+def get_ordinal(n):
+    """Convert a number to ordinal format: 1 -> 1st, 2 -> 2nd, etc."""
+    if n is None:
+        return "—"
+    n = int(n)
+    if 10 <= n % 100 <= 20:
+        suffix = 'th'
+    else:
+        suffix = {1: 'st', 2: 'nd', 3: 'rd'}.get(n % 10, 'th')
+    return f"{n}{suffix}"
+
+
+def is_jhs_class(classroom):
+    """Check if a classroom is a JHS class."""
+    return classroom and "jhs" in classroom.class_name.lower()
+
+
+def get_grade_remarks_for_class(classroom):
+    """Get appropriate GRADE_REMARKS based on class type."""
+    if is_jhs_class(classroom):
+        # WAEC standard for JHS
+        return [
+            (80, "A1", "Excellent"),
+            (75, "A2", "Excellent"),
+            (70, "B3", "Very Good"),
+            (65, "C4", "Good"),
+            (60, "C5", "Good"),
+            (55, "C6", "Average"),
+            (50, "D7", "Average"),
+            (45, "E8", "Pass"),
+            (0,  "F9", "Fail"),
+        ]
+    else:
+        # Primary classes - keep letters but update remarks
+        return [
+            (80, "1", "Excellent"),
+            (75, "2", "Excellent"),
+            (70, "3", "Very Good"),
+            (65, "4", "Good"),
+            (60, "5", "Good"),
+            (55, "6", "Average"),
+            (50, "7", "Average"),
+            (40, "8", "Pass"),
+            (0,  "9", "Fail"),
+        ]
+
+
 def _build_dashboard_calendar_data(request, current_date=None):
     today = date.today()
     current_date = current_date or today
@@ -524,17 +571,7 @@ def class_report_card_view(request, class_id):
     for a in all_assessments:
         assessment_map.setdefault(a.student_id, {})[a.subject_id] = a
 
-    GRADE_REMARKS = [
-        (80, "1", "Highest Distinction"),
-        (75, "2", "Distinction"),
-        (70, "3", "Excellent"),
-        (65, "4", "Very Good"),
-        (60, "5", "Good"),
-        (55, "6", "Credit"),
-        (50, "7", "Satisfactory"),
-        (40, "8", "Pass"),
-        (0,  "9", "Fail"),
-    ]
+    GRADE_REMARKS = get_grade_remarks_for_class(classroom)
 
     def get_remark(total):
         if total is None:
@@ -542,7 +579,7 @@ def class_report_card_view(request, class_id):
         for floor, grade, label in GRADE_REMARKS:
             if total >= floor:
                 return grade, label
-        return "9", "Fail"
+        return GRADE_REMARKS[-1][1], GRADE_REMARKS[-1][2]
 
     report_data = []
     for student in students:
@@ -843,11 +880,7 @@ def generate_report_cards_view(request, class_id):
     for a in all_assessments:
         assessment_map.setdefault(a.student_id, {})[a.subject_id] = a
 
-    GRADE_REMARKS = [
-        (80, "1", "Highest Distinction"), (75, "2", "Distinction"),
-        (70, "3", "Excellent"), (65, "4", "Very Good"), (60, "5", "Good"),
-        (55, "6", "Credit"), (50, "7", "Satisfactory"), (40, "8", "Pass"), (0, "9", "Fail"),
-    ]
+    GRADE_REMARKS = get_grade_remarks_for_class(classroom)
 
     def get_remark(total):
         if total is None:
@@ -855,7 +888,7 @@ def generate_report_cards_view(request, class_id):
         for floor, grade, label in GRADE_REMARKS:
             if total >= floor:
                 return grade, label
-        return "9", "Fail"
+        return GRADE_REMARKS[-1][1], GRADE_REMARKS[-1][2]
 
     report_data = []
     for student in students:
@@ -893,6 +926,7 @@ def generate_report_cards_view(request, class_id):
     report_data = sorted(report_data, key=lambda x: x['grand_total'], reverse=True)
     for index, row in enumerate(report_data):
         row['rank'] = index + 1
+        row['rank_ordinal'] = get_ordinal(row['rank'])
 
     subject_positions = {}
     for subj in subjects_for_class:
@@ -942,6 +976,7 @@ def print_report_cards_view(request, class_id):
         raise PermissionDenied
 
     student_ids = request.POST.getlist('student_ids[]')
+    reopening_date = request.POST.get('reopening_date') or request.GET.get('reopening_date') or ''
     if not student_ids:
         return render(request, 'sis/student_report_card_print.html', {
             'classroom': classroom,
@@ -951,27 +986,27 @@ def print_report_cards_view(request, class_id):
             'current_term': None,
             'term_number': 1,
             'year_label': '',
+            'reopening_date': reopening_date,
         })
 
     current_session = AcademicSession.objects.filter(is_current=True).first()
     current_term = Term.objects.filter(is_active=True).first() if current_session else None
 
     subjects_for_class = Subject.objects.filter(offered_in_classes__classroom=classroom).distinct().order_by('subject_name')
-    students = Student.objects.filter(id__in=student_ids, enrollments__classroom=classroom).distinct()
+    
+    # Get all students for ranking, not just selected ones
+    all_students = Student.objects.filter(enrollments__classroom=classroom).distinct()
+    selected_student_ids = set(int(sid) for sid in student_ids)
 
     all_assessments = SubjectAssessment.objects.filter(
         academic_session=current_session, academic_term=current_term,
-        student__in=students, subject__in=subjects_for_class,
+        student__in=all_students, subject__in=subjects_for_class,
     )
     assessment_map = {}
     for a in all_assessments:
         assessment_map.setdefault(a.student_id, {})[a.subject_id] = a
 
-    GRADE_REMARKS = [
-        (80, "1", "Highest Distinction"), (75, "2", "Distinction"),
-        (70, "3", "Excellent"), (65, "4", "Very Good"), (60, "5", "Good"),
-        (55, "6", "Credit"), (50, "7", "Satisfactory"), (40, "8", "Pass"), (0, "9", "Fail"),
-    ]
+    GRADE_REMARKS = get_grade_remarks_for_class(classroom)
 
     def get_remark(total):
         if total is None:
@@ -979,10 +1014,11 @@ def print_report_cards_view(request, class_id):
         for floor, grade, label in GRADE_REMARKS:
             if total >= floor:
                 return grade, label
-        return "9", "Fail"
+        return GRADE_REMARKS[-1][1], GRADE_REMARKS[-1][2]
 
     report_data = []
-    for student in students:
+    # Build report for all students, then filter to selected
+    for student in all_students:
         subject_scores = {}
         for subj in subjects_for_class:
             a = assessment_map.get(student.id, {}).get(subj.id)
@@ -1017,8 +1053,10 @@ def print_report_cards_view(request, class_id):
         })
 
     report_data = sorted(report_data, key=lambda x: x['grand_total'], reverse=True)
+    # Rank all students
     for index, row in enumerate(report_data):
         row['rank'] = index + 1
+        row['rank_ordinal'] = get_ordinal(row['rank'])
 
     subject_positions = {}
     for subj in subjects_for_class:
@@ -1033,7 +1071,10 @@ def print_report_cards_view(request, class_id):
         for subj in subjects_for_class:
             row['subject_scores'][subj.id]['subject_position'] = subject_positions.get(subj.id, {}).get(row['student'].id)
 
-    class_size = Student.objects.filter(enrollments__classroom=classroom).distinct().count()
+    # Filter to only selected students for printing
+    selected_students = [r for r in report_data if r['student'].id in selected_student_ids]
+
+    class_size = all_students.count()
 
     form_master_name = ""
     if classroom.form_master:
@@ -1041,7 +1082,7 @@ def print_report_cards_view(request, class_id):
 
     return render(request, 'sis/student_report_card_print.html', {
         'classroom': classroom,
-        'selected_students': report_data,
+        'selected_students': selected_students,
         'subjects_for_class': subjects_for_class,
         'current_session': current_session,
         'current_term': current_term,
@@ -1049,6 +1090,7 @@ def print_report_cards_view(request, class_id):
         'year_label': current_session.academic_year if current_session else '',
         'class_size': class_size,
         'form_master_name': form_master_name,
+        'reopening_date': reopening_date,
     })
 
 
@@ -1084,11 +1126,7 @@ def export_excel_view(request, class_id):
     for a in all_assessments:
         assessment_map.setdefault(a.student_id, {})[a.subject_id] = a
 
-    GRADE_REMARKS = [
-        (80, "1", "Highest Distinction"), (75, "2", "Distinction"),
-        (70, "3", "Excellent"), (65, "4", "Very Good"), (60, "5", "Good"),
-        (55, "6", "Credit"), (50, "7", "Satisfactory"), (40, "8", "Pass"), (0, "9", "Fail"),
-    ]
+    GRADE_REMARKS = get_grade_remarks_for_class(classroom)
 
     def get_remark(total):
         if total is None:
@@ -1096,7 +1134,7 @@ def export_excel_view(request, class_id):
         for floor, grade, label in GRADE_REMARKS:
             if total >= floor:
                 return grade, label
-        return "9", "Fail"
+        return GRADE_REMARKS[-1][1], GRADE_REMARKS[-1][2]
 
     wb = Workbook()
     ws = wb.active
@@ -2773,11 +2811,7 @@ def midterm_generate_report_hub_view(request, class_id):
     for r in all_records:
         record_map.setdefault(r.student_id, {})[r.subject_id] = r
 
-    GRADE_REMARKS = [
-        (80, "1", "Highest Distinction"), (75, "2", "Distinction"),
-        (70, "3", "Excellent"), (65, "4", "Very Good"), (60, "5", "Good"),
-        (55, "6", "Credit"), (50, "7", "Satisfactory"), (40, "8", "Pass"), (0, "9", "Fail"),
-    ]
+    GRADE_REMARKS = get_grade_remarks_for_class(classroom)
 
     def get_remark(total):
         if total is None:
@@ -2785,7 +2819,7 @@ def midterm_generate_report_hub_view(request, class_id):
         for floor, grade, label in GRADE_REMARKS:
             if total >= floor:
                 return grade, label
-        return "9", "Fail"
+        return GRADE_REMARKS[-1][1], GRADE_REMARKS[-1][2]
 
     report_data = []
     for student in students:
@@ -2823,6 +2857,7 @@ def midterm_generate_report_hub_view(request, class_id):
     report_data = sorted(report_data, key=lambda x: x['total'], reverse=True)
     for index, row in enumerate(report_data):
         row['rank'] = index + 1
+        row['rank_ordinal'] = get_ordinal(row['rank'])
 
     subject_positions = {}
     for subj in subjects_for_class:
@@ -2882,21 +2917,20 @@ def midterm_print_report_cards_view(request, class_id):
     current_term = Term.objects.filter(is_active=True).first() if current_session else None
 
     subjects_for_class = Subject.objects.filter(offered_in_classes__classroom=classroom).distinct().order_by('subject_name')
-    students = Student.objects.filter(id__in=student_ids, enrollments__classroom=classroom).distinct()
+    
+    # Get all students for ranking, not just selected ones
+    all_students = Student.objects.filter(enrollments__classroom=classroom).distinct()
+    selected_student_ids = set(int(sid) for sid in student_ids)
 
     all_records = MidTermRecord.objects.filter(
         academic_session=current_session, academic_term=current_term,
-        student__in=students, subject__in=subjects_for_class,
+        student__in=all_students, subject__in=subjects_for_class,
     )
     record_map = {}
     for r in all_records:
         record_map.setdefault(r.student_id, {})[r.subject_id] = r
 
-    GRADE_REMARKS = [
-        (80, "1", "Highest Distinction"), (75, "2", "Distinction"),
-        (70, "3", "Excellent"), (65, "4", "Very Good"), (60, "5", "Good"),
-        (55, "6", "Credit"), (50, "7", "Satisfactory"), (40, "8", "Pass"), (0, "9", "Fail"),
-    ]
+    GRADE_REMARKS = get_grade_remarks_for_class(classroom)
 
     def get_remark(total):
         if total is None:
@@ -2904,10 +2938,11 @@ def midterm_print_report_cards_view(request, class_id):
         for floor, grade, label in GRADE_REMARKS:
             if total >= floor:
                 return grade, label
-        return "9", "Fail"
+        return GRADE_REMARKS[-1][1], GRADE_REMARKS[-1][2]
 
     report_data = []
-    for student in students:
+    # Build report for all students, then filter to selected
+    for student in all_students:
         subject_scores = {}
         for subj in subjects_for_class:
             rec = record_map.get(student.id, {}).get(subj.id)
@@ -2942,8 +2977,10 @@ def midterm_print_report_cards_view(request, class_id):
         })
 
     report_data = sorted(report_data, key=lambda x: x['total'], reverse=True)
+    # Rank all students
     for index, row in enumerate(report_data):
         row['rank'] = index + 1
+        row['rank_ordinal'] = get_ordinal(row['rank'])
 
     subject_positions = {}
     for subj in subjects_for_class:
@@ -2958,7 +2995,10 @@ def midterm_print_report_cards_view(request, class_id):
         for subj in subjects_for_class:
             row['subject_scores'][subj.id]['subject_position'] = subject_positions.get(subj.id, {}).get(row['student'].id)
 
-    class_size = Student.objects.filter(enrollments__classroom=classroom).distinct().count()
+    # Filter to only selected students for printing
+    selected_students = [r for r in report_data if r['student'].id in selected_student_ids]
+
+    class_size = all_students.count()
 
     form_master_name = ""
     if classroom.form_master:
@@ -2966,7 +3006,7 @@ def midterm_print_report_cards_view(request, class_id):
 
     return render(request, 'sis/midterm_report_card_print.html', {
         'classroom': classroom,
-        'selected_students': report_data,
+        'selected_students': selected_students,
         'subjects_for_class': subjects_for_class,
         'current_session': current_session,
         'current_term': current_term,

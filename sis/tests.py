@@ -597,6 +597,42 @@ class StudentRegistrationTests(TestCase):
         self.assertEqual(response.context["selected_subject"].id, subject.id)
         self.assertContains(response, "Compiled Subject")
 
+    def test_report_print_injects_reopening_date(self):
+        classroom = ClassRoom.objects.create(class_name="Class Reopen")
+        session = AcademicSession.objects.create(academic_year="2025/2026", is_current=True)
+        term = Term.objects.create(session=session, term_name="Term 1", is_active=True)
+        student = Student.objects.create(
+            admission_number="REOPEN-001",
+            first_name="Rita",
+            last_name="Reopen",
+            gender="Female",
+            dob="2011-01-01",
+            status="Day",
+            current_class=classroom,
+        )
+        subject = Subject.objects.create(subject_name="Maths")
+        ClassSubject.objects.create(classroom=classroom, subject=subject)
+        SubjectAssessment.objects.create(
+            student=student, subject=subject,
+            academic_session=session, academic_term=term,
+            class_score=20, exam_score=40,
+        )
+
+        response = self.client.post(
+            reverse("print_report_cards", kwargs={"class_id": classroom.id}),
+            {"student_ids[]": [str(student.id)], "reopening_date": "2026-09-15"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["reopening_date"], "2026-09-15")
+        self.assertContains(response, "2026-09-15")
+
+    def test_report_print_defaults_to_announced_without_date(self):
+        classroom = ClassRoom.objects.create(class_name="Class Reopen 2")
+        url = reverse("print_report_cards", kwargs={"class_id": classroom.id})
+        response = self.client.post(url, {"student_ids[]": []})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["reopening_date"], "")
+
 
 
 class FormMasterStudentVisibilityTests(TestCase):

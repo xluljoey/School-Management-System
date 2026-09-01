@@ -401,7 +401,7 @@
             </div>
             <div class="summary-box">
                 <div class="label">Overall Position</div>
-                <div class="value">#{{ row.rank }} out of {{ class_size }}</div>
+                <div class="value">{{ row.rank_ordinal }}</div>
             </div>
         </div>
     </div>
@@ -409,11 +409,11 @@
     <div class="remarks-grid">
         <div class="remark-box">
             <div class="remark-label">Class Teacher's Comment</div>
-            <div class="remark-text">{% if row.overall_grade == "1" or row.overall_grade == "2" or row.overall_grade == "3" %}Excellent performance. Keep it up!{% elif row.overall_grade == "4" or row.overall_grade == "5" %}Good work. Strive for even better results.{% elif row.overall_grade == "6" or row.overall_grade == "7" %}Fair performance. More effort needed in studies.{% else %}Needs significant improvement. Consultation with parents recommended.{% endif %}</div>
+            <div class="remark-text">{% if row.overall_remark == "Excellent" %}Excellent performance. Keep it up!{% elif row.overall_remark == "Very Good" %}Good work. Strive for even better results.{% elif row.overall_remark == "Good" or row.overall_remark == "Average" %}Fair performance. More effort needed in studies.{% else %}Needs significant improvement. Consultation with parents recommended.{% endif %}</div>
         </div>
         <div class="remark-box">
             <div class="remark-label">Head Teacher's Comment</div>
-            <div class="remark-text">{% if row.overall_grade == "1" or row.overall_grade == "2" %}A commendable result. The school is proud of you.{% elif row.overall_grade == "3" or row.overall_grade == "4" %}Well done. Continue to work hard.{% elif row.overall_grade == "5" or row.overall_grade == "6" %}Acceptable. Put in more effort next term.{% else %}More discipline and effort required.{% endif %}</div>
+            <div class="remark-text">{% if row.overall_remark == "Excellent" %}A commendable result. The school is proud of you.{% elif row.overall_remark == "Very Good" %}Well done. Continue to work hard.{% elif row.overall_remark == "Good" %}Acceptable. Put in more effort next term.{% elif row.overall_remark == "Average" %}More discipline and effort required.{% else %}Consultation with parents recommended.{% endif %}</div>
         </div>
     </div>
 

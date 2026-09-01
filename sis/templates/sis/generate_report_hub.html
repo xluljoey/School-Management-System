@@ -66,7 +66,7 @@
         {# ── Export Action Cards ── #}
         <div class="row g-3 mb-4">
             <div class="col-md-4">
-                <a class="action-card" onclick="printSelected()" id="printAction">
+                <a class="action-card" onclick="openReopeningModal()" id="printAction">
                     <div class="d-flex align-items-center gap-3">
                         <div style="width: 44px; height: 44px; border-radius: 12px; background: #111; color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
@@ -246,6 +246,53 @@
         </div>
     </div>
 </div>
+
+{# ── Reopening Date Modal ── #}
+<div id="reopeningDateModal" class="email-modal">
+    <div style="background: #fff; border-radius: 20px; width: min(92vw, 480px); overflow: hidden; box-shadow: 0 25px 60px rgba(0,0,0,0.25); display: flex; flex-direction: column;">
+        <div style="padding: 28px 32px 16px; border-bottom: 1px solid #f0f0f0;">
+            <div class="d-flex align-items-start justify-content-between">
+                <div>
+                    <h5 class="fw-bold mb-1" style="font-size: 18px; color: #111;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; vertical-align: -3px; margin-right: 6px;">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                        </svg>
+                        Set Next Term Reopening Date
+                    </h5>
+                    <small style="color: #6b7280;">
+                        Appears on the report card footer for all selected students.
+                    </small>
+                </div>
+                <button onclick="closeReopeningModal()" style="background: none; border: none; font-size: 22px; color: #9ca3af; cursor: pointer; padding: 4px 8px;">&times;</button>
+            </div>
+        </div>
+        <form id="reopeningForm" onsubmit="return proceedToPrint(event)">
+            <div style="padding: 20px 32px;">
+                <label for="next_term_date" style="font-size: 13px; font-weight: 600; color: #374151; display: block; margin-bottom: 8px;">Next Term / School Reopening Date</label>
+                <input type="date" id="next_term_date" class="form-input"
+                       style="width: 100%; border: 1px solid #e5e7eb; border-radius: 12px; padding: 12px 16px; font-size: 14px; outline: none;"
+                       onfocus="this.style.borderColor='#111'"
+                       onblur="this.style.borderColor='#e5e7eb'">
+                <div id="reopeningDateError" style="display: none; color: #b91c1c; font-size: 12px; font-weight: 500; margin-top: 8px;">Please select a reopening date.</div>
+            </div>
+            <div style="padding: 16px 32px 24px; border-top: 1px solid #f0f0f0; display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" onclick="closeReopeningModal()"
+                        style="border-radius: 50px; padding: 10px 24px; font-weight: 500; font-size: 14px; border: 1px solid #e5e7eb; background: #fff; color: #374151; cursor: pointer;">
+                    Cancel
+                </button>
+                <button type="submit"
+                        style="border-radius: 50px; padding: 10px 24px; font-weight: 600; font-size: 14px; background: #111; color: #fff; border: none; cursor: pointer;"
+                        onmouseover="this.style.background='#222'"
+                        onmouseout="this.style.background='#111'">
+                    Proceed &amp; Print
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -295,6 +342,15 @@ function printSelected() {
     csrf.value = '{{ csrf_token }}';
     form.appendChild(csrf);
 
+    var reopeningDate = document.getElementById('next_term_date').value;
+    if (reopeningDate) {
+        var rd = document.createElement('input');
+        rd.type = 'hidden';
+        rd.name = 'reopening_date';
+        rd.value = reopeningDate;
+        form.appendChild(rd);
+    }
+
     ids.forEach(function(id) {
         var input = document.createElement('input');
         input.type = 'hidden';
@@ -306,6 +362,41 @@ function printSelected() {
     document.body.appendChild(form);
     form.submit();
     document.body.removeChild(form);
+}
+
+function openReopeningModal() {
+    var ids = getSelectedStudentIds();
+    if (ids.length === 0) {
+        alert('Please select at least one student to print.');
+        return;
+    }
+    document.getElementById('reopeningDateError').style.display = 'none';
+    document.getElementById('next_term_date').value = '';
+    document.getElementById('reopeningDateModal').classList.add('active');
+    setTimeout(function() {
+        var input = document.getElementById('next_term_date');
+        if (input) input.focus();
+    }, 100);
+}
+
+function closeReopeningModal() {
+    document.getElementById('reopeningDateModal').classList.remove('active');
+    document.getElementById('reopeningDateError').style.display = 'none';
+}
+
+function proceedToPrint(event) {
+    event.preventDefault();
+    var dateInput = document.getElementById('next_term_date');
+    var error = document.getElementById('reopeningDateError');
+    if (!dateInput.value) {
+        error.style.display = 'block';
+        dateInput.focus();
+        return false;
+    }
+    error.style.display = 'none';
+    closeReopeningModal();
+    printSelected();
+    return false;
 }
 
 function openEmailModal() {
