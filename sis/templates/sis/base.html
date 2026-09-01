@@ -403,8 +403,9 @@
                     <a href="{% url 'alumni_list' %}" class="{% if request.path|startswith:'/alumni/' %}active{% endif %}">
                         <i class="bi bi-mortarboard-fill"></i> Alumni
                     </a>
-                    <a href="{% url 'parents_list' %}" class="{% if request.path|startswith:'/parents/' %}active{% endif %}">
+                    <a href="{% url 'parents_list' %}" class="{% if request.path|startswith:'/parents/' %}active{% endif %}" style="opacity: 0.55;">
                         <i class="bi bi-people-fill"></i> Parents
+                        <i class="bi bi-lock-fill" style="font-size: 10px; margin-left: 4px; opacity: 0.7;"></i>
                     </a>
                     <a href="{% url 'classes_subjects_hub' %}" class="{% if request.path|startswith:'/classes-subjects/' %}active{% endif %}">
                         <i class="bi bi-collection-play"></i> Classes & Subjects

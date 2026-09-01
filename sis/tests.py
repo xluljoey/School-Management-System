@@ -681,6 +681,49 @@ class FormMasterStudentVisibilityTests(TestCase):
         self.assertNotContains(response, "Ama  Serwaa")
 
 
+class ParentsDirectoryLockTests(TestCase):
+    def setUp(self):
+        from django.contrib.auth.models import User
+
+        self.admin = User.objects.create_superuser(username="lockadmin", password="password")
+        self.client.login(username="lockadmin", password="password")
+        self.parent = Parent.objects.create(name="Maame Safoa", telephone_number="0244000000")
+
+    def test_superuser_sees_parents_directory(self):
+        response = self.client.get(reverse("parents_list"))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "sis/parents_list.html")
+        self.assertContains(response, "Maame Safoa")
+
+    def test_superuser_sees_parent_detail(self):
+        response = self.client.get(reverse("parent_detail", args=[self.parent.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "sis/parent_detail.html")
+
+    def test_regular_staff_sees_locked_parents_directory(self):
+        from django.contrib.auth.models import User
+
+        self.client.logout()
+        User.objects.create_user(username="plainlockstaff", password="password")
+        self.client.login(username="plainlockstaff", password="password")
+        response = self.client.get(reverse("parents_list"))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "sis/parents_locked.html")
+        self.assertContains(response, "Parents Directory is Locked")
+        self.assertNotContains(response, "Maame Safoa")
+
+    def test_regular_staff_parent_detail_is_locked(self):
+        from django.contrib.auth.models import User
+
+        self.client.logout()
+        User.objects.create_user(username="plainlockstaff2", password="password")
+        self.client.login(username="plainlockstaff2", password="password")
+        response = self.client.get(reverse("parent_detail", args=[self.parent.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "sis/parents_locked.html")
+        self.assertContains(response, "Parents Directory is Locked")
+
+
 class ExportStaffExcelTests(TestCase):
     def setUp(self):
         import io

@@ -3202,6 +3202,9 @@ def view_account(request):
 def parents_list(request):
     user = request.user
 
+    if not user.is_superuser:
+        return render(request, 'sis/parents_locked.html', {'current_user': user})
+
     children_prefetch = Prefetch(
         'father_of',
         queryset=Student.objects.select_related('classroom').filter(is_alumni=False),
@@ -3213,19 +3216,7 @@ def parents_list(request):
         to_attr='mother_children'
     )
 
-    if user.is_superuser:
-        parents = Parent.objects.prefetch_related(children_prefetch, mother_prefetch).order_by('name')
-    elif hasattr(user, 'staff_profile'):
-        staff = user.staff_profile
-        classroom_ids = StaffClassSubject.objects.filter(
-            staff=staff
-        ).values_list('classroom_id', flat=True).distinct()
-        parents = Parent.objects.filter(
-            Q(father_of__classroom_id__in=classroom_ids) |
-            Q(mother_of__classroom_id__in=classroom_ids)
-        ).distinct().prefetch_related(children_prefetch, mother_prefetch).order_by('name')
-    else:
-        parents = Parent.objects.none()
+    parents = Parent.objects.prefetch_related(children_prefetch, mother_prefetch).order_by('name')
 
     return render(request, 'sis/parents_list.html', {'parents': parents})
 
@@ -4719,6 +4710,9 @@ def import_session_excel(request):
 
 @login_required
 def parent_detail_view(request, parent_id):
+    if not request.user.is_superuser:
+        return render(request, 'sis/parents_locked.html', {'current_user': request.user})
+
     parent = get_object_or_404(Parent, pk=parent_id)
 
     children_qs = Student.objects.filter(
